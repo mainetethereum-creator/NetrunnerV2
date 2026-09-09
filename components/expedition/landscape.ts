@@ -1,4 +1,5 @@
 import * as T from 'three';
+import {mergeGeometries} from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import {terrainHeight,HANGARS,northEdge,southEdge} from './terrain';
 // World-space aggregate and cracks: the road has no paving texture or tile grid.
 export function groundMaterial(asphalt:boolean){
@@ -39,7 +40,8 @@ export function buildLandscape(scene:T.Scene,metal:T.Material,concrete:T.Materia
   // Distant low-cost buildings are a backdrop, not explorable interiors.
   const silhouettes=new T.InstancedMesh(box,dark,36);for(let i=0;i<36;i++){const x=(i%18)*10-10,z=i<18?-14:87,h=5+(i*7%9);dummy.position.set(x,terrainHeight({x,z})+h/2,z);dummy.scale.set(6+i%3,h,6);dummy.rotation.set(0,(i%3-1)*.07,0);dummy.updateMatrix();silhouettes.setMatrixAt(i,dummy.matrix);}silhouettes.computeBoundingSphere();scene.add(silhouettes);
   for(const h of HANGARS){const group=new T.Group();group.position.set(h.x,0,h.z);scene.add(group);
-    const part=(x:number,y:number,z:number,w:number,height:number,d:number,mat:T.Material,tilt=0)=>{const m=new T.Mesh(box,mat);m.position.set(x,y,z);m.scale.set(w,height,d);m.rotation.z=tilt;m.castShadow=true;m.receiveShadow=true;group.add(m);};
+    const batches=new Map<T.Material,T.BufferGeometry[]>();
+    const part=(x:number,y:number,z:number,w:number,height:number,d:number,mat:T.Material,tilt=0)=>{dummy.position.set(x,y,z);dummy.scale.set(w,height,d);dummy.rotation.set(0,0,tilt);dummy.updateMatrix();const geometry=box.clone().applyMatrix4(dummy.matrix);if(!batches.has(mat))batches.set(mat,[]);batches.get(mat)!.push(geometry);};
     part(0,h.h*.44,0,h.w,h.h*.88,h.d,metal);
     for(const side of [-1,1])part(side*h.w/4,h.h,0,h.w*.55,.22,h.d+.5,metal,-side*.25);
     part(0,.22,h.d/2+.2,h.w+.4,.44,.6,concrete);
@@ -47,6 +49,7 @@ export function buildLandscape(scene:T.Scene,metal:T.Material,concrete:T.Materia
     for(let y=.25;y<3.6;y+=.28)part(0,y,h.d/2+.11,h.w*.55,.045,.08,metal);
     for(let x=-h.w/2+.15;x<h.w/2;x+=.7)part(x,h.h*.44,h.d/2+.06,.055,h.h*.88,.12,concrete);
     part(0,3.9,h.d/2+.25,h.w*.63,.2,.7,concrete);
+    batches.forEach((parts,mat)=>{const mesh=new T.Mesh(mergeGeometries(parts),mat);mesh.castShadow=true;mesh.receiveShadow=true;group.add(mesh);parts.forEach(p=>p.dispose());});
   }
   return {asphalt};
 }
