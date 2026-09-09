@@ -1,5 +1,6 @@
 import * as T from 'three';
 import {createRefugeMaterials} from '../base/materials';
+import {createDressing} from './dressing';
 import {SOLIDS,elevationAt,type World} from './world';
 import {POIS,EXTRACTIONS,ENCOUNTERS,EVENTS,RULES,BOUNDS,type Point} from './config';
 // Each chunk owns a handful of instanced batches. Textures/materials/geometries are shared.
@@ -10,6 +11,7 @@ export function buildEnvironment(scene:T.Scene,_world:World,_level:number,anisot
   const road=new T.MeshStandardMaterial({color:'#353d3b',roughness:.46});surfaces.apply(road,'stone',.25);
   const metal=new T.MeshStandardMaterial({color:'#635a49',roughness:.6,metalness:.65});surfaces.apply(metal,'metal',.4);
   const dark=new T.MeshStandardMaterial({color:'#242f30',roughness:.9});
+  surfaces.apply(dark,'metal',.55);
   const blue=new T.MeshStandardMaterial({color:'#8ad6df',emissive:'#61adb8',emissiveIntensity:2});
   const amber=new T.MeshStandardMaterial({color:'#cda870',emissive:'#bf7839',emissiveIntensity:1});
   const mats=[concrete,floor,road,metal,dark,blue,amber];
@@ -18,6 +20,7 @@ export function buildEnvironment(scene:T.Scene,_world:World,_level:number,anisot
   const ramp=new T.Mesh(geo,metal);ramp.position.set(98,.7,58);ramp.scale.set(Math.hypot(4,1.6),.2,3);ramp.rotation.z=Math.atan2(1.6,4);ramp.castShadow=true;ramp.receiveShadow=true;scene.add(ramp);
   const chunks=new Map<string,T.Group>(),size=RULES.chunkSize;
   const lightSources:{p:T.Vector3;color:T.Color;power:number;flicker:boolean}[]=[];
+  const dressing=createDressing(scene,surfaces);lightSources.push(...dressing.sources);
   const dummy=new T.Object3D();
   const labels:T.Sprite[]=[];
   function label(text:string,x:number,y:number,z:number,width=7){const c=document.createElement('canvas');c.width=512;c.height=96;const ctx=c.getContext('2d')!;ctx.fillStyle='#13272b';ctx.fillRect(0,0,512,96);ctx.strokeStyle='#829b93';ctx.strokeRect(3,3,506,90);ctx.font='bold 26px monospace';ctx.fillStyle='#c4d4cb';ctx.textAlign='center';ctx.fillText(text.toUpperCase(),256,58);const texture=new T.CanvasTexture(c);const s=new T.Sprite(new T.SpriteMaterial({map:texture}));s.position.set(x,y,z);s.scale.set(width,width*96/512,1);scene.add(s);labels.push(s);return s;}
@@ -35,12 +38,23 @@ export function buildEnvironment(scene:T.Scene,_world:World,_level:number,anisot
       add(s.kind==='container'?3:0,s.x,s.h/2,s.z,s.w,s.h,s.d);
       add(4,s.x,s.h+.12,s.z,s.w+.2,.25,s.d+.2);
       if(s.kind==='building'){
+        add(3,s.x,.23,s.z+s.d/2+.16,s.w+.16,.46,.32);
+        add(3,s.x,s.h-.3,s.z+s.d/2+.18,s.w+.35,.16,.38);
+        for(let px=s.x-s.w/2+.18;px<s.x+s.w/2;px+=3.1)add(0,px,s.h/2,s.z+s.d/2+.1,.23,s.h,.24);
         for(let x=s.x-s.w/2+1;x<s.x+s.w/2-.3;x+=2)for(let y=1.8;y<s.h;y+=2.5){add(4,x,y,s.z+s.d/2+.03,1.3,1.6,.12);if(Math.round(x+y)%3!==0)add(6,x,y,s.z+s.d/2+.11,.8,1.15,.06);}
+        for(let x=s.x-s.w/2+1;x<s.x+s.w/2-.3;x+=2)for(let y=1.8;y<s.h;y+=2.5){add(3,x,y-.69,s.z+s.d/2+.22,1.42,.1,.42);add(4,x,y,s.z+s.d/2+.16,.055,1.25,.08);add(4,x,y+.15,s.z+s.d/2+.16,.88,.055,.08);}
         add(3,s.x+s.w*.25,s.h+.6,s.z,1.7,1,1.6);
         add(3,s.x-s.w*.4,s.h/2,s.z+s.d/2+.12,.18,s.h,.2);
+        add(3,s.x+s.w*.3,2.9,s.z+s.d/2+.4,1.25,.85,.6);
+        for(let y=2.6;y<3.3;y+=.13)add(4,s.x+s.w*.3,y,s.z+s.d/2+.72,1.1,.055,.045);
+        add(4,s.x-s.w*.2,.95,s.z+s.d/2+.09,1.15,1.9,.16);
+        add(3,s.x-s.w*.2,2,s.z+s.d/2+.35,1.45,.12,.65);
+        add(6,s.x-s.w*.2,1.9,s.z+s.d/2+.4,.65,.055,.16);
+        lightSources.push({p:new T.Vector3(s.x-s.w*.2,1.85,s.z+s.d/2+.65),color:new T.Color('#dfb781'),power:13,flicker:false});
+        for(let px=s.x-s.w/2+.6;px<s.x+s.w/2-.4;px+=2.4)add(3,px,.065,s.z+s.d/2+.7,.9,.08,.4);
       }
     }
-    for(let x=cx*size+6;x<(cx+1)*size;x+=12){const z=cz===1?43:cz*24+12;add(3,x,2.7,z,.18,5.4,.18);add(3,x+.8,5.3,z,1.7,.14,.2);add(5,x+1.3,5.18,z,.7,.08,.3);lightSources.push({p:new T.Vector3(x+1.3,4.7,z),color:new T.Color('#aacbca'),power:10,flicker:false});}
+    for(let x=cx*size+6;x<(cx+1)*size;x+=12){const z=cz===1?43:cz*24+12;add(3,x,2.7,z,.18,5.4,.18);add(3,x+.8,5.3,z,1.7,.14,.2);add(5,x+1.3,5.18,z,.7,.08,.3);lightSources.push({p:new T.Vector3(x+1.3,4.7,z),color:new T.Color('#bbd4e6'),power:27,flicker:false});}
     // Debris compositions and wrecks on shoulders, away from the navigable centre.
     for(let i=0;i<8;i++){const x=cx*size+2+(i*7)%20,z=cz*size+2+(i*11)%20;if(!SOLIDS.some(s=>Math.abs(s.x-x)<s.w/2+1&&Math.abs(s.z-z)<s.d/2+1))add(3,x,.13,z,.22+(i%3)*.1,.2,.25);}
     for(const p of POIS.filter(inside)){
@@ -68,5 +82,5 @@ export function buildEnvironment(scene:T.Scene,_world:World,_level:number,anisot
   for(const e of ENCOUNTERS){const ring=new T.Mesh(new T.RingGeometry(e.activationDistance-.1,e.activationDistance,64),new T.MeshBasicMaterial({color:'#e77b52',side:T.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.set(e.x,.16,e.z);debug.add(ring);const spawn=new T.Mesh(new T.SphereGeometry(.3,8,6),amber);spawn.position.set(e.x,.6,e.z);debug.add(spawn);}
   const drop=new T.Mesh(geo,amber);drop.scale.set(1.2,1,1.2);drop.position.set(EVENTS[1].x,.6,EVENTS[1].z);drop.visible=false;scene.add(drop);
   let activeChunks=0;
-  return {surfaces,lightSources,update(time:number){drop.rotation.y=time*.2;},stream(p:Point,showDebug:boolean,dropVisible:boolean){activeChunks=0;const x=Math.floor(p.x/size),z=Math.floor(p.z/size);chunks.forEach((g,k)=>{const [a,b]=k.split(',').map(Number);g.visible=Math.abs(a-x)<=RULES.activeRadius&&Math.abs(b-z)<=RULES.activeRadius;if(g.visible)activeChunks++;});labels.forEach(l=>l.visible=l.position.distanceTo(new T.Vector3(p.x,0,p.z))<32);debug.visible=showDebug;drop.visible=dropVisible&&Math.hypot(p.x-drop.position.x,p.z-drop.position.z)<40;},get activeChunks(){return activeChunks;}};
+  return {surfaces,lightSources,update(time:number){drop.rotation.y=time*.2;dressing.update(time);},stream(p:Point,showDebug:boolean,dropVisible:boolean){dressing.stream(p);activeChunks=0;const x=Math.floor(p.x/size),z=Math.floor(p.z/size);chunks.forEach((g,k)=>{const [a,b]=k.split(',').map(Number);g.visible=Math.abs(a-x)<=RULES.activeRadius&&Math.abs(b-z)<=RULES.activeRadius;if(g.visible)activeChunks++;});labels.forEach(l=>l.visible=l.position.distanceTo(new T.Vector3(p.x,0,p.z))<32);debug.visible=showDebug;drop.visible=dropVisible&&Math.hypot(p.x-drop.position.x,p.z-drop.position.z)<40;},get activeChunks(){return activeChunks;}};
 }

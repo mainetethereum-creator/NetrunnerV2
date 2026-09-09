@@ -29,12 +29,12 @@ export function createExpedition(host:HTMLElement,onState:(s:Snapshot)=>void,onE
   const env=buildEnvironment(scene,world,1,renderer.capabilities.getMaxAnisotropy());
   const generator=new T.PMREMGenerator(renderer),environment=generator.fromEquirectangular(env.surfaces.skyTexture);generator.dispose();
   scene.environment=environment.texture;scene.environmentIntensity=.65;
-  scene.add(new T.HemisphereLight('#9bbac8','#50574d',1.3));
-  const softFill=new T.DirectionalLight('#9eaaa2',1.8);softFill.position.set(3,12,18);scene.add(softFill);
-  const keyLight=new T.DirectionalLight('#b5d1cf',2.5);keyLight.castShadow=true;keyLight.shadow.mapSize.set(mobile?1024:2048,mobile?1024:2048);keyLight.shadow.normalBias=.045;keyLight.shadow.bias=-.0001;
+  scene.add(new T.HemisphereLight('#adc7ec','#444c51',1.65));
+  const softFill=new T.DirectionalLight('#aebfd4',1.5);softFill.position.set(3,12,18);scene.add(softFill);
+  const keyLight=new T.DirectionalLight('#c5dcff',3.8);keyLight.castShadow=true;keyLight.shadow.mapSize.set(mobile?1024:2048,mobile?1024:2048);keyLight.shadow.normalBias=.045;keyLight.shadow.bias=-.0001;
   Object.assign(keyLight.shadow.camera,{left:-17,right:17,top:17,bottom:-17,near:1,far:60});scene.add(keyLight,keyLight.target);
   keyLight.shadow.radius=2;keyLight.shadow.blurSamples=mobile?4:8;
-  const lights=Array.from({length:mobile?4:7},()=>{const light=new T.PointLight('#ffffff',0,10,2);scene.add(light);return light;});
+  const lights=Array.from({length:mobile?4:7},()=>{const light=new T.PointLight('#ffffff',0,13,2);scene.add(light);return light;});
   const player=new T.Group();player.position.set(world.spawn.x,.09,world.spawn.z);scene.add(player);
   const fill=new T.PointLight('#b7d4c7',3.2,4.5,2);fill.position.set(.4,2.8,1.1);player.add(fill);
   const ring=new T.Mesh(new T.RingGeometry(.35,.39,36),new T.MeshBasicMaterial({color:'#b9d6c5',transparent:true,opacity:.65,depthWrite:false}));ring.rotation.x=-Math.PI/2;ring.position.y=.015;player.add(ring);

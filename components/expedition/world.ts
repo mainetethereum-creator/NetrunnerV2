@@ -1,4 +1,5 @@
 import { BOUNDS, POIS, SPAWN, EXTRACTIONS, type Point, type Rect } from './config.ts';
+import {DRESSING_COLLIDERS} from './dressing-layout.ts';
 export type {Point} from './config.ts';
 export type Solid=Rect & {h:number;kind:'building'|'barrier'|'container'};
 export const SOLIDS:Solid[]=[];
@@ -12,7 +13,7 @@ for(const p of POIS) {
 SOLIDS.push({x:58,z:36,w:3,d:11,h:1.5,kind:'barrier'},{x:111,z:36,w:3,d:10,h:1.6,kind:'barrier'});
 const PROP_COLLIDERS:Rect[]=[...POIS.map(p=>({x:p.x+1.4,z:p.z,w:1.3,d:.9})),{x:2,z:24,w:1,d:14},{x:2,z:48,w:1,d:14},{x:22,z:20,w:1,d:.8},{x:28,z:20,w:1,d:.8}];
 export function makeWorld(){
-  const canStand=(p:Point,r=.34)=>Number.isFinite(p.x)&&Number.isFinite(p.z)&&p.x>r&&p.z>r&&p.x<BOUNDS.w-r&&p.z<BOUNDS.d-r&&![...SOLIDS,...PROP_COLLIDERS].some(s=>{
+  const canStand=(p:Point,r=.34)=>Number.isFinite(p.x)&&Number.isFinite(p.z)&&p.x>r&&p.z>r&&p.x<BOUNDS.w-r&&p.z<BOUNDS.d-r&&![...SOLIDS,...PROP_COLLIDERS,...DRESSING_COLLIDERS].some(s=>{
     const x=Math.max(s.x-s.w/2,Math.min(p.x,s.x+s.w/2)),z=Math.max(s.z-s.d/2,Math.min(p.z,s.z+s.d/2));return (p.x-x)**2+(p.z-z)**2<r*r;
   });
   return {canStand,spawn:SPAWN,exit:EXTRACTIONS[1]};
