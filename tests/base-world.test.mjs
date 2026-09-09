@@ -47,9 +47,9 @@ test('invalid and blocked click destinations are rejected', () => {
   assert.equal(nearestStation(SPAWN), null);
 });
 
-test('quantum annex is reachable but corridor sides and surrounding void are solid', () => {
-  assert.ok(findPath(SPAWN, { x:26, z:7.5 }).length);
-  for (const p of [{x:19,z:5}, {x:19,z:10}, {x:30,z:7.5}, {x:26,z:5.1}]) assert.equal(canStand(p),false);
+test('quantum annex and wide expedition breach are reachable while their edges remain solid', () => {
+  for (const p of [{x:26,z:7.5}, {x:16,z:7.5}, {x:21,z:5.5}, {x:21,z:9.5}]) assert.ok(findPath(SPAWN,p).length);
+  for (const p of [{x:19,z:4.8}, {x:19,z:10.2}, {x:30,z:7.5}, {x:26,z:5.1}]) assert.equal(canStand(p),false);
   const end = moveWithCollision({x:19,z:7.5},0,-10);
-  assert.ok(end.z > 6); assert.ok(canStand(end));
+  assert.ok(end.z > 4.8); assert.ok(canStand(end));
 });

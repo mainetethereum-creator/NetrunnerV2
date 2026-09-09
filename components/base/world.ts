@@ -15,8 +15,8 @@ export const COLLIDERS: Rect[] = [
   { x: 5.1, z: 0.2, w: 2.8, d: 1.25 },
   { x: -7.4, z: -5.6, w: 1.35, d: 0.75 },
   { x: 0, z: -3.7, w: 2.25, d: .85 },
-  { x: 19, z: 6, w: 8, d: 0.12 },
-  { x: 19, z: 9, w: 8, d: 0.12 },
+  { x: 19, z: 4.8, w: 8, d: 0.12 },
+  { x: 19, z: 10.2, w: 8, d: 0.12 },
   { x: 26, z: 4, w: 6, d: 0.25 },
   { x: 29, z: 7.5, w: 0.25, d: 7 },
   { x: 26, z: 11, w: 6, d: 0.25 },
@@ -39,7 +39,7 @@ export const STATIONS: { id: StationId; name: string; role: string; x: number; z
 export function canStand(p: Point, radius = PLAYER_RADIUS): boolean {
   if (!Number.isFinite(p.x) || !Number.isFinite(p.z)) return false;
   const inBase = Math.abs(p.x) <= LIMIT.x - radius && Math.abs(p.z) <= LIMIT.z - radius;
-  const inCorridor = p.x >= 13 + radius && p.x <= 24 - radius && p.z >= 6 + radius && p.z <= 9 - radius;
+  const inCorridor = p.x >= 13 + radius && p.x <= 24 - radius && p.z >= 4.8 + radius && p.z <= 10.2 - radius;
   const inRoom = p.x >= 23 + radius && p.x <= 29 - radius && p.z >= 4 + radius && p.z <= 11 - radius;
   if (!inBase && !inCorridor && !inRoom) return false;
   return !COLLIDERS.some((r) => {

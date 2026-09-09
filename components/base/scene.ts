@@ -178,22 +178,41 @@ export function createBaseScene(
   // Keep the already merged fence separate from the indexed pipe batches.
   buildConcretePerimeter(scene, fenceConcrete, m.edge.clone());
 
-  // Walkable eastern annex: open-sided mesh fence and a cutaway charging room.
-  box(19, -0.35, 7.5, 8, 0.7, 3.2, m.dark);
+  // A wide, damaged expedition passage branches from the refuge perimeter.
+  box(19, -0.35, 7.5, 8, 0.7, 5.4, m.dark);
   box(26, -0.35, 7.5, 6.2, 0.7, 7.2, m.dark);
   for (let x = 15; x < 29; x++) for (let z = 4; z < 11; z++) {
-    if (x < 23 && (z < 6 || z >= 9)) continue;
+    if (x < 23 && (z < 5 || z >= 10)) continue;
     box(x + 0.5, 0.025, z + 0.5, 0.965, 0.1, 0.965, stone);
   }
-  for (const z of [6, 9]) {
+  for (const z of [4.8, 10.2]) {
     for (let x = 15; x <= 23; x++) {
       box(x, 0.75, z, 0.09, 1.5, 0.09, m.brass);
       if (x % 2 === 1) box(x, 1.52, z, 0.14, 0.07, 0.14, m.teal);
     }
     for (const y of [0.25, 0.65, 1.05, 1.45]) box(19, y, z, 8, 0.035, 0.035, m.edge);
     for (let x = 15.25; x < 23; x += 0.25) box(x, 0.82, z, 0.025, 1.2, 0.025, m.edge);
-    box(19, 0.11, z + (z === 6 ? 0.16 : -0.16), 8, 0.025, 0.05, m.teal);
+    box(19, 0.11, z + (z < 7 ? 0.16 : -0.16), 8, 0.025, 0.05, m.teal);
   }
+  // Nothing spans the whole opening: the uneven beam stumps keep it reading as
+  // a torn wall rather than a purpose-built doorway.
+  box(14.94, 2.94, 5.28, .5, .34, 1.18, m.edge, -.12);
+  box(14.94, 2.82, 9.7, .5, .38, 1.34, m.edge, .16);
+  box(15.08, 2.56, 5, .72, .82, .38, m.rust, -.18);
+  box(15.08, 2.5, 10.02, .72, .74, .38, m.rust, .2);
+  sign("OUTLANDS", "EXPEDITION ROUTE / SEALED BEYOND", 15.26, 2.18, 5.62, 2.25, "#e0b070", Math.PI / 2);
+  for (const [z, y, angle] of [[5.6, 2.9, -.22], [5.82, 2.62, .35], [9.4, 2.82, .18], [9.65, 2.5, -.3]] as const) {
+    box(14.72, y, z, .92, .045, .045, m.edge, angle);
+  }
+  for (const z of [5.15, 9.85]) {
+    box(15.35, .65, z, .28, 1.3, .28, m.rust);
+    box(15.35, 1.34, z, .38, .12, .38, m.brass);
+    light(15.15, 1.65, z, 0xff9f55, 7, 3.5);
+  }
+  for (const [x, z, angle] of [[15.55, 5.62, .25], [16.18, 9.35, -.2], [17.05, 5.34, -.35], [18.1, 9.62, .3]] as const) {
+    box(x, .14, z, .78, .12, .42, m.concrete, angle);
+  }
+  for (let x = 15.6; x < 22.5; x += 1.35) box(x, .105, 7.5, .82, .035, .09, m.rust, (x % 2) * .08);
   box(26, 1.65, 4, 6.2, 3.3, 0.25, m.wall);
   box(29, 1.15, 7.5, 0.25, 2.3, 7, m.wall);
   box(26, 0.38, 11, 6, 0.75, 0.25, m.edge);
