@@ -1,6 +1,6 @@
 export type Point = { x: number; z: number };
 export type Rect = { x: number; z: number; w: number; d: number };
-export type StationId = "smith" | "contracts" | "metro" | "city" | "stash" | "charge" | "oracle" | "market";
+export type StationId = "smith" | "contracts" | "metro" | "city" | "stash" | "charge" | "oracle" | "market" | "expedition";
 export const SPAWN: Point = { x: 0, z: 5 };
 export const PLAYER_RADIUS = 0.32;
 export const BASE_EXPANSION = Math.sqrt(1.3);
@@ -26,6 +26,7 @@ export const COLLIDERS: Rect[] = [
 ];
 
 export const STATIONS: { id: StationId; name: string; role: string; x: number; z: number; color: string }[] = [
+  { id: "expedition", name: "OUTLANDS", role: "Expedition breach", x: 15.6, z: 7.5, color: "#dbb177" },
   { id: "smith", name: "CYBERSMITH", role: "Power & fabrication", x: -7.3, z: -4.6, color: "#edb568" },
   { id: "contracts", name: "CRYPTOMANCER", role: "Contract handler", x: 0, z: -2.4, color: "#78cbbb" },
   { id: "oracle", name: "ORACLE", role: "Classes & abilities", x: 2.1, z: -5.4, color: "#93bfed" },

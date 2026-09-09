@@ -13,6 +13,7 @@ const QUEST_KEY = "cyberbase.refuge.orientation.v1";
 const EMPTY_QUEST: Quest = { accepted: false, visited: [] };
 const CHECKPOINTS: StationId[] = ["smith", "metro", "stash"];
 const DIALOGUE: Record<StationId, { name: string; role: string; initial: string; title: string; text: string }> = {
+  expedition: { name: "OUTLANDS", role: "EXPEDITION ACCESS", initial: "EX", title: "За стеной начинается вылазка.", text: "Разрушенная окраина и промышленный сектор. Ищите контейнеры, отражайте атаки и эвакуируйтесь, чтобы сохранить добычу. WASD или клик — движение, Space — огонь, E — действие. При поражении рюкзак будет потерян." },
   oracle: { name: "ORACLE", role: "CLASSES & ABILITIES", initial: "OR", title: "Choose who you become.", text: "This is the refuge's class and ability hall. Class selection and ability upgrades will be connected here in a later stage. For now, explore the building and its place in the district." },
   market: { name: "GREEN EXCHANGE", role: "CANNABIS MARKETPLACE", initial: "GE", title: "A little green in the concrete.", text: "The market is part of the refuge's economy. This is a visual display for now: trading, purchases and inventory transfers are not active." },
   charge: { name: "QUANTUM CHARGE", role: "DAILY CLAIM STATION", initial: "QC", title: "Leave your quantum charge here.", text: "This room will host the daily Claim: place your quantum charge in the dock, let it charge for 24 hours, then return to collect it. The dock is ready for a future update; placement animation, timer and rewards are not active yet." },
@@ -194,6 +195,7 @@ export default function BaseApp() {
             {dialog === "contracts" && quest.accepted && <div className={styles.questChecklist}>{CHECKPOINTS.map((id) => <p key={id}><span>{quest.visited.includes(id) ? "✓" : "◇"}</span>{STATIONS.find((s) => s.id === id)?.name}</p>)}<small>{complete ? "Orientation complete. No token reward is attached to this introduction." : "Speak to each contact to complete your introduction."}</small></div>}
             {dialog === "charge" && <button className={styles.primaryChoice} disabled><span><strong>Place quantum charge · Daily Claim</strong><small>24-hour cycle · Coming in a future update</small></span></button>}
             {dialog === "metro" && <button onClick={() => router.push("/metro")}><span><strong>Descend to Cyber Metro</strong><small>Explore the frozen environment prototype</small></span><span>↓</span></button>}
+            {dialog === "expedition" && <button onClick={() => router.push("/expedition")}><span><strong>Начать вылазку</strong><small>Outskirts → Industrial → Extraction</small></span><span>→</span></button>}
             {dialog === "city" && <button disabled><span><strong>Enter Neon Sprawl</strong><small>Airlock connection under construction</small></span><span>⌁</span></button>}
             {dialog === "stash" && <button disabled><span><strong>Open inventory</strong><small>Storage transfer is not connected yet</small></span><span>⌁</span></button>}
             <button onClick={() => setDialog(null)}><span>Back to the refuge</span><span>ESC ↵</span></button>

@@ -200,7 +200,7 @@ export function createBaseScene(
   box(14.94, 2.82, 9.7, .5, .38, 1.34, m.edge, .16);
   box(15.08, 2.56, 5, .72, .82, .38, m.rust, -.18);
   box(15.08, 2.5, 10.02, .72, .74, .38, m.rust, .2);
-  sign("OUTLANDS", "EXPEDITION ROUTE / SEALED BEYOND", 15.26, 2.18, 5.62, 2.25, "#e0b070", Math.PI / 2);
+  sign("OUTLANDS", "EXPEDITION ROUTE / ENTER OUTLANDS", 15.26, 2.18, 5.62, 2.25, "#e0b070", Math.PI / 2);
   for (const [z, y, angle] of [[5.6, 2.9, -.22], [5.82, 2.62, .35], [9.4, 2.82, .18], [9.65, 2.5, -.3]] as const) {
     box(14.72, y, z, .92, .045, .045, m.edge, angle);
   }
