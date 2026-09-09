@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {makeWorld,findRoute,move,SOLIDS} from '../components/expedition/world.ts';
 import {POIS,EXTRACTIONS,SPAWN,RULES} from '../components/expedition/config.ts';
 import {ExpeditionSession,bankLoot} from '../components/expedition/session.ts';
+import {terrainHeight,insideLandscape,HANGARS} from '../components/expedition/terrain.ts';
+test('terrain mound is traversable and hangars and irregular edges block movement',()=>{const world=makeWorld();let p={x:35,z:56};for(let i=0;i<80;i++)p=move(world,p,.1,0);assert.ok(terrainHeight(p)>1.5);assert.equal(insideLandscape({x:40,z:71}),false);for(const h of HANGARS)assert.equal(world.canStand(h),false);});
 test('all authored POIs and extraction points are reachable without crossing solids',()=>{
   const world=makeWorld();for(const p of [...POIS,...EXTRACTIONS]){assert.ok(world.canStand(p),p.name);const path=findRoute(world,SPAWN,p);assert.ok(path.length,p.name);for(const step of path)assert.ok(world.canStand(step));}
   for(const solid of SOLIDS)assert.equal(world.canStand(solid),false);

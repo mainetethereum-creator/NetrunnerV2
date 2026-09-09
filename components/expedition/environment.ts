@@ -1,6 +1,7 @@
 import * as T from 'three';
 import {createRefugeMaterials} from '../base/materials';
 import {createDressing} from './dressing';
+import {buildLandscape} from './landscape';
 import {SOLIDS,elevationAt,type World} from './world';
 import {POIS,EXTRACTIONS,ENCOUNTERS,EVENTS,RULES,BOUNDS,type Point} from './config';
 // Each chunk owns a handful of instanced batches. Textures/materials/geometries are shared.
@@ -8,14 +9,14 @@ export function buildEnvironment(scene:T.Scene,_world:World,_level:number,anisot
   const surfaces=createRefugeMaterials(anisotropy),geo=new T.BoxGeometry(1,1,1);
   const concrete=new T.MeshStandardMaterial({color:'#7a827c',roughness:.88});surfaces.apply(concrete,'concrete',.4);
   const floor=new T.MeshStandardMaterial({color:'#777d76',roughness:.7});surfaces.apply(floor,'stone',.5);
-  const road=new T.MeshStandardMaterial({color:'#353d3b',roughness:.46});surfaces.apply(road,'stone',.25);
   const metal=new T.MeshStandardMaterial({color:'#635a49',roughness:.6,metalness:.65});surfaces.apply(metal,'metal',.4);
   const dark=new T.MeshStandardMaterial({color:'#242f30',roughness:.9});
   surfaces.apply(dark,'metal',.55);
   const blue=new T.MeshStandardMaterial({color:'#8ad6df',emissive:'#61adb8',emissiveIntensity:2});
   const amber=new T.MeshStandardMaterial({color:'#cda870',emissive:'#bf7839',emissiveIntensity:1});
-  const mats=[concrete,floor,road,metal,dark,blue,amber];
-  const distantGround=new T.Mesh(geo,road);distantGround.position.set(BOUNDS.w/2,-.4,BOUNDS.d/2);distantGround.scale.set(BOUNDS.w,.15,BOUNDS.d);distantGround.receiveShadow=true;scene.add(distantGround);
+  const landscape=buildLandscape(scene,metal,concrete,dark);
+  const roadPaint=new T.MeshStandardMaterial({color:'#a9a088',roughness:.9});
+  const mats=[concrete,floor,landscape.asphalt,metal,dark,blue,amber,roadPaint];
   const platform=new T.Mesh(geo,metal);platform.position.set(105,1.45,58);platform.scale.set(10,.3,3);platform.castShadow=true;platform.receiveShadow=true;scene.add(platform);
   const ramp=new T.Mesh(geo,metal);ramp.position.set(98,.7,58);ramp.scale.set(Math.hypot(4,1.6),.2,3);ramp.rotation.z=Math.atan2(1.6,4);ramp.castShadow=true;ramp.receiveShadow=true;scene.add(ramp);
   const chunks=new Map<string,T.Group>(),size=RULES.chunkSize;
@@ -28,11 +29,11 @@ export function buildEnvironment(scene:T.Scene,_world:World,_level:number,anisot
     const group=new T.Group();group.name=`Sector_${cx}_${cz}`;const batches:number[][][]=mats.map(()=>[]);
     const add=(m:number,x:number,y:number,z:number,w:number,h:number,d:number)=>batches[m].push([x,y,z,w,h,d]);
     const inside=(p:Point)=>Math.floor(p.x/size)===cx&&Math.floor(p.z/size)===cz;
-    add(2,cx*size+12,-.18,cz*size+12,24,.3,24);
     for(let x=cx*size+1;x<(cx+1)*size;x+=2)for(let z=cz*size+1;z<(cz+1)*size;z+=2){
-      if(z>30&&z<42){if(Math.abs(z-35)<1.1&&x%6===1)add(6,x,.015,z,1.2,.025,.12);continue;}
+      if(z>=30&&z<=42){if(Math.abs(z-35)<1.1&&x%6===1)add(7,x,.03,z,1.2,.025,.12);continue;}
       // Broken, mismatched paving around the roadside service routes.
-      if((x*17+z*11)%19!==0)add(1,x,-.025,z,1.94,.12,1.94);
+      const paved=POIS.some(p=>Math.hypot(x-p.x,z-p.z)<7)||Math.abs(z-36)<9;
+      if(paved&&elevationAt({x,z})<.05&&(x*17+z*11)%19!==0)add(1,x,-.025,z,1.94,.12,1.94);
     }
     for(const s of SOLIDS.filter(inside)){
       add(s.kind==='container'?3:0,s.x,s.h/2,s.z,s.w,s.h,s.d);

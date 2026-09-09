@@ -1,5 +1,7 @@
 # Expedition vertical slice
 
+Terrain pass: the engine's rectangular bounds are concealed by irregular earth embankments, instanced rocks and distant building silhouettes. Terrain height is shared by rendering and navigation, including a traversable mound. Two solid industrial hangars have pitched roofs. The highway uses a dedicated procedural asphalt shader (aggregate, sparse cracks, variable wetness); paving is limited to sidewalks and POI approaches. `terrain.ts` owns heights/bounds/hangar footprints; `landscape.ts` owns their rendering.
+
 The existing Netrunner app owns `/expedition`. The refuge's eastern breach is an interaction station at `(15.6, 7.5)`; its dialogue starts a run. Metro and the legacy BitMap game are unchanged.
 
 ## Architecture reviewed and reused
