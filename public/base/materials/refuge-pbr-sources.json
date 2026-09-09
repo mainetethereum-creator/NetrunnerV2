@@ -1,0 +1,74 @@
+[
+  {
+    "file": "refuge-stone-color.webp",
+    "bytes": 137946,
+    "resolution": 1024,
+    "asset": "https://polyhaven.com/a/concrete_tiles_02",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/concrete_tiles_02/concrete_tiles_02_diff_2k.jpg",
+    "license": "CC0",
+    "author": "Charlotte Baglioni"
+  },
+  {
+    "file": "refuge-stone-normal.webp",
+    "bytes": 228486,
+    "resolution": 1024,
+    "asset": "https://polyhaven.com/a/concrete_tiles_02",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/concrete_tiles_02/concrete_tiles_02_nor_gl_2k.jpg",
+    "license": "CC0",
+    "author": "Charlotte Baglioni"
+  },
+  {
+    "file": "refuge-stone-roughness.webp",
+    "bytes": 3096,
+    "resolution": 1024,
+    "asset": "https://polyhaven.com/a/concrete_tiles_02",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/concrete_tiles_02/concrete_tiles_02_rough_2k.jpg",
+    "license": "CC0",
+    "author": "Charlotte Baglioni"
+  },
+  {
+    "file": "refuge-stone-height.webp",
+    "bytes": 42168,
+    "resolution": 1024,
+    "asset": "https://polyhaven.com/a/concrete_tiles_02",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/concrete_tiles_02/concrete_tiles_02_disp_2k.jpg",
+    "license": "CC0",
+    "author": "Charlotte Baglioni"
+  },
+  {
+    "file": "refuge-wall-color.webp",
+    "bytes": 217702,
+    "resolution": 1024,
+    "asset": "https://polyhaven.com/a/concrete_wall_006",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/concrete_wall_006/concrete_wall_006_diff_2k.jpg",
+    "license": "CC0",
+    "author": "Charlotte Baglioni / Dario Barresi"
+  },
+  {
+    "file": "refuge-wall-normal.webp",
+    "bytes": 619816,
+    "resolution": 1024,
+    "asset": "https://polyhaven.com/a/concrete_wall_006",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/concrete_wall_006/concrete_wall_006_nor_gl_2k.jpg",
+    "license": "CC0",
+    "author": "Charlotte Baglioni / Dario Barresi"
+  },
+  {
+    "file": "refuge-wall-roughness.webp",
+    "bytes": 4056,
+    "resolution": 1024,
+    "asset": "https://polyhaven.com/a/concrete_wall_006",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/concrete_wall_006/concrete_wall_006_rough_2k.jpg",
+    "license": "CC0",
+    "author": "Charlotte Baglioni / Dario Barresi"
+  },
+  {
+    "file": "refuge-wall-height.webp",
+    "bytes": 60492,
+    "resolution": 1024,
+    "asset": "https://polyhaven.com/a/concrete_wall_006",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/concrete_wall_006/concrete_wall_006_disp_2k.jpg",
+    "license": "CC0",
+    "author": "Charlotte Baglioni / Dario Barresi"
+  }
+]

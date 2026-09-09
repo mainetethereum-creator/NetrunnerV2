@@ -1,0 +1,62 @@
+[
+  {
+    "file": "concrete-color.webp",
+    "bytes": 14334,
+    "width": 512,
+    "height": 512,
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_floor_worn_001/concrete_floor_worn_001_diff_1k.jpg",
+    "asset": "https://polyhaven.com/a/concrete_floor_worn_001",
+    "license": "CC0",
+    "author": "Dimitrios Savva / Rico Cilliers"
+  },
+  {
+    "file": "concrete-normal.webp",
+    "bytes": 29728,
+    "width": 512,
+    "height": 512,
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_floor_worn_001/concrete_floor_worn_001_nor_gl_1k.jpg",
+    "asset": "https://polyhaven.com/a/concrete_floor_worn_001",
+    "license": "CC0",
+    "author": "Dimitrios Savva / Rico Cilliers"
+  },
+  {
+    "file": "concrete-roughness.webp",
+    "bytes": 33806,
+    "width": 512,
+    "height": 512,
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_floor_worn_001/concrete_floor_worn_001_rough_1k.jpg",
+    "asset": "https://polyhaven.com/a/concrete_floor_worn_001",
+    "license": "CC0",
+    "author": "Dimitrios Savva / Rico Cilliers"
+  },
+  {
+    "file": "metal-color.webp",
+    "bytes": 5946,
+    "width": 512,
+    "height": 512,
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rusty_painted_metal/rusty_painted_metal_diff_1k.jpg",
+    "asset": "https://polyhaven.com/a/rusty_painted_metal",
+    "license": "CC0",
+    "author": "Amal Kumar"
+  },
+  {
+    "file": "metal-normal.webp",
+    "bytes": 13490,
+    "width": 512,
+    "height": 512,
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rusty_painted_metal/rusty_painted_metal_nor_gl_1k.jpg",
+    "asset": "https://polyhaven.com/a/rusty_painted_metal",
+    "license": "CC0",
+    "author": "Amal Kumar"
+  },
+  {
+    "file": "metal-roughness.webp",
+    "bytes": 6604,
+    "width": 512,
+    "height": 512,
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rusty_painted_metal/rusty_painted_metal_rough_1k.jpg",
+    "asset": "https://polyhaven.com/a/rusty_painted_metal",
+    "license": "CC0",
+    "author": "Amal Kumar"
+  }
+]

@@ -1,0 +1,8 @@
+{
+  "file": "weathered-height-v1.webp",
+  "source": "OpenAI built-in image generation, 2026-09-08",
+  "purpose": "Additional shallow pitting over the scanned pavement normal map; artistic height approximation, not measured displacement",
+  "promptFile": ".dream-loop/material-prompt.md",
+  "width": 1024,
+  "height": 1024
+}

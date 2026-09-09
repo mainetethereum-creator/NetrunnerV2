@@ -1,0 +1,4 @@
+:root { --bg: #07161a; --white: #f4efe1; }
+* { box-sizing: border-box; }
+html, body { margin: 0; width: 100%; min-height: 100%; background: var(--bg); color: var(--white); font-family: var(--font-display), system-ui, sans-serif; -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+button, input { font: inherit; }
