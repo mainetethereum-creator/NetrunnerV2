@@ -8,6 +8,7 @@ import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPa
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { PoseController } from "../game/pose-controller";
+import { CombatDriver } from "../game/combat-driver";
 import { buildMetro, courtyardWithMetroOpening, METRO_PIT } from "./metro";
 import { createRefugeMaterials } from "./materials";
 import { addRefugeSurfaceDetails } from "./details";
@@ -337,6 +338,7 @@ export function createBaseScene(
 
   let disposed = false, paused = false, rainOn = !reducedMotion, path: Point[] = [];
   let mixer: T.AnimationMixer | null = null, runAction: T.AnimationAction | null = null, idleAction: T.AnimationAction | null = null;
+  const combat = new CombatDriver(() => {}, () => 100);
   let locomotionBlend = 0;
   let pose: PoseController | null = null;
   let hero: T.Object3D = fallback, previousWalking = false;
@@ -412,6 +414,7 @@ export function createBaseScene(
       fallback.traverse((o) => { if ((o as T.Mesh).isMesh) (o as T.Mesh).geometry.dispose(); });
       hero = new T.Group(); hero.add(root); player.add(hero);
       mixer = new T.AnimationMixer(root);
+      combat.attach(root, mixer, gltf.animations);
       const idle = gltf.animations.find((a) => /idle/i.test(a.name));
       if (idle) idleAction = mixer.clipAction(idle).play();
       else { pose = new PoseController(root); pose.buildIdle(root); }
@@ -491,7 +494,7 @@ export function createBaseScene(
     surfaceDetails.update(reducedMotion ? 0 : time);
     (puddle.material as T.ShaderMaterial).uniforms.waterTime.value = reducedMotion ? 0 : time;
     let walking = false;
-    if (!paused) {
+    if (!paused && !document.querySelector('[aria-modal="true"]')) {
       let sx = (keys.has("d") || keys.has("arrowright") ? 1 : 0) - (keys.has("a") || keys.has("arrowleft") ? 1 : 0) + stick.x;
       let sy = (keys.has("s") || keys.has("arrowdown") ? 1 : 0) - (keys.has("w") || keys.has("arrowup") ? 1 : 0) + stick.y;
       let dx = 0, dz = 0;
@@ -520,10 +523,11 @@ export function createBaseScene(
       previousWalking = walking;
     }
     locomotionBlend = T.MathUtils.damp(locomotionBlend, walking ? 1 : 0, 16, dt);
-    if (runAction) runAction.setEffectiveWeight(locomotionBlend);
-    if (idleAction) idleAction.setEffectiveWeight(1 - locomotionBlend);
+    combat.tick(dt, paused || !!document.querySelector('[aria-modal="true"]'));
+    if (runAction) runAction.setEffectiveWeight(locomotionBlend * (1 - combat.weight));
+    if (idleAction) idleAction.setEffectiveWeight((1 - locomotionBlend) * (1 - combat.weight));
     mixer?.update(dt);
-    pose?.apply(1 - locomotionBlend);
+    pose?.apply((1 - locomotionBlend) * (1 - combat.weight));
     const portrait = camera.aspect < 0.85;
     // Aim at the hero's body with no sideways or forward composition offset.
     desiredPivot.set(player.position.x, player.position.y + 0.93, player.position.z);
@@ -585,7 +589,7 @@ export function createBaseScene(
       renderer.domElement.removeEventListener("pointerdown", onDown); renderer.domElement.removeEventListener("pointerup", onUp);
       renderer.domElement.removeEventListener("pointercancel", clearInput); renderer.domElement.removeEventListener("wheel", wheel);
       renderer.domElement.removeEventListener("webglcontextlost", lostContext);
-      mixer?.stopAllAction(); if (mixer) mixer.uncacheRoot(mixer.getRoot());
+      combat.dispose(); mixer?.stopAllAction(); if (mixer) mixer.uncacheRoot(mixer.getRoot());
       puddle.getRenderTarget().dispose(); disposeTree(scene); environment.dispose(); surfaces.dispose(); bloom.dispose(); output.dispose(); composer.dispose(); renderer.dispose();
       renderer.domElement.remove();
     },

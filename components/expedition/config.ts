@@ -18,6 +18,7 @@ export const LOOT_TABLES:Record<string,{item:LootKind;weight:number;min:number;m
 };
 export type POI=Point & {id:string;name:string;kind:'station'|'convoy'|'camp'|'warehouse'|'power'|'bunker';lootTable:string;access?:'keycard'|'hacking';event?:string};
 export const POIS:POI[]=[
+  {id:'fountain',name:'Старый фонтан',kind:'camp',x:49,z:27,lootTable:'salvage'},
   {id:'fuel',name:'Последняя заправка',kind:'station',x:25,z:20,lootTable:'salvage'},
   {id:'convoy',name:'Разбитый конвой',kind:'convoy',x:43,z:38,lootTable:'salvage'},
   {id:'camp',name:'Лагерь эвакуации',kind:'camp',x:53,z:11,lootTable:'salvage'},

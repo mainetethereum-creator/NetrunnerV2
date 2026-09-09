@@ -1,11 +1,19 @@
 import {RULES,POIS,EXTRACTIONS,ENCOUNTERS,EVENTS,LOOT_TABLES,ENEMY_TYPES,sectorAt,type LootKind,type Point} from './config.ts';
 import {makeWorld,move} from './world.ts';
+import type {Skill} from '../game/combat.ts';
 export type Bag=Partial<Record<LootKind,number>>;
 export type Enemy=Point & {id:string;type:string;hp:number;maxHp:number;elite:boolean;cooldown:number;home:Point};
 const distance=(a:Point,b:Point)=>Math.hypot(a.x-b.x,a.z-b.z);
 export class ExpeditionSession {
   hp=100;bag:Bag={};status:'active'|'complete'|'failed'='active';discovered=new Set<string>();opened=new Set<string>();activated=new Set<string>();events=new Set<string>();enemies:Enemy[]=[];extraction=0;extractId:string|null=null;attackCooldown=0;kills=0;message='Пролом позади. Найдите ресурсы и точку эвакуации.';world=makeWorld();lastHit=0;
   random:()=>number;
+  useSkill(p:Point,skill:Skill){
+    if(this.status!=='active')return null;
+    if(skill.heal){this.hp=Math.min(100,this.hp+skill.heal);return null;}
+    const targets=this.enemies.filter(e=>e.hp>0&&distance(e,p)<=skill.range&&this.lineOfSight(p,e)).sort((a,b)=>distance(a,p)-distance(b,p));
+    for(const target of skill.area?targets:targets.slice(0,1)){target.hp=Math.max(0,target.hp-skill.damage);if(target.hp===0){this.kills++;if(target.id.startsWith('warden')){this.activated.add('cleared:warden');this.message='Страж уничтожен. Хранилище открыто.';}}}
+    return targets[0]??null;
+  }
   constructor(random:()=>number=Math.random){this.random=random;}
   loot(table:string,p:Point){const rows=LOOT_TABLES[table];const total=rows.reduce((n,r)=>n+r.weight,0);let roll=this.random()*total;const row=rows.find(r=>(roll-=r.weight)<0)??rows[0];const count=(row.min+Math.floor(this.random()*(row.max-row.min+1)))*sectorAt(p).lootMultiplier;this.bag[row.item]=(this.bag[row.item]??0)+count;this.message=`Найдено: ${row.item} × ${count}. Сохраните добычу эвакуацией.`;}
   interact(p:Point){if(this.status!=='active')return;

@@ -6,6 +6,7 @@ import { useAccount, useConnect, useDisconnect } from "wagmi";
 import type { BaseEngine, BaseSnapshot } from "./scene";
 import type { QualityMode } from "./quality";
 import { SPAWN, STATIONS, type StationId } from "./world";
+import GameHud from "../game/GameHud";
 import styles from "./BaseApp.module.css";
 
 type Quest = { accepted: boolean; visited: StationId[] };
@@ -14,14 +15,14 @@ const EMPTY_QUEST: Quest = { accepted: false, visited: [] };
 const CHECKPOINTS: StationId[] = ["smith", "metro", "stash"];
 const DIALOGUE: Record<StationId, { name: string; role: string; initial: string; title: string; text: string }> = {
   expedition: { name: "OUTLANDS", role: "EXPEDITION ACCESS", initial: "EX", title: "За стеной начинается вылазка.", text: "Разрушенная окраина и промышленный сектор. Ищите контейнеры, отражайте атаки и эвакуируйтесь, чтобы сохранить добычу. WASD или клик — движение, Space — огонь, E — действие. При поражении рюкзак будет потерян." },
-  oracle: { name: "ORACLE", role: "CLASSES & ABILITIES", initial: "OR", title: "Choose who you become.", text: "This is the refuge's class and ability hall. Class selection and ability upgrades will be connected here in a later stage. For now, explore the building and its place in the district." },
+  oracle: { name: "ORACLE", role: "CLASSES & ABILITIES", initial: "OR", title: "Choose who you become.", text: "Выберите класс: мечник, маг или стрелок. У каждого четыре боевых навыка. Улучшения талантов появятся позже." },
   market: { name: "GREEN EXCHANGE", role: "CANNABIS MARKETPLACE", initial: "GE", title: "A little green in the concrete.", text: "The market is part of the refuge's economy. This is a visual display for now: trading, purchases and inventory transfers are not active." },
   charge: { name: "QUANTUM CHARGE", role: "DAILY CLAIM STATION", initial: "QC", title: "Leave your quantum charge here.", text: "This room will host the daily Claim: place your quantum charge in the dock, let it charge for 24 hours, then return to collect it. The dock is ready for a future update; placement animation, timer and rewards are not active yet." },
   smith: { name: "CYBERSMITH", role: "FABRICATION & POWER", initial: "CS", title: "Keep a little power in reserve.", text: "Out there, everything runs on borrowed energy. In here, we keep your cells alive. Bring your salvage back from the lower lines. This bench will be waiting." },
   contracts: { name: "CRYPTOMANCER", role: "CONTRACT HANDLER", initial: "CR", title: "Every runner needs a way home.", text: "Welcome to the refuge. Find the Cybersmith, check your locker, and speak to the Keeper. Learn this place before you learn what lives beneath it." },
   metro: { name: "THE KEEPER", role: "METRO WARDEN", initial: "TK", title: "The lower lines are awake.", text: "Four sectors lie beneath the refuge: the old station, service tunnels, power complex and restricted research wing. The route is open for exploration. Encounters and salvage are coming later." },
   city: { name: "CITY AIRLOCK", role: "NEON SPRAWL CONNECTION", initial: "01", title: "A whole city on the other side.", text: "The refuge connects to Neon Sprawl: traders, the Oracle, rival runners, and routes into other districts. The city connection will open in a later stage." },
-  stash: { name: "PERSONAL LOCKER", role: "RUNNER STORAGE", initial: "ST", title: "Leave something worth returning for.", text: "This is your corner of the refuge. Equipment recovered from the metro will be stored here after extraction. Inventory transfer will be connected in a later stage." },
+  stash: { name: "PERSONAL LOCKER", role: "RUNNER STORAGE", initial: "ST", title: "Leave something worth returning for.", text: "Здесь хранится добыча успешных вылазок. Откройте инвентарь, чтобы проверить запас ресурсов." },
 };
 
 function Icon({ name, size = 18 }: { name: "map" | "arrow" | "settings" | "power" | "cross" | "rain" | "home"; size?: number }) {
@@ -42,7 +43,7 @@ export default function BaseApp() {
   const host = useRef<HTMLDivElement>(null), engine = useRef<BaseEngine | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null), stickRef = useRef<HTMLDivElement>(null);
   const activeStick = useRef<number | null>(null);
-  const [ready, setReady] = useState(false), [hero, setHero] = useState("RUNNER");
+  const [ready, setReady] = useState(false), [, setHero] = useState("RUNNER");
   const [snapshot, setSnapshot] = useState<BaseSnapshot>({ ...SPAWN, near: null, fps: 0, p95: 0, draws: 0, triangles: 0, ratio: 1, high: false, submitMs: 0, timingLimited: false });
   const [dialog, setDialog] = useState<StationId | "wallet" | "settings" | null>(null);
   const [detail, setDetail] = useState(false), [mapOpen, setMapOpen] = useState(false);
@@ -75,7 +76,6 @@ export default function BaseApp() {
     }
   }, [saveQuest]);
   const complete = quest.accepted && CHECKPOINTS.every((id) => quest.visited.includes(id));
-  const progress = CHECKPOINTS.filter((id) => quest.visited.includes(id)).length;
 
   useEffect(() => {
     let stopped = false;
@@ -133,30 +133,19 @@ export default function BaseApp() {
   };
   const nearest = STATIONS.find((s) => s.id === snapshot.near);
   const npc = dialog && dialog !== "wallet" && dialog !== "settings" ? DIALOGUE[dialog] : null;
-  const destination = !quest.accepted ? "contracts" : CHECKPOINTS.find((id) => !quest.visited.includes(id));
 
   return <main className={`${styles.root} ${hideHud ? styles.hideHud : ""}`}>
     <button className={styles.hudToggle} onClick={() => setHideHud(!hideHud)} aria-label={hideHud ? "Show interface" : "Hide interface"}>{hideHud ? "H · Show interface" : "H · Hide interface"}</button>
     <div ref={host} className={styles.viewport} />
     <div className={styles.vignette} />
     <header className={styles.header}>
-      <div className={styles.brand}><span className={styles.emblem}>C<span>◈</span>B</span><div><strong>CYBERBASE</strong><small>A HOME ABOVE THE LOWER LINES</small></div></div>
       <div className={styles.headerRight}>
         <span className={styles.safe}><i /> SAFE ZONE</span>
         <button className={styles.wallet} onClick={() => { setWalletError(""); setDialog("wallet"); }}><span className={styles.baseDot} />{isConnected && address ? `${address.slice(0, 5)}…${address.slice(-4)}` : "Connect wallet"}<span>↗</span></button>
       </div>
     </header>
 
-    <section className={styles.location} aria-label="Current location"><span className={styles.eyebrow}>SECTOR 01 <b>/</b> PERSONAL SANCTUARY</span><h1>Runner’s Refuge<span>.</span></h1><p><Icon name="rain" size={13} /> {rain ? "Light rain" : "Overcast"}<span>18°</span><i /> Surface level</p></section>
 
-    <aside className={styles.quest} aria-label="Orientation quest">
-      <div className={styles.questTop}><span className={styles.eyebrow}>REFUGE ORIENTATION</span><span>{complete ? "✓" : "01"}</span></div>
-      <h2>{complete ? "You know your way home." : quest.accepted ? "Make yourself at home." : "A place to begin again."}</h2>
-      <p>{complete ? "The refuge is yours to explore." : quest.accepted ? `${progress} / 3 refuge contacts visited` : "The Cryptomancer is expecting you."}</p>
-      {quest.accepted && <div className={styles.progress}>{CHECKPOINTS.map((id) => <i key={id} className={quest.visited.includes(id) ? styles.filled : ""} />)}</div>}
-      {destination && <button onClick={() => engine.current?.goTo(destination)}>Find {destination === "contracts" ? "the Cryptomancer" : STATIONS.find((s) => s.id === destination)?.name.toLowerCase()}<Icon name="arrow" size={15} /></button>}
-      {storageNotice && <small className={styles.notice}>{storageNotice}</small>}
-    </aside>
 
     <div className={styles.mapWrap}>
       <button className={styles.minimap} aria-label={mapOpen ? "Close refuge map" : "Open refuge map"} aria-expanded={mapOpen} onClick={() => setMapOpen(!mapOpen)}>
@@ -174,15 +163,11 @@ export default function BaseApp() {
       <button className={styles.touchAction} disabled={!nearest} aria-label="Interact with nearby NPC" onClick={() => nearest && openDialog(nearest.id)}><Icon name="power" size={24} /><small>TALK</small></button>
     </div>}
 
-    <footer className={styles.footer}>
-      <div className={styles.playerCard}><div className={styles.playerIcon}><Icon name="home" size={22} /></div><div><small>RUNNER // {isConnected ? "WALLET CONNECTED" : "GUEST"}</small><strong>{hero}</strong><div className={styles.health}><i /></div></div><span>01</span></div>
-      <div className={styles.controls}><span><kbd>W A S D</kbd> Move</span><span><kbd>E</kbd> Interact</span><span>Click to walk · Camera follows you</span></div>
-      <div className={styles.tools}><button aria-label="Open settings" onClick={() => setDialog("settings")}><Icon name="settings" /></button></div>
-    </footer>
-    <div className={styles.stage}>ENVIRONMENT STUDY <span>•</span> STAGE 01</div>
+    <GameHud hidden={hideHud || !ready} onSettings={() => setDialog("settings")} onQuest={() => openDialog("contracts")} />
     {showStats && <div className={styles.performance} aria-label="Live graphics performance"><strong>{snapshot.fps} FPS{snapshot.timingLimited ? "*" : ""}</strong><span>{snapshot.p95} ms p95 · {snapshot.high ? "HIGH" : "LITE"}</span><span>{snapshot.submitMs} ms CPU submit</span><span>{snapshot.draws} draws · {Math.round(snapshot.triangles / 1000)}k triangles</span><span>Render scale {snapshot.ratio.toFixed(2)} · {quality.toUpperCase()}</span>{snapshot.timingLimited && <span>* Possible browser timer limit</span>}</div>}
 
     {!ready && <div className={styles.loading}><div className={styles.loadingMark}>C ◈ B</div><span className={styles.eyebrow}>ESTABLISHING REFUGE LINK</span><h2>A light left on for you.</h2><div className={styles.loadLine} /><p>{error || "Preparing the district…"}</p>{error && <button onClick={() => location.reload()}>Reload refuge</button>}</div>}
+    {storageNotice && <div className={styles.error} role="status">{storageNotice}</div>}
     {ready && error && <div className={styles.error} role="status">{error}<button onClick={() => setError("")} aria-label="Dismiss notice">×</button></div>}
 
     {dialog && <div className={styles.scrim} onPointerDown={(e) => { if (e.target === e.currentTarget) setDialog(null); }}>
@@ -197,7 +182,7 @@ export default function BaseApp() {
             {dialog === "metro" && <button onClick={() => router.push("/metro")}><span><strong>Descend to Cyber Metro</strong><small>Explore the frozen environment prototype</small></span><span>↓</span></button>}
             {dialog === "expedition" && <button onClick={() => router.push("/expedition")}><span><strong>Начать вылазку</strong><small>Outskirts → Industrial → Extraction</small></span><span>→</span></button>}
             {dialog === "city" && <button disabled><span><strong>Enter Neon Sprawl</strong><small>Airlock connection under construction</small></span><span>⌁</span></button>}
-            {dialog === "stash" && <button disabled><span><strong>Open inventory</strong><small>Storage transfer is not connected yet</small></span><span>⌁</span></button>}
+            {(dialog === "stash" || dialog === "oracle") && <button onClick={() => { const panel = dialog === "stash" ? "Инвентарь" : "Древо талантов"; setDialog(null); window.dispatchEvent(new CustomEvent("netrunner:panel", {detail: panel})); }}><span><strong>{dialog === "stash" ? "Открыть инвентарь" : "Выбрать класс"}</strong></span><Icon name="arrow" /></button>}
             <button onClick={() => setDialog(null)}><span>Back to the refuge</span><span>ESC ↵</span></button>
           </div>
         </>}

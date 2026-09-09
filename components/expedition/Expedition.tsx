@@ -4,13 +4,14 @@ import Link from 'next/link';
 import {POIS,EXTRACTIONS,ITEMS,RULES,type LootKind} from './config';
 import {bankLoot,type Bag} from './session';
 import type {createExpedition,Snapshot} from './scene';
+import GameHud from '../game/GameHud';
 import styles from './Expedition.module.css';
 const SAVE_KEY='netrunner.expedition.stash.v1';
 type Save={bag:Bag;lastRun:string};
 function readSave():Save{try{const data=JSON.parse(localStorage.getItem(SAVE_KEY)??'{}');const bag:Bag={};for(const k of Object.keys(ITEMS) as LootKind[])if(Number.isSafeInteger(data.bag?.[k])&&data.bag[k]>0)bag[k]=data.bag[k];return {bag,lastRun:typeof data.lastRun==='string'?data.lastRun:''};}catch{return {bag:{},lastRun:''};}}
 export default function Expedition(){
   const host=useRef<HTMLDivElement>(null),engine=useRef<ReturnType<typeof createExpedition>|null>(null),runId=useRef('');
-  const [state,setState]=useState<Snapshot|null>(null),[error,setError]=useState(''),[debug,setDebug]=useState(false),[debugAllowed,setDebugAllowed]=useState(false),[stash,setStash]=useState<Bag>({}),[saved,setSaved]=useState(false),[autoFire,setAutoFire]=useState(false);
+  const [state,setState]=useState<Snapshot|null>(null),[error,setError]=useState(''),[debug,setDebug]=useState(false),[debugAllowed,setDebugAllowed]=useState(false),[,setStash]=useState<Bag>({}),[saved,setSaved]=useState(false),[autoFire,setAutoFire]=useState(false);
   useEffect(()=>{let disposed=false;runId.current=crypto.randomUUID();
     import('./scene').then(({createExpedition})=>{if(!disposed&&host.current){setStash(readSave().bag);setDebugAllowed(new URLSearchParams(location.search).has('debug'));engine.current=createExpedition(host.current,setState,setError);}}).catch(()=>setError('Не удалось запустить мир. Обновите страницу.'));
     return()=>{disposed=true;engine.current?.dispose();engine.current=null;};
@@ -20,9 +21,8 @@ export default function Expedition(){
   return <main className={styles.root}>
     <div className={styles.scene} ref={host}/>
     <header className={styles.header}><Link href="/">C◇B / CYBERBASE</Link><span>OUTLANDS · EXPEDITION 01</span><Link href="/">Покинуть вылазку без добычи ↗</Link></header>
-    <section className={styles.title}><small>ЗА ПЕРИМЕТРОМ / {state?.room??'ПОДГОТОВКА'}</small><h1>Зона вылазок</h1><p>Исследуй. Рискуй. Вернись.</p></section>
     <aside className={styles.map}><small>ЛОКАЛЬНЫЙ СИГНАЛ</small><svg viewBox="0 0 144 72" aria-label="Карта открытых мест"><path d="M 3 36 H 140" stroke="#637470" strokeWidth="4"/>{state?.discovered.map(id=>{const p=POIS.find(o=>o.id===id)!;return <circle key={id} cx={p.x} cy={p.z} r="1.6" fill="#d4b47d"><title>{p.name}</title></circle>;})}{EXTRACTIONS.map(e=><rect key={e.id} x={e.x-1.5} y={e.z-1.5} width="3" height="3" fill="#81dbdf"><title>{e.name}</title></rect>)}<circle cx={state?.x??9} cy={state?.z??36} r="1.8" fill="white"/></svg><small>○ ВЫ · ▪ ЭВАКУАЦИЯ · ◇ НАЙДЕННЫЕ POI</small></aside>
-    <aside className={styles.bag}><strong>NEON SENTINEL</strong><p>Здоровье {Math.ceil(state?.hp??100)} / 100</p><meter min="0" max="100" value={state?.hp??100}/><h3>Рюкзак вылазки</h3>{Object.entries(state?.bag??{}).map(([k,v])=><p key={k}>{ITEMS[k as LootKind].name} <b>× {v}</b></p>)}{!Object.keys(state?.bag??{}).length&&<p>Пока пусто</p>}<small>Добыча сохранится после эвакуации.<br/>Склад базы: {Object.values(stash).reduce((a,b)=>a+(b??0),0)} ед.</small></aside>
+    <GameHud bag={state?.bag} />
     <div className={styles.message} role="status">{error||state?.message||'Загружаем материалы и персонажа…'}</div>
     <footer className={styles.controls}><span>WASD · клик: идти · Shift: бег · Space: огонь · E: действие</span><div><button aria-pressed={autoFire} onClick={()=>{engine.current?.setAutoFire(!autoFire);setAutoFire(!autoFire);}}>{autoFire?"Автоогонь: вкл":"Автоогонь: выкл"}</button><button onClick={()=>engine.current?.interact()}>{state?.extraction?`Эвакуация ${Math.ceil(RULES.extractionSeconds-state.extraction)} с`:`E · ${state?.near??'Взаимодействие'}`}</button>{debugAllowed&&<button onClick={toggleDebug}>DEBUG</button>}</div></footer>
     {debug&&<aside className={styles.debug}><b>{state?.room}</b><p>{state?.fps} FPS · {state?.draws} draw calls<br/>{state?.activeNPC} NPC · {state?.chunks} chunks</p>{[...POIS,...EXTRACTIONS].map(p=><button key={p.id} onClick={()=>engine.current?.teleport(p)}>{p.name}</button>)}</aside>}

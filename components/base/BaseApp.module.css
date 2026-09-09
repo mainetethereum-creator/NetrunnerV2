@@ -29,3 +29,9 @@
 
 .hudToggle{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:8;padding:5px 9px!important;font:8px monospace!important;opacity:.6}.hideHud .header,.hideHud .location,.hideHud .quest,.hideHud .mapWrap,.hideHud .footer,.hideHud .stage,.hideHud .vignette,.hideHud .interact{display:none}.hideHud .hudToggle{opacity:.25}.hideHud .hudToggle:hover{opacity:1}
 .mapWrap{z-index:6}.destinations{max-height:min(360px,calc(100dvh - 200px));overflow-y:auto;overscroll-behavior:contain}
+.header{justify-content:flex-end!important}
+.mapWrap{width:120px!important;top:92px!important}
+.minimap{padding:9px!important}
+.mapTitle,.mapBottom{font-size:6px!important}
+.interact{bottom:100px!important}
+.hudToggle{bottom:3px!important;font-size:7px!important}
