@@ -2,6 +2,7 @@ import * as T from 'three';
 import {createRefugeMaterials} from '../base/materials';
 import {createDressing} from './dressing';
 import {createNature} from './nature';
+import {createVegetationPatch} from '../vegetation/render';
 import {buildLandscape} from './landscape';
 import {SOLIDS,elevationAt,type World} from './world';
 import {POIS,EXTRACTIONS,ENCOUNTERS,EVENTS,RULES,BOUNDS,type Point} from './config';
@@ -23,6 +24,7 @@ export function buildEnvironment(scene:T.Scene,_world:World,_level:number,anisot
   const chunks=new Map<string,T.Group>(),size=RULES.chunkSize;
   const lightSources:{p:T.Vector3;color:T.Color;power:number;flicker:boolean}[]=[];
   const dressing=createDressing(scene,surfaces);lightSources.push(...dressing.sources);
+  const vegetation=createVegetationPatch(scene,elevationAt,_world.canStand);
   const nature=createNature(scene,surfaces);lightSources.push(...nature.sources);
   const dummy=new T.Object3D();
   const labels:T.Sprite[]=[];
@@ -85,5 +87,5 @@ export function buildEnvironment(scene:T.Scene,_world:World,_level:number,anisot
   for(const e of ENCOUNTERS){const ring=new T.Mesh(new T.RingGeometry(e.activationDistance-.1,e.activationDistance,64),new T.MeshBasicMaterial({color:'#e77b52',side:T.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.set(e.x,.16,e.z);debug.add(ring);const spawn=new T.Mesh(new T.SphereGeometry(.3,8,6),amber);spawn.position.set(e.x,.6,e.z);debug.add(spawn);}
   const drop=new T.Mesh(geo,amber);drop.scale.set(1.2,1,1.2);drop.position.set(EVENTS[1].x,.6,EVENTS[1].z);drop.visible=false;scene.add(drop);
   let activeChunks=0;
-  return {surfaces,lightSources,update(time:number){drop.rotation.y=time*.2;dressing.update(time);nature.update(time);},stream(p:Point,showDebug:boolean,dropVisible:boolean){dressing.stream(p);nature.stream(p);activeChunks=0;const x=Math.floor(p.x/size),z=Math.floor(p.z/size);chunks.forEach((g,k)=>{const [a,b]=k.split(',').map(Number);g.visible=Math.abs(a-x)<=RULES.activeRadius&&Math.abs(b-z)<=RULES.activeRadius;if(g.visible)activeChunks++;});labels.forEach(l=>l.visible=l.position.distanceTo(new T.Vector3(p.x,0,p.z))<32);debug.visible=showDebug;drop.visible=dropVisible&&Math.hypot(p.x-drop.position.x,p.z-drop.position.z)<40;},get activeChunks(){return activeChunks;}};
+  return {surfaces,lightSources,dispose(){vegetation.dispose();},update(time:number){drop.rotation.y=time*.2;dressing.update(time);nature.update(time);},stream(p:Point,showDebug:boolean,dropVisible:boolean){dressing.stream(p);nature.stream(p);vegetation.stream(p);activeChunks=0;const x=Math.floor(p.x/size),z=Math.floor(p.z/size);chunks.forEach((g,k)=>{const [a,b]=k.split(',').map(Number);g.visible=Math.abs(a-x)<=RULES.activeRadius&&Math.abs(b-z)<=RULES.activeRadius;if(g.visible)activeChunks++;});labels.forEach(l=>l.visible=l.position.distanceTo(new T.Vector3(p.x,0,p.z))<32);debug.visible=showDebug;drop.visible=dropVisible&&Math.hypot(p.x-drop.position.x,p.z-drop.position.z)<40;},get activeChunks(){return activeChunks;}};
 }
