@@ -18,11 +18,15 @@ The reproducible default bake is:
 
     node --experimental-transform-types --no-warnings scripts/bake-vegetation.mjs
 
-`/expedition?debug=1&vegetation=1` opens the test plot at (22,55).
-The 18 × 12 m plot holds four trees and up to 110 tiny grass clumps. Other
-existing tree groves remain unchanged. New trunks have navigation colliders.
-Seven instanced batches render the vegetation (two per tree variant and one
-grass batch). Beyond 48 m the plot is hidden.
+`/expedition?debug=1&vegetation=1` opens the original editor test plot at
+(22,55). The published asset is now distributed across the whole playable
+Outskirts and Industrial map: 46 leafy generated trees, 70 remaining bare trees
+and patchy grass. Trees stay outside the asphalt highway, POI approaches and
+extraction routes. Every generated trunk has a navigation collider.
+
+Vegetation is grouped into the same 24 m chunks as the expedition world. Only
+the nearby 3 × 3 chunk area is visible. Within each chunk, every tree variant
+and all grass clumps use instancing and shared geometry/materials.
 
 The playable scene imports only the baked format and renderer: no TreePlant,
 procedural growth, leaf physics, BVH or WebGPU renderer. Texture-free low-poly

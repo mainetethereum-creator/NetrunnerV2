@@ -2,9 +2,9 @@ import * as T from 'three';
 import {createRefugeMaterials} from '../base/materials';
 import {createDressing} from './dressing';
 import {createNature} from './nature';
-import {createVegetationPatch} from '../vegetation/render';
+import {createVegetationWorld} from '../vegetation/render';
 import {buildLandscape} from './landscape';
-import {SOLIDS,elevationAt,type World} from './world';
+import {SOLIDS,VEGETATION_TREES,elevationAt,type World} from './world';
 import {POIS,EXTRACTIONS,ENCOUNTERS,EVENTS,RULES,BOUNDS,type Point} from './config';
 // Each chunk owns a handful of instanced batches. Textures/materials/geometries are shared.
 export function buildEnvironment(scene:T.Scene,_world:World,_level:number,anisotropy:number){
@@ -24,7 +24,7 @@ export function buildEnvironment(scene:T.Scene,_world:World,_level:number,anisot
   const chunks=new Map<string,T.Group>(),size=RULES.chunkSize;
   const lightSources:{p:T.Vector3;color:T.Color;power:number;flicker:boolean}[]=[];
   const dressing=createDressing(scene,surfaces);lightSources.push(...dressing.sources);
-  const vegetation=createVegetationPatch(scene,elevationAt,_world.canStand);
+  const vegetation=createVegetationWorld(scene,elevationAt,_world.canStand,VEGETATION_TREES);
   const nature=createNature(scene,surfaces);lightSources.push(...nature.sources);
   const dummy=new T.Object3D();
   const labels:T.Sprite[]=[];
