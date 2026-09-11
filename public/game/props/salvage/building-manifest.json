@@ -1,0 +1,20 @@
+{
+  "units": "metres",
+  "referencePlayerHeight": 1.85,
+  "sharedTexture": {
+    "file": "building-atlas.webp",
+    "bytes": 548010,
+    "format": "WebP",
+    "quality": 88,
+    "loadedOnce": true
+  },
+  "models": [
+    {"id":"building-workshop","name":"Здание · старая мастерская","triangles":5544,"geometryBytes":348877,"drawCalls":8,"width":10.13,"depth":8.26,"height":9.15},
+    {"id":"building-stack","name":"Здание · неоновый жилой блок","triangles":24792,"geometryBytes":1455411,"drawCalls":10,"width":11.00,"depth":9.05,"height":20.68},
+    {"id":"building-home2","name":"Здание · узкий дом с балконами","triangles":9756,"geometryBytes":507802,"drawCalls":9,"width":6.40,"depth":6.88,"height":11.50},
+    {"id":"building-ruin","name":"Здание · разрушенная высотка","triangles":25144,"geometryBytes":1445478,"drawCalls":6,"width":21.65,"depth":13.99,"height":44.80},
+    {"id":"building-courtyard","name":"Здание · городской техноблок","triangles":5122,"geometryBytes":308941,"drawCalls":12,"width":10.00,"depth":8.00,"height":9.97},
+    {"id":"building-tokyo","name":"Здание · Токио, старая лавка","triangles":8976,"geometryBytes":432742,"drawCalls":10,"width":8.44,"depth":7.22,"height":16.55},
+    {"id":"building-tenement","name":"Здание · угловой доходный дом","triangles":33744,"geometryBytes":2066637,"drawCalls":8,"width":13.96,"depth":9.80,"height":20.01}
+  ]
+}

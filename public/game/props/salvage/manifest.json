@@ -1,0 +1,61 @@
+{
+  "version": 2,
+  "placement": "Only user-created instances in MASTER; empty by default",
+  "source": "Generated material atlas; geometry authored against six supplied reference images",
+  "sharedAtlas": {
+    "path": "material-atlas.webp",
+    "diskBytes": 768122
+  },
+  "sharedModelLibrarySourceBytes": 11051,
+  "models": [
+    {
+      "id": "barricade",
+      "label": "Barricade DANGER",
+      "triangles": 562,
+      "geometryKiB": 31.4,
+      "drawCalls": 6,
+      "standaloneModelDownloadBytes": 0
+    },
+    {
+      "id": "blue-drum",
+      "label": "Blue rusty drum",
+      "triangles": 3560,
+      "geometryKiB": 88.7,
+      "drawCalls": 2,
+      "standaloneModelDownloadBytes": 0
+    },
+    {
+      "id": "kerosene",
+      "label": "Kerosene drum pair",
+      "triangles": 7252,
+      "geometryKiB": 182.6,
+      "drawCalls": 5,
+      "standaloneModelDownloadBytes": 0
+    },
+    {
+      "id": "dumpster",
+      "label": "Green dumpster",
+      "triangles": 3416,
+      "geometryKiB": 119.7,
+      "drawCalls": 8,
+      "standaloneModelDownloadBytes": 0
+    },
+    {
+      "id": "tire-pile",
+      "label": "Tires, bricks and boards pile",
+      "triangles": 12104,
+      "geometryKiB": 322.6,
+      "drawCalls": 5,
+      "standaloneModelDownloadBytes": 0
+    },
+    {
+      "id": "hydrant",
+      "label": "Red fire hydrant",
+      "triangles": 9408,
+      "geometryKiB": 266.1,
+      "drawCalls": 2,
+      "worldScale": 0.75,
+      "standaloneModelDownloadBytes": 0
+    }
+  ]
+}

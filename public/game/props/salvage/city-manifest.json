@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "placement": "MASTER editor only; no automatic placements",
+  "units": "metres",
+  "sharedAtlas": {
+    "path": "city-atlas.png",
+    "diskBytes": 3452534
+  },
+  "sharedModelLibrarySourceBytes": 16460,
+  "models": [
+    {"id":"stop-sign","label":"Знак · STOP","triangles":746,"geometryKiB":31.4,"drawCalls":5,"dimensions":[1.03,0.23,2.69]},
+    {"id":"tires","label":"Шины · стопка","triangles":16704,"geometryKiB":633.2,"drawCalls":1,"dimensions":[1.89,1.62,1.22]},
+    {"id":"utility-building","label":"Здание · технический блок","triangles":2982,"geometryKiB":113.9,"drawCalls":6,"dimensions":[4.34,5.46,4.32]},
+    {"id":"garbage-bags","label":"Мусор · чёрные мешки","triangles":10530,"geometryKiB":256.5,"drawCalls":2,"dimensions":[2.0,1.14,1.47]},
+    {"id":"campfire","label":"Костёр · поленья","triangles":2348,"geometryKiB":99.2,"drawCalls":4,"dimensions":[1.45,1.44,1.45]},
+    {"id":"shipping-container","label":"Контейнер · грузовой 20 ft","triangles":3040,"geometryKiB":168.4,"drawCalls":4,"dimensions":[6.38,2.62,2.63]},
+    {"id":"electrical-cabinet","label":"Шкаф · электрощитовая","triangles":1336,"geometryKiB":68.3,"drawCalls":8,"dimensions":[2.56,1.01,2.34]},
+    {"id":"bus-shelter","label":"Остановка · павильон","triangles":2312,"geometryKiB":84.3,"drawCalls":5,"dimensions":[3.95,1.42,2.71]},
+    {"id":"modular-fence","label":"Забор · кирпич и пики · 3 м","triangles":3210,"geometryKiB":218.7,"drawCalls":4,"dimensions":[3.58,0.8,2.76]},
+    {"id":"modular-fence-12m","label":"Забор · кирпич и пики · 12 м","triangles":8844,"geometryKiB":601.8,"drawCalls":4,"dimensions":[12.58,0.8,2.76]},
+    {"id":"modular-fence-24m","label":"Забор · кирпич и пики · 24 м","triangles":16356,"geometryKiB":1112.6,"drawCalls":4,"dimensions":[24.58,0.8,2.76]}
+  ]
+}

@@ -1,0 +1,6 @@
+import {readFileSync,writeFileSync} from 'node:fs';
+// Bake the committed authoring JSON into exact GPU float32 buffers. No decimation.
+const asset=JSON.parse(readFileSync('public/vegetation/test-patch.json','utf8'));
+const chunks=[];const header=Buffer.alloc(8);header.writeUInt32LE(0x31544756,0);header.writeUInt32LE(asset.trees.length,4);chunks.push(header);
+for(const model of asset.trees){const positions=[],normals=[],colors=[],indices=[],vertices=new Map();for(const part of model.parts)for(let i=0;i<part.positions.length;i+=3){const tuple=new Float32Array([...part.positions.slice(i,i+3),...part.normals.slice(i,i+3),...part.colors.slice(i,i+3)]);const key=Array.from(tuple).join(',');let index=vertices.get(key);if(index===undefined){index=vertices.size;vertices.set(key,index);positions.push(...tuple.slice(0,3));normals.push(...tuple.slice(3,6));colors.push(...tuple.slice(6,9));}indices.push(index);}const meta=Buffer.alloc(8);meta.writeUInt32LE(vertices.size);meta.writeUInt32LE(indices.length,4);chunks.push(meta);for(const array of [positions,normals,colors])chunks.push(Buffer.from(new Float32Array(array).buffer));chunks.push(Buffer.from(new Uint32Array(indices).buffer));}
+writeFileSync('public/vegetation/runtime-trees-v1.bin',Buffer.concat(chunks));console.log(`Baked ${asset.trees.length} trees: ${Buffer.concat(chunks).length} bytes`);

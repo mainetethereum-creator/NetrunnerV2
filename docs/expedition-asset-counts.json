@@ -1,0 +1,140 @@
+[
+  {
+    "id": "stop-sign",
+    "triangles": 746,
+    "geometryBytes": 32124,
+    "draws": 5
+  },
+  {
+    "id": "tires",
+    "triangles": 10368,
+    "geometryBytes": 494784,
+    "draws": 1
+  },
+  {
+    "id": "utility-building",
+    "triangles": 2982,
+    "geometryBytes": 116676,
+    "draws": 6
+  },
+  {
+    "id": "garbage-bags",
+    "triangles": 4818,
+    "geometryBytes": 130476,
+    "draws": 2
+  },
+  {
+    "id": "campfire",
+    "triangles": 2348,
+    "geometryBytes": 101580,
+    "draws": 4
+  },
+  {
+    "id": "shipping-container",
+    "triangles": 3040,
+    "geometryBytes": 172480,
+    "draws": 4
+  },
+  {
+    "id": "electrical-cabinet",
+    "triangles": 1336,
+    "geometryBytes": 69904,
+    "draws": 8
+  },
+  {
+    "id": "bus-shelter",
+    "triangles": 2312,
+    "geometryBytes": 86352,
+    "draws": 5
+  },
+  {
+    "id": "modular-fence",
+    "triangles": 3210,
+    "geometryBytes": 223996,
+    "draws": 4
+  },
+  {
+    "id": "building-workshop",
+    "triangles": 5544,
+    "geometryBytes": 348912,
+    "draws": 8
+  },
+  {
+    "id": "building-stack",
+    "triangles": 24792,
+    "geometryBytes": 1455376,
+    "draws": 10
+  },
+  {
+    "id": "building-home2",
+    "triangles": 9756,
+    "geometryBytes": 507752,
+    "draws": 9
+  },
+  {
+    "id": "building-ruin",
+    "triangles": 25144,
+    "geometryBytes": 1445456,
+    "draws": 6
+  },
+  {
+    "id": "building-courtyard",
+    "triangles": 5122,
+    "geometryBytes": 308908,
+    "draws": 12
+  },
+  {
+    "id": "building-tokyo",
+    "triangles": 8976,
+    "geometryBytes": 432768,
+    "draws": 10
+  },
+  {
+    "id": "building-tenement",
+    "triangles": 33744,
+    "geometryBytes": 2066656,
+    "draws": 8
+  },
+  {
+    "id": "barricade",
+    "triangles": 562,
+    "geometryBytes": 32172,
+    "draws": 6
+  },
+  {
+    "id": "blue-drum",
+    "triangles": 1848,
+    "geometryBytes": 49104,
+    "draws": 2
+  },
+  {
+    "id": "kerosene",
+    "triangles": 3828,
+    "geometryBytes": 103480,
+    "draws": 5
+  },
+  {
+    "id": "dumpster",
+    "triangles": 2888,
+    "geometryBytes": 102512,
+    "draws": 8
+  },
+  {
+    "id": "tire-pile",
+    "triangles": 7448,
+    "geometryBytes": 213360,
+    "draws": 5
+  },
+  {
+    "id": "hydrant",
+    "triangles": 7180,
+    "geometryBytes": 212424,
+    "draws": 2
+  },
+  {
+    "id": "microbus",
+    "triangles": 29264,
+    "geometryBytes": 1390272,
+    "draws": 9
+  }
+]

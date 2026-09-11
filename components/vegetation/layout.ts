@@ -8,7 +8,7 @@ export type VegetationTree={x:number;z:number;variant:number;scale:number};
 /** Stable layout for the playable map. It is generated once while the module
  * loads, then used both by navigation and by the baked-instance renderer. */
 export function makeVegetationTrees(blockers:Rect[]):VegetationTree[]{
-  const trees:VegetationTree[]=[...TEST_TREES];
+  const trees:VegetationTree[]=TEST_TREES.map(t=>({...t,scale:t.scale*1.32}));
   let seed=98431;
   const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
   for(let attempt=0;attempt<900&&trees.length<46;attempt++){
@@ -19,7 +19,9 @@ export function makeVegetationTrees(blockers:Rect[]):VegetationTree[]{
     if(blockers.some(b=>Math.abs(x-b.x)<b.w/2+1.8&&Math.abs(z-b.z)<b.d/2+1.8))continue;
     if([...POIS,...EXTRACTIONS].some(o=>Math.hypot(x-o.x,z-o.z)<4.8))continue;
     if(trees.some(t=>Math.hypot(x-t.x,z-t.z)<4.2))continue;
-    trees.push({x,z,variant:Math.floor(random()*3),scale:.75+random()*.48});
+    // Source models are 3.4–4.1 m tall. This range produces believable
+    // 4.2–6.8 m expedition trees beside the 1.85 m character and buildings.
+    trees.push({x,z,variant:Math.floor(random()*3),scale:1.15+random()*.5});
   }
   return trees;
 }
