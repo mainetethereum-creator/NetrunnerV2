@@ -1,7 +1,10 @@
 import * as T from 'three';
 import {mergeGeometries,mergeVertices} from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import {CYBER_BUILDING_PROPS,createCyberBuildingLibrary,type CyberBuildingId} from './cyber-buildings';
+import {createConcreteMaterial,prepareConcreteUv} from './cyber-concrete.ts';
 
 export const BUILDING_PROPS=[
+ ...CYBER_BUILDING_PROPS,
  {id:'building-workshop',name:'Здание · старая мастерская',category:'Здания',description:'Два этажа · облупленная штукатурка, гараж и терраса · 9 × 7 м'},
  {id:'building-stack',name:'Здание · неоновый жилой блок',category:'Здания',description:'Пять жилых уровней над мастерской · резервуары, кабели и опоры'},
  {id:'building-home2',name:'Здание · узкий дом с балконами',category:'Здания',description:'Три этажа · тёплые окна, бетонные балконы и голубой неон'},
@@ -16,10 +19,15 @@ export type BuildingPropId=typeof BUILDING_PROPS[number]['id'];
  * Prototypes are lazy, indexed and batched per material; placements share GPU resources. */
 export function createBuildingLibrary(anisotropy=4,ready?:()=>void){
  const textures:T.Texture[]=[],materials:T.MeshStandardMaterial[]=[];
+ let disposed=false;
  const atlasMaps:T.Texture[]=[];
- const atlas=new T.TextureLoader().load('/game/props/salvage/building-atlas.webp',loaded=>{atlasMaps.forEach(t=>{t.source=loaded.source;t.needsUpdate=true;});ready?.();});atlas.colorSpace=T.SRGBColorSpace;
+ const atlas=new T.TextureLoader().load('/game/props/salvage/building-atlas.webp',loaded=>{if(disposed)return;atlasMaps.forEach(t=>{t.source=loaded.source;t.needsUpdate=true;});ready?.();});atlas.colorSpace=T.SRGBColorSpace;atlas.anisotropy=Math.min(8,anisotropy);
+ const cyber=createCyberBuildingLibrary(atlas);
  const atlasTint=[0xa5a49d,0x999b96,0x8e918d,0x7f8584,0x8c907f,0x8b8780,0x89979b,0xffffff,0x706d67];
- for(let i=0;i<9;i++){const map=new T.Texture();map.colorSpace=atlas.colorSpace;map.repeat.set(.329,.329);map.offset.set((i%3)/3+.002,(2-Math.floor(i/3))/3+.002);map.anisotropy=Math.min(8,anisotropy);textures.push(map);atlasMaps.push(map);materials.push(new T.MeshStandardMaterial({map,color:atlasTint[i],bumpMap:map,bumpScale:i<3?.025:.012,roughness:i===6?.38:.88,metalness:i===3||i===4?.5:0,...(i===7?{emissive:0xffa13e,emissiveMap:map,emissiveIntensity:.75}:{})}));}
+ // Replace the existing concrete bucket in place. All other atlas tiles keep
+ // their authored material, and concrete borrows the one full-atlas texture.
+ const concrete=createConcreteMaterial(atlas);concrete.vertexColors=false;concrete.color.setHex(0xb5b5b5);materials.push(concrete);
+ for(let i=1;i<9;i++){const map=new T.Texture();map.colorSpace=atlas.colorSpace;map.repeat.set(.329,.329);map.offset.set((i%3)/3+.002,(2-Math.floor(i/3))/3+.002);map.anisotropy=Math.min(8,anisotropy);textures.push(map);atlasMaps.push(map);materials.push(new T.MeshStandardMaterial({map,color:atlasTint[i],bumpMap:map,bumpScale:i<3?.025:.012,roughness:i===6?.38:.88,metalness:i===3||i===4?.5:0,...(i===7?{emissive:0xffa13e,emissiveMap:map,emissiveIntensity:.75}:{})}));}
  const mat=(p:T.MeshStandardMaterialParameters)=>{materials.push(new T.MeshStandardMaterial(p));return materials.length-1;};
  const iron=mat({map:materials[3].map,color:0x555c60,roughness:.8,metalness:.6});
  const cyan=mat({color:0x7eeaff,emissive:0x08cfff,emissiveIntensity:2.5,roughness:.3});
@@ -31,7 +39,7 @@ export function createBuildingLibrary(anisotropy=4,ready?:()=>void){
  const tokyo=sign('東京本通','#b63122','#f3d76e'),hotel=sign('HOTEL','#742b29','#d1c4ac'),market=sign('24 OPEN','#344a43','#bbd8a9');
  function build(id:BuildingPropId){
  const buckets=new Map<number,T.BufferGeometry[]>();let transform=new T.Matrix4();
- const add=(g:T.BufferGeometry,m:number,x=0,y=0,z=0,rx=0,ry=0,rz=0)=>{g.applyMatrix4(new T.Matrix4().compose(new T.Vector3(x,y,z),new T.Quaternion().setFromEuler(new T.Euler(rx,ry,rz)),new T.Vector3(1,1,1)));g.applyMatrix4(transform);const a=buckets.get(m)??[];a.push(g);buckets.set(m,a);};
+ const add=(g:T.BufferGeometry,m:number,x=0,y=0,z=0,rx=0,ry=0,rz=0)=>{if(m===0)prepareConcreteUv(g,x,y,z);g.applyMatrix4(new T.Matrix4().compose(new T.Vector3(x,y,z),new T.Quaternion().setFromEuler(new T.Euler(rx,ry,rz)),new T.Vector3(1,1,1)));g.applyMatrix4(transform);const a=buckets.get(m)??[];a.push(g);buckets.set(m,a);};
  const box=(w:number,h:number,d:number,m:number,x=0,y=0,z=0,rx=0,ry=0,rz=0)=>add(new T.BoxGeometry(w,h,d),m,x,y,z,rx,ry,rz);
  const cyl=(r:number,h:number,m:number,x=0,y=0,z=0,rx=0,rz=0,n=12)=>add(new T.CylinderGeometry(r,r,h,n),m,x,y,z,rx,0,rz);
  const line=(a:number[],b:number[],r=.025,m=iron)=>{const va=new T.Vector3().fromArray(a),vb=new T.Vector3().fromArray(b),g=new T.CylinderGeometry(r,r,va.distanceTo(vb),8);g.applyQuaternion(new T.Quaternion().setFromUnitVectors(new T.Vector3(0,1,0),vb.clone().sub(va).normalize()));const mid=va.add(vb).multiplyScalar(.5);add(g,m,mid.x,mid.y,mid.z);};
@@ -161,5 +169,5 @@ export function createBuildingLibrary(anisotropy=4,ready?:()=>void){
  } const group=new T.Group();group.name=BUILDING_PROPS.find(a=>a.id===id)!.name;group.userData.units='metres';group.userData.referencePlayerHeight=1.85;
  for(const [m,gs]of buckets){const flat=gs.map(g=>g.index?g.toNonIndexed():g),merged=mergeGeometries(flat)!;const geometry=mergeVertices(merged);merged.dispose();flat.forEach((g,i)=>{if(g!==gs[i])g.dispose();});gs.forEach(g=>g.dispose());geometry.computeBoundingSphere();const mesh=new T.Mesh(geometry,materials[m]);mesh.castShadow=m!==cyan&&m!==amber;mesh.receiveShadow=true;group.add(mesh);}return group;
  }
- return {create(id:BuildingPropId){let root=cache.get(id);if(!root){root=build(id);cache.set(id,root);}return root.clone(true);},dispose(){cache.forEach(g=>g.traverse(o=>{if(o instanceof T.Mesh)o.geometry.dispose();}));materials.forEach(m=>m.dispose());textures.forEach(t=>t.dispose());atlas.dispose();}};
+ return {create(id:BuildingPropId){if(disposed)throw new Error('Building library is disposed');if(CYBER_BUILDING_PROPS.some(p=>p.id===id))return cyber.create(id as CyberBuildingId);let root=cache.get(id);if(!root){root=build(id);cache.set(id,root);}return root.clone(true);},dispose(){if(disposed)return;disposed=true;cyber.dispose();cache.forEach(g=>g.traverse(o=>{if(o instanceof T.Mesh)o.geometry.dispose();}));cache.clear();materials.forEach(m=>m.dispose());textures.forEach(t=>t.dispose());atlas.dispose();}};
 }

@@ -8,12 +8,12 @@ export type AuthoredPlacement={
 /** Curated street compositions. The central asphalt corridor and every POI
  * approach stay open; larger masses form a readable perimeter skyline. */
 export const AUTHORED_PROPS:AuthoredPlacement[]=[
-  {asset:'building-workshop',x:24,z:10.5,rotation:0,collision:{w:10.2,d:8.4,h:9.2,kind:'building'}},
+  {asset:'building-sector-02',x:24,z:10.5,rotation:0,collision:{w:12.4,d:10.4,h:19,kind:'building'}},
   {asset:'building-home2',x:43,z:10.5,rotation:0,collision:{w:6.6,d:7,h:11.5,kind:'building'}},
   {asset:'building-courtyard',x:59,z:18.5,rotation:0,collision:{w:10.2,d:8.2,h:10,kind:'building'}},
-  {asset:'building-stack',x:81,z:11.5,rotation:0,collision:{w:11.2,d:9.2,h:20.7,kind:'building'}},
+  {asset:'building-neon-residence',x:81,z:11.5,rotation:0,collision:{w:12.2,d:11,h:27.2,kind:'building'}},
   {asset:'building-tokyo',x:105,z:12.5,rotation:0,collision:{w:8.6,d:7.4,h:16.6,kind:'building'}},
-  {asset:'building-tenement',x:128,z:11.5,rotation:0,collision:{w:14.2,d:10,h:20.1,kind:'building'}},
+  {asset:'building-directorate',x:128,z:11.5,rotation:0,collision:{w:13.8,d:11,h:42.7,kind:'building'}},
   {asset:'building-home2',x:46,z:58,rotation:180,collision:{w:6.6,d:7,h:11.5,kind:'building'}},
   {asset:'building-ruin',x:77,z:57,rotation:180,collision:{w:21.8,d:14.2,h:44.8,kind:'building'}},
 

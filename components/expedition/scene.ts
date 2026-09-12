@@ -12,12 +12,16 @@ import { buildEnvironment } from './environment';
 import { findRoute, move, makeWorld, type Point } from './world';
 import { ExpeditionSession } from './session';
 import { POIS, EXTRACTIONS, sectorAt } from './config';
+import {adaptMobileBudget,initialMobileBudget,mobileRenderRatio,usesTouchProfile} from './mobile-performance';
 
-export type Snapshot=Point & {room:string;fps:number;draws:number;near:string|null;ready:boolean;hp:number;bag:ExpeditionSession['bag'];status:ExpeditionSession['status'];message:string;discovered:string[];activeNPC:number;chunks:number;extraction:number;kills:number};
+export type Snapshot=Point & {room:string;fps:number;draws:number;near:string|null;ready:boolean;hp:number;bag:ExpeditionSession['bag'];status:ExpeditionSession['status'];message:string;discovered:string[];activeNPC:number;chunks:number;extraction:number;kills:number;performance:{ratio:number;scale:number;target:number;frameMs:number;triangles:number;textures:number;geometries:number;detailCulled:number}};
 export function createExpedition(host:HTMLElement,onState:(s:Snapshot)=>void,onError:(s:string)=>void,onEditor:(s:EditorState)=>void=()=>{}) {
   const session=new ExpeditionSession(); let debug=false,autoFire=false,landscapeMode=false;
   const world=makeWorld(),elevationAt=world.elevationAt,scene=new T.Scene();scene.background=new T.Color('#111b2b');scene.fog=new T.FogExp2('#192738',.014);
-  const mobile=matchMedia('(pointer:coarse)').matches,reduced=matchMedia('(prefers-reduced-motion:reduce)').matches;
+  scene.matrixAutoUpdate=false;
+  // Choose the renderer path once. any-pointer covers mouse + touchscreen
+  // hybrids; the same phone fallback is used by the CSS controls.
+  const mobile=usesTouchProfile({pointerCoarse:matchMedia('(pointer:coarse)').matches,anyPointerCoarse:matchMedia('(any-pointer:coarse)').matches,hoverNone:matchMedia('(hover:none)').matches,width:window.innerWidth,height:window.innerHeight}),reduced=matchMedia('(prefers-reduced-motion:reduce)').matches;
   const renderer=new T.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
   renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.18;
   renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.VSMShadowMap;renderer.shadowMap.autoUpdate=false;
@@ -28,12 +32,13 @@ export function createExpedition(host:HTMLElement,onState:(s:Snapshot)=>void,onE
   composer?.addPass(new RenderPass(scene,camera));
   const bloom=mobile?undefined:new UnrealBloomPass(new T.Vector2(800,600),.24,.6,1.1);if(bloom)composer?.addPass(bloom);
   const output=mobile?undefined:new OutputPass();if(output)composer?.addPass(output);
-  const env=buildEnvironment(scene,world,1,renderer.capabilities.getMaxAnisotropy());
+  const anisotropy=Math.min(mobile?4:8,renderer.capabilities.getMaxAnisotropy());
+  const env=buildEnvironment(scene,world,1,anisotropy);
   // The normal gameplay path never creates the authoring library, drafts, ghosts or outline.
   let editorInstance:ReturnType<typeof createPropEditor>|undefined,editorLoading:Promise<void>|undefined,masterRequested=false;
   const editor=new Proxy({} as ReturnType<typeof createPropEditor>,{get(_target,key){if(editorInstance)return Reflect.get(editorInstance,key);if(key==='active'||key==='placing')return false;return ()=>{};}});
   function enableMaster(value:boolean){masterRequested=value;if(editorInstance){editorInstance.setActive(value);env.landscape.studio.setActive(value&&landscapeMode);return;}if(!value)return;
-    editorLoading??=import('./prop-editor').then(({createPropEditor})=>{if(disposed)return;editorInstance=createPropEditor(scene,onEditor,renderer.capabilities.getMaxAnisotropy(),elevationAt,pads=>{world.landscape.setEditorPads(pads);env.landscape.studio.refreshPads();});editorInstance.setActive(masterRequested);env.landscape.studio.setActive(masterRequested&&landscapeMode);}).catch(()=>{editorLoading=undefined;onError('Не удалось загрузить MASTER. Повторите попытку.');});
+    editorLoading??=import('./prop-editor').then(({createPropEditor})=>{if(disposed)return;editorInstance=createPropEditor(scene,onEditor,renderer.capabilities.getMaxAnisotropy(),elevationAt,pads=>{world.landscape.setEditorPads(pads);env.landscape.studio.refreshPads();},colliders=>world.setEditorColliders(colliders));editorInstance.setActive(masterRequested);env.landscape.studio.setActive(masterRequested&&landscapeMode);}).catch(()=>{editorLoading=undefined;onError('Не удалось загрузить MASTER. Повторите попытку.');});
   }
   const generator=new T.PMREMGenerator(renderer),environment=generator.fromEquirectangular(env.surfaces.skyTexture);generator.dispose();
   scene.environment=environment.texture;scene.environmentIntensity=.48;
@@ -58,7 +63,7 @@ export function createExpedition(host:HTMLElement,onState:(s:Snapshot)=>void,onE
     if(disposed){disposeTree(gltf.scene);return;}
     const root=gltf.scene;root.updateMatrixWorld(true);const bounds=new T.Box3().setFromObject(root);
     root.scale.multiplyScalar(1.85/bounds.getSize(new T.Vector3()).y);root.updateMatrixWorld(true);root.position.y-=new T.Box3().setFromObject(root).min.y;
-    root.traverse(o=>{const mesh=o as T.Mesh;if(!mesh.isMesh)return;mesh.castShadow=true;mesh.receiveShadow=false;mesh.frustumCulled=false;for(const mat of Array.isArray(mesh.material)?mesh.material:[mesh.material])if(mat instanceof T.MeshStandardMaterial){mat.normalScale.setScalar(.55);if(mat.map){mat.map.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());mat.map.needsUpdate=true;}}});
+    root.traverse(o=>{const mesh=o as T.Mesh;if(!mesh.isMesh)return;mesh.castShadow=true;mesh.receiveShadow=false;mesh.frustumCulled=false;for(const mat of Array.isArray(mesh.material)?mesh.material:[mesh.material])if(mat instanceof T.MeshStandardMaterial){mat.normalScale.setScalar(.55);if(mat.map){mat.map.anisotropy=anisotropy;mat.map.needsUpdate=true;}}});
     hero=new T.Group();hero.add(root);player.add(hero);pose=new PoseController(root);pose.buildIdle(root);mixer=new T.AnimationMixer(root);combat.attach(root,mixer,gltf.animations);
     const clip=gltf.animations.find(a=>/run/i.test(a.name));if(clip){const inPlace=clip.clone();for(const track of inPlace.tracks)if(/hips\.position$/i.test(track.name))for(let i=0;i<track.values.length;i+=3){track.values[i]=track.values[0];track.values[i+2]=track.values[2];}run=mixer.clipAction(inPlace).setEffectiveWeight(0).play();}
     ready=true;renderer.shadowMap.needsUpdate=true;
@@ -68,17 +73,18 @@ export function createExpedition(host:HTMLElement,onState:(s:Snapshot)=>void,onE
   const beamGeo=new T.BufferGeometry().setFromPoints([new T.Vector3(),new T.Vector3()]),beam=new T.Line(beamGeo,new T.LineBasicMaterial({color:'#8ff3ff',transparent:true,opacity:.9}));beam.visible=false;scene.add(beam);let beamUntil=0;
   const combat=new CombatDriver(skill=>{if(session.status!=='active')return;const target=session.useSkill(player.position,skill);if(target){if(hero)hero.rotation.y=Math.atan2(target.x-player.position.x,target.z-player.position.z);const points=beamGeo.attributes.position as T.BufferAttribute;points.setXYZ(0,player.position.x,player.position.y+1.3,player.position.z);points.setXYZ(1,target.x,elevationAt(target)+1.2,target.z);points.needsUpdate=true;beamGeo.computeBoundingSphere();beam.visible=skill.range>5;beamUntil=performance.now()+150;}},()=>session.hp);
   function fire(){combat.cast(0);}
-  // Resolution is the final quality lever: keep mobile silhouettes sharp first.
-  let qualityTier=mobile?1:2,qualityWindow=0,qualityFrames=0,qualityElapsed=0;
-  const applyQuality=()=>env.landscape.studio.setQuality(qualityTier===0?.55:qualityTier===1?.8:1);
-  const resize=()=>{const w=host.clientWidth,h=host.clientHeight,ratio=Math.min(devicePixelRatio,mobile?(qualityTier===0?1.5:2):1.35,Math.sqrt((mobile?(qualityTier===0?1800000:2800000):1500000)/Math.max(1,w*h)));renderer.setPixelRatio(ratio);composer?.setPixelRatio(ratio);renderer.setSize(w,h);composer?.setSize(w,h);camera.aspect=w/Math.max(1,h);camera.updateProjectionMatrix();};
-  const observer=new ResizeObserver(resize);observer.observe(host);resize();applyQuality();
-  const keys=new Set<string>();let stick={x:0,z:0},route:Point[]=[];
-  const reset=()=>{keys.clear();stick={x:0,z:0};route=[];destination.visible=false;};
+  let budget=initialMobileBudget(),resolutionScale=1,qualityWindow=0,qualityFrames=0,qualityElapsed=0,frameMs=0,lastResolution=0;
+  // Full near grass/materials; only distant density is reduced by the mobile profile.
+  env.landscape.studio.setQuality(mobile?.8:1);
+  let renderWidth=0,renderHeight=0,renderDpr=0;
+  const resize=()=>{const w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight),ratio=mobile?mobileRenderRatio(w,h,devicePixelRatio,resolutionScale):Math.min(devicePixelRatio,1.35,Math.sqrt(1500000/(w*h)));if(w===renderWidth&&h===renderHeight&&Math.abs(ratio-renderDpr)<.005)return;renderWidth=w;renderHeight=h;renderDpr=ratio;renderer.setPixelRatio(ratio);composer?.setPixelRatio(ratio);renderer.setSize(w,h);composer?.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();};
+  const observer=new ResizeObserver(resize);observer.observe(host);resize();
+  const keys=new Set<string>();const stick={x:0,z:0};let route:Point[]=[];
+  const reset=()=>{keys.clear();stick.x=stick.z=0;route.length=0;destination.visible=false;};
   const editable=(e:KeyboardEvent)=>e.target instanceof HTMLElement&&!!e.target.closest('button,a,input,select,textarea');
   const keydown=(e:KeyboardEvent)=>{if(editable(e)||document.querySelector('[aria-modal="true"]'))return;const k=e.key.toLowerCase();if(editor.active){if(k==='escape')editor.cancel();if(k==='delete'||k==='backspace'){editor.remove();e.preventDefault();}if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright','shift'].includes(k)){keys.add(k);e.preventDefault();}return;}if(k==='e'&&!e.repeat){session.interact(player.position);e.preventDefault();}if(k===' '){fire();e.preventDefault();}if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright','shift'].includes(k)){e.preventDefault();keys.add(k);}};
   const keyup=(e:KeyboardEvent)=>keys.delete(e.key.toLowerCase());
-  window.addEventListener('keydown',keydown);window.addEventListener('keyup',keyup);window.addEventListener('blur',reset);document.addEventListener('visibilitychange',reset);
+  window.addEventListener('keydown',keydown);window.addEventListener('keyup',keyup);window.addEventListener('blur',reset);window.addEventListener('netrunner:input-reset',reset);
   let pointerDown:Point|null=null;
   const down=(e:PointerEvent)=>{pointerDown={x:e.clientX,z:e.clientY};renderer.domElement.focus({preventScroll:true});};
   const ray=new T.Raycaster(),hit=new T.Vector3(),plane=new T.Plane(new T.Vector3(0,1,0),-.06);
@@ -88,42 +94,48 @@ export function createExpedition(host:HTMLElement,onState:(s:Snapshot)=>void,onE
   renderer.domElement.addEventListener('pointermove',hover);renderer.domElement.addEventListener('wheel',wheel,{passive:false});
   renderer.domElement.addEventListener('pointerdown',down);renderer.domElement.addEventListener('pointerup',up);
   const lost=(e:Event)=>{e.preventDefault();onError('Graphics connection lost. Reload this level.');};renderer.domElement.addEventListener('webglcontextlost',lost);
-  const pivot=new T.Vector3(world.spawn.x,1,world.spawn.z),azimuth=.48;
-  let frame=0,last=performance.now(),report=last,windowStart=last,count=0,fps=0,lastShadow=0,lastLights=0;
-  let selected:typeof env.lightSources=[];
+  const pivot=new T.Vector3(world.spawn.x,1,world.spawn.z),followTarget=new T.Vector3(),shadowAnchor=new T.Vector3(Infinity,0,0),azimuth=.48;
+  let modalOpen=false;const modalObserver=new MutationObserver(()=>{modalOpen=!!document.querySelector('[aria-modal="true"]');if(modalOpen)reset();});modalObserver.observe(host.parentElement??host,{childList:true,subtree:true});
+  let frame=0,last=performance.now(),lastPaint=last,report=last,windowStart=last,count=0,fps=0,lastShadow=0,lastLights=0,lastStream=0;
+  const visibleEnemies:typeof session.enemies=[];
+  const selected:typeof env.lightSources=[];const lightDistances:number[]=[];
   function animate(now:number) {
-    if(disposed)return;frame=requestAnimationFrame(animate);if(document.hidden){last=now;return;}
-    const elapsed=now-last;const dt=document.querySelector('[aria-modal="true"]')?0:Math.min(elapsed/1000,.05);last=now;
-    if(mobile&&ready&&elapsed<150){qualityFrames++;qualityElapsed+=elapsed;if(now-qualityWindow>5000){const mean=qualityElapsed/Math.max(1,qualityFrames);const nextTier=mean>29?0:mean<20?1:qualityTier;if(nextTier!==qualityTier){qualityTier=nextTier;applyQuality();resize();}qualityFrames=0;qualityElapsed=0;qualityWindow=now;}}const time=now/1000;
+    if(disposed||document.hidden)return;frame=requestAnimationFrame(animate);
+    if(mobile){const interval=1000/budget.target;if(now-lastPaint<interval-.8)return;lastPaint=Math.max(lastPaint+interval,now-interval);}else lastPaint=now;
+    const elapsed=now-last;const dt=modalOpen?0:Math.min(elapsed/1000,.05);last=now;
+    if(mobile&&ready&&!modalOpen&&!editor.active&&elapsed>0&&elapsed<250){qualityFrames++;qualityElapsed+=Math.min(elapsed,80);if(now-qualityWindow>2000){frameMs=qualityElapsed/Math.max(1,qualityFrames);if(qualityFrames>=10)budget=adaptMobileBudget(budget,frameMs);qualityFrames=0;qualityElapsed=0;qualityWindow=now;}}
+    if(mobile&&now-lastResolution>600&&Math.abs(resolutionScale-budget.scale)>.001){resolutionScale+=T.MathUtils.clamp(budget.scale-resolutionScale,-.025,.025);resize();lastResolution=now;}
+    const time=now/1000;
     let sx=(keys.has('d')||keys.has('arrowright')?1:0)-(keys.has('a')||keys.has('arrowleft')?1:0)+stick.x;
     let sz=(keys.has('s')||keys.has('arrowdown')?1:0)-(keys.has('w')||keys.has('arrowup')?1:0)+stick.z;
     let dx=0,dz=0;const len=Math.hypot(sx,sz);
-    if(len>.1){sx/=Math.max(1,len);sz/=Math.max(1,len);dx=sx*Math.cos(azimuth)+sz*Math.sin(azimuth);dz=-sx*Math.sin(azimuth)+sz*Math.cos(azimuth);route=[];destination.visible=false;}
+    if(len>.1){sx/=Math.max(1,len);sz/=Math.max(1,len);dx=sx*Math.cos(azimuth)+sz*Math.sin(azimuth);dz=-sx*Math.sin(azimuth)+sz*Math.cos(azimuth);route.length=0;destination.visible=false;}
     else if(route.length){const p=route[0],distance=Math.hypot(p.x-player.position.x,p.z-player.position.z);if(distance<.14)route.shift();else{dx=(p.x-player.position.x)/distance;dz=(p.z-player.position.z)/distance;}}
     if(editor.active){pivot.x=T.MathUtils.clamp(pivot.x+dx*dt*12,0,144);pivot.z=T.MathUtils.clamp(pivot.z+dz*dt*12,0,72);dx=0;dz=0;route=[];}
     const speed=keys.has('shift')?6:4,next=ready&&session.status==='active'?move(world,player.position,dx*speed*dt,dz*speed*dt):player.position;
     const walking=Math.hypot(next.x-player.position.x,next.z-player.position.z)>.0001;player.position.x=next.x;player.position.z=next.z;player.position.y=elevationAt(next)+.09;
     if(hero&&walking){const angle=Math.atan2(dx,dz)-hero.rotation.y;hero.rotation.y+=Math.atan2(Math.sin(angle),Math.cos(angle))*Math.min(1,dt*14);}
     combat.tick(dt,session.status!=='active');blend=T.MathUtils.damp(blend,walking?1:0,16,dt);run?.setEffectiveWeight(blend*(1-combat.weight));mixer?.update(dt);pose?.apply((1-blend)*(1-combat.weight));if(!route.length)destination.visible=false;
-    if(!editor.active)pivot.lerp(new T.Vector3(player.position.x,player.position.y+1,player.position.z),reduced?1:1-Math.exp(-dt*8));
+    if(!editor.active)pivot.lerp(followTarget.set(player.position.x,player.position.y+1,player.position.z),reduced?1:1-Math.exp(-dt*8));
     const distance=editor.active?editorZoom:camera.aspect<.85?28:22;
     camera.position.set(pivot.x+Math.sin(azimuth)*distance*.86,pivot.y+distance*.62,pivot.z+Math.cos(azimuth)*distance*.86);camera.lookAt(pivot);
     if(now>beamUntil)beam.visible=false;
     if(!editor.active){session.tick(dt,player.position);if(autoFire)fire();}
     editor.stream(editor.active?pivot:player.position);
     env.landscape.studio.update(now*.001,editor.active?pivot:player.position,camera.position);
-    env.stream(editor.active?pivot:player.position,debug,session.events.has('drop')&&!session.opened.has('drop'));
-    const visibleEnemies=session.enemies.filter(e=>e.hp>0&&Math.hypot(e.x-player.position.x,e.z-player.position.z)<30);
+    if(now-lastStream>100){env.stream(editor.active?pivot:player.position,debug,session.events.has('drop')&&!session.opened.has('drop'),camera);lastStream=now;}
+    let enemyIndex=0;for(const enemy of session.enemies)if(enemy.hp>0&&(enemy.x-player.position.x)**2+(enemy.z-player.position.z)**2<900&&enemyIndex<enemyPool.length)visibleEnemies[enemyIndex++]=enemy;visibleEnemies.length=enemyIndex;
     enemyPool.forEach((body,i)=>{const enemy=visibleEnemies[i];body.visible=!!enemy;if(enemy){body.position.set(enemy.x,elevationAt(enemy)+(enemy.elite?1.35:1),enemy.z);body.scale.setScalar(enemy.elite?1.5:1);body.rotation.y=Math.atan2(player.position.x-enemy.x,player.position.z-enemy.z);}});
     env.update(reduced?0:time);
-    if(now-lastLights>200){selected=[...env.lightSources].sort((a,b)=>a.p.distanceToSquared(player.position)-b.p.distanceToSquared(player.position)).slice(0,lights.length);lastLights=now;}
+    if(now-lastLights>300){selected.length=0;lightDistances.length=0;for(const source of env.lightSources){const distance=source.p.distanceToSquared(player.position);if(distance>42*42)continue;let index=0;while(index<lightDistances.length&&lightDistances[index]<distance)index++;if(index>=lights.length)continue;selected.splice(index,0,source);lightDistances.splice(index,0,distance);if(selected.length>lights.length){selected.pop();lightDistances.pop();}}lastLights=now;}
     lights.forEach((l,i)=>{const source=selected[i];if(!source){l.intensity=0;return;}l.position.copy(source.p);l.color.copy(source.color);l.intensity=source.power*(source.flicker&&!reduced?.88+.08*Math.sin(time*7+i)+.04*Math.sin(time*17):1);});
-    if(now-lastShadow>(mobile?90:45)){const anchor=editor.active?pivot:player.position;keyLight.position.set(anchor.x-16,32,anchor.z+12);keyLight.target.position.set(anchor.x,anchor.y+4,anchor.z);renderer.shadowMap.needsUpdate=true;lastShadow=now;}
+    const anchor=editor.active?pivot:player.position;const shadowMoving=walking||visibleEnemies.length>0||editor.active||shadowAnchor.distanceToSquared(anchor)>.09;if(now-lastShadow>(mobile?(shadowMoving?100:700):45)){keyLight.position.set(anchor.x-16,32,anchor.z+12);keyLight.target.position.set(anchor.x,anchor.y+4,anchor.z);renderer.shadowMap.needsUpdate=true;shadowAnchor.copy(anchor);lastShadow=now;}
     renderer.info.reset();if(mobile)renderer.render(scene,camera);else composer?.render();
     count++;if(now-windowStart>2000){fps=Math.round(count*1000/(now-windowStart));count=0;windowStart=now;}
-    if(now-report>180){const target=[...EXTRACTIONS,...POIS].find(o=>Math.hypot(o.x-player.position.x,o.z-player.position.z)<3);onState({x:player.position.x,z:player.position.z,room:sectorAt(player.position).name,fps,draws:renderer.info.render.calls,near:target?.name??null,ready,hp:session.hp,bag:{...session.bag},status:session.status,message:session.message,discovered:[...session.discovered],activeNPC:session.enemies.filter(e=>e.hp>0&&Math.hypot(e.x-player.position.x,e.z-player.position.z)<25).length,chunks:env.activeChunks,extraction:session.extraction,kills:session.kills});report=now;}
+    if(now-report>180){const target=[...EXTRACTIONS,...POIS].find(o=>Math.hypot(o.x-player.position.x,o.z-player.position.z)<3);onState({x:player.position.x,z:player.position.z,room:sectorAt(player.position).name,fps,draws:renderer.info.render.calls,near:target?.name??null,ready,hp:session.hp,bag:{...session.bag},status:session.status,message:session.message,discovered:[...session.discovered],activeNPC:session.enemies.filter(e=>e.hp>0&&Math.hypot(e.x-player.position.x,e.z-player.position.z)<25).length,chunks:env.activeChunks,extraction:session.extraction,kills:session.kills,performance:{ratio:renderDpr,scale:resolutionScale,target:mobile?budget.target:60,frameMs,triangles:renderer.info.render.triangles,textures:renderer.info.memory.textures,geometries:renderer.info.memory.geometries,detailCulled:env.detailCulled}});report=now;}
 
   }
+  const visibility=()=>{reset();window.dispatchEvent(new Event('netrunner:input-reset'));cancelAnimationFrame(frame);last=lastPaint=windowStart=qualityWindow=performance.now();count=qualityFrames=qualityElapsed=0;if(!document.hidden&&!disposed)frame=requestAnimationFrame(animate);};document.addEventListener('visibilitychange',visibility);
   frame=requestAnimationFrame(animate);
-  return {editor,landscape:env.landscape.studio,setLandscapeMode(value:boolean){landscapeMode=value;editor.cancel();env.landscape.studio.setActive(value&&editor.active);},setMaster(value:boolean){reset();enableMaster(value);},setAutoFire(value:boolean){autoFire=value;},interact(){session.interact(player.position);},attack(){fire();},setDebug(value:boolean){debug=value;},teleport(p:Point){if(world.canStand(p)){player.position.set(p.x,.09,p.z);reset();}},setStick(x:number,z:number){stick={x,z};},dispose(){disposed=true;cancelAnimationFrame(frame);observer.disconnect();window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',reset);document.removeEventListener('visibilitychange',reset);renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointerup',up);renderer.domElement.removeEventListener('webglcontextlost',lost);renderer.domElement.removeEventListener('pointermove',hover);renderer.domElement.removeEventListener('wheel',wheel);editor.dispose();combat.dispose();env.dispose();mixer?.stopAllAction();disposeTree(scene);env.surfaces.dispose();environment.dispose();draco.dispose();bloom?.dispose();output?.dispose();composer?.dispose();renderer.dispose();renderer.domElement.remove();}};
+  return {editor,landscape:env.landscape.studio,setLandscapeMode(value:boolean){landscapeMode=value;editor.cancel();env.landscape.studio.setActive(value&&editor.active);},setMaster(value:boolean){reset();enableMaster(value);},setAutoFire(value:boolean){autoFire=value;},interact(){session.interact(player.position);},attack(){fire();},setDebug(value:boolean){debug=value;},teleport(p:Point){if(world.canStand(p)){player.position.set(p.x,.09,p.z);reset();}},setStick(x:number,z:number){if(modalOpen||editor.active||session.status!=='active'){stick.x=stick.z=0;return;}stick.x=Number.isFinite(x)?T.MathUtils.clamp(x,-1,1):0;stick.z=Number.isFinite(z)?T.MathUtils.clamp(z,-1,1):0;},dispose(){disposed=true;cancelAnimationFrame(frame);observer.disconnect();window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',reset);document.removeEventListener('visibilitychange',visibility);window.removeEventListener('netrunner:input-reset',reset);modalObserver.disconnect();renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointerup',up);renderer.domElement.removeEventListener('webglcontextlost',lost);renderer.domElement.removeEventListener('pointermove',hover);renderer.domElement.removeEventListener('wheel',wheel);editor.dispose();combat.dispose();env.dispose();mixer?.stopAllAction();disposeTree(scene);env.surfaces.dispose();environment.dispose();draco.dispose();bloom?.dispose();output?.dispose();composer?.dispose();renderer.dispose();renderer.domElement.remove();}};
 }

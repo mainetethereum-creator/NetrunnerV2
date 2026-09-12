@@ -4,8 +4,8 @@ import {FIRE_BARRELS} from './dressing-layout';
 
 /** Surface-only dressing: no new obstacles, collision changes or gameplay state.
  * Every sector reuses the same three buffers and atlas material. */
-export function createStreetDetail(scene:T.Scene,height:(p:Point)=>number,canStand:(p:Point)=>boolean,anisotropy:number){
-  const texture=new T.TextureLoader().load('/game/props/salvage/material-atlas.webp');texture.colorSpace=T.SRGBColorSpace;texture.anisotropy=Math.min(8,anisotropy);
+export function createStreetDetail(scene:T.Scene,height:(p:Point)=>number,canStand:(p:Point)=>boolean,anisotropy:number,sharedAtlas?:T.Texture){
+  const texture=sharedAtlas??new T.TextureLoader().load('/game/props/salvage/material-atlas.webp');texture.colorSpace=T.SRGBColorSpace;texture.anisotropy=Math.min(8,anisotropy);
   const material=new T.MeshStandardMaterial({map:texture,roughness:.87,metalness:.08,side:T.DoubleSide});
   const fragment=new T.PlaneGeometry(1,1);fragment.rotateX(-Math.PI/2);
   const uv=fragment.attributes.uv;for(let i=0;i<uv.count;i++)uv.setXY(i,.67+uv.getX(i)*.32,.34+uv.getY(i)*.32);
@@ -36,6 +36,7 @@ export function createStreetDetail(scene:T.Scene,height:(p:Point)=>number,canSta
   for(const p of FIRE_BARRELS)for(let i=0;i<12;i++){positions.push(p.x+(random()-.5)*.55,1.1,p.z+(random()-.5)*.55);phases.push(random());}
   const sparksGeometry=new T.BufferGeometry();sparksGeometry.setAttribute('position',new T.Float32BufferAttribute(positions,3));sparksGeometry.setAttribute('phase',new T.Float32BufferAttribute(phases,1));
   const sparksMaterial=new T.ShaderMaterial({transparent:true,depthWrite:false,blending:T.AdditiveBlending,uniforms:{time:{value:0}},vertexShader:`attribute float phase;uniform float time;varying float life;void main(){life=fract(phase+time*.23);vec3 p=position;p.y+=life*2.3;p.x+=sin(phase*37.+life*6.)*life*.36;p.z+=life*.35;vec4 view=modelViewMatrix*vec4(p,1.);gl_Position=projectionMatrix*view;gl_PointSize=clamp(38./-view.z,1.,2.8);}`,fragmentShader:`varying float life;void main(){float d=length(gl_PointCoord-.5);gl_FragColor=vec4(1.,.34,.055,(1.-smoothstep(.12,.5,d))*(1.-life)*.75);}`});
-  const sparks=new T.Points(sparksGeometry,sparksMaterial);sparks.frustumCulled=false;scene.add(sparks);
-  return {update(time:number){sparksMaterial.uniforms.time.value=time;},stream(p:Point){const x=Math.floor(p.x/RULES.chunkSize),z=Math.floor(p.z/RULES.chunkSize);chunks.forEach((g,key)=>{const [a,b]=key.split(',').map(Number);g.visible=Math.abs(a-x)<=RULES.activeRadius&&Math.abs(b-z)<=RULES.activeRadius;});},dispose(){texture.dispose();}};
+  sparksGeometry.computeBoundingSphere();sparksGeometry.boundingSphere!.radius+=3;
+  const sparks=new T.Points(sparksGeometry,sparksMaterial);scene.add(sparks);
+  return {update(time:number){sparksMaterial.uniforms.time.value=time;},stream(p:Point){sparks.visible=FIRE_BARRELS.some(f=>(f.x-p.x)**2+(f.z-p.z)**2<32*32);const x=Math.floor(p.x/RULES.chunkSize),z=Math.floor(p.z/RULES.chunkSize);chunks.forEach((g,key)=>{const [a,b]=key.split(',').map(Number);g.visible=Math.abs(a-x)<=RULES.activeRadius&&Math.abs(b-z)<=RULES.activeRadius;});},dispose(){if(!sharedAtlas)texture.dispose();}};
 }

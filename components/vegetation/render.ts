@@ -46,10 +46,10 @@ export function buildVegetation(asset:VegetationAsset,height:(p:Point)=>number=(
 
 /** Playable world: tree/grass geometry is already baked. Only shared geometry,
  * instanced placement and chunk visibility run here. */
-export function createVegetationWorld(scene:T.Scene,height:(p:Point)=>number,_canStand:(p:Point)=>boolean,trees:VegetationTree[]){
+export function createVegetationWorld(scene:T.Scene,height:(p:Point)=>number,_canStand:(p:Point)=>boolean,trees:VegetationTree[],anisotropy=8,sharedAtlas?:T.Texture){
   const chunks=new Map<string,T.Group>(),abort=new AbortController();let disposed=false;
   const wind={value:0};
-  const atlas=new T.TextureLoader().load('/game/props/salvage/material-atlas.webp');atlas.colorSpace=T.SRGBColorSpace;atlas.anisotropy=8;
+  const atlas=sharedAtlas??new T.TextureLoader().load('/game/props/salvage/material-atlas.webp');atlas.colorSpace=T.SRGBColorSpace;atlas.anisotropy=Math.min(8,anisotropy);
   const chunk=(x:number,z:number)=>{const key=`${Math.floor(x/RULES.chunkSize)},${Math.floor(z/RULES.chunkSize)}`;let group=chunks.get(key);if(!group){group=new T.Group();group.name=`Baked vegetation ${key}`;group.visible=false;chunks.set(key,group);scene.add(group);}return group;};
   void loadRuntimeTrees(abort.signal).then(treeGeometry=>{
     if(disposed){treeGeometry.forEach(g=>g.dispose());return;}
@@ -81,5 +81,5 @@ export function createVegetationWorld(scene:T.Scene,height:(p:Point)=>number,_ca
       // GrassSystemThreeJS owns playable grass; GitHub trees stay.
     }
   }).catch(error=>{if(!disposed)console.warn('Vegetation unavailable',error);});
-  return {update(time:number){wind.value=time;},stream(p:Point){const px=Math.floor(p.x/RULES.chunkSize),pz=Math.floor(p.z/RULES.chunkSize);chunks.forEach((group,key)=>{const [x,z]=key.split(',').map(Number);group.visible=Math.abs(x-px)<=RULES.activeRadius&&Math.abs(z-pz)<=RULES.activeRadius;});},dispose(){disposed=true;abort.abort();atlas.dispose();}};
+  return {update(time:number){wind.value=time;},stream(p:Point){const px=Math.floor(p.x/RULES.chunkSize),pz=Math.floor(p.z/RULES.chunkSize);chunks.forEach((group,key)=>{const [x,z]=key.split(',').map(Number);group.visible=Math.abs(x-px)<=RULES.activeRadius&&Math.abs(z-pz)<=RULES.activeRadius;});},dispose(){disposed=true;abort.abort();if(!sharedAtlas)atlas.dispose();}};
 }

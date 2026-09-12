@@ -54,45 +54,63 @@
     "draws": 4
   },
   {
+    "id": "building-neon-residence",
+    "triangles": 28790,
+    "geometryBytes": 2137736,
+    "draws": 7
+  },
+  {
+    "id": "building-sector-02",
+    "triangles": 10578,
+    "geometryBytes": 701788,
+    "draws": 7
+  },
+  {
+    "id": "building-directorate",
+    "triangles": 21772,
+    "geometryBytes": 1841736,
+    "draws": 7
+  },
+  {
     "id": "building-workshop",
     "triangles": 5544,
-    "geometryBytes": 348912,
+    "geometryBytes": 396528,
     "draws": 8
   },
   {
     "id": "building-stack",
     "triangles": 24792,
-    "geometryBytes": 1455376,
+    "geometryBytes": 1608208,
     "draws": 10
   },
   {
     "id": "building-home2",
     "triangles": 9756,
-    "geometryBytes": 507752,
+    "geometryBytes": 558440,
     "draws": 9
   },
   {
     "id": "building-ruin",
     "triangles": 25144,
-    "geometryBytes": 1445456,
+    "geometryBytes": 1586000,
     "draws": 6
   },
   {
     "id": "building-courtyard",
     "triangles": 5122,
-    "geometryBytes": 308908,
+    "geometryBytes": 330028,
     "draws": 12
   },
   {
     "id": "building-tokyo",
     "triangles": 8976,
-    "geometryBytes": 432768,
+    "geometryBytes": 450816,
     "draws": 10
   },
   {
     "id": "building-tenement",
     "triangles": 33744,
-    "geometryBytes": 2066656,
+    "geometryBytes": 2389600,
     "draws": 8
   },
   {
@@ -136,5 +154,17 @@
     "triangles": 29264,
     "geometryBytes": 1390272,
     "draws": 9
+  },
+  {
+    "id": "concrete-security-fence",
+    "triangles": 1352,
+    "geometryBytes": 69712,
+    "draws": 3
+  },
+  {
+    "id": "powered-mesh-fence",
+    "triangles": 3092,
+    "geometryBytes": 202296,
+    "draws": 4
   }
 ]

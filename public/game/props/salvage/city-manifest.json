@@ -8,16 +8,227 @@
   },
   "sharedModelLibrarySourceBytes": 16460,
   "models": [
-    {"id":"stop-sign","label":"Знак · STOP","triangles":746,"geometryKiB":31.4,"drawCalls":5,"dimensions":[1.03,0.23,2.69]},
-    {"id":"tires","label":"Шины · стопка","triangles":16704,"geometryKiB":633.2,"drawCalls":1,"dimensions":[1.89,1.62,1.22]},
-    {"id":"utility-building","label":"Здание · технический блок","triangles":2982,"geometryKiB":113.9,"drawCalls":6,"dimensions":[4.34,5.46,4.32]},
-    {"id":"garbage-bags","label":"Мусор · чёрные мешки","triangles":10530,"geometryKiB":256.5,"drawCalls":2,"dimensions":[2.0,1.14,1.47]},
-    {"id":"campfire","label":"Костёр · поленья","triangles":2348,"geometryKiB":99.2,"drawCalls":4,"dimensions":[1.45,1.44,1.45]},
-    {"id":"shipping-container","label":"Контейнер · грузовой 20 ft","triangles":3040,"geometryKiB":168.4,"drawCalls":4,"dimensions":[6.38,2.62,2.63]},
-    {"id":"electrical-cabinet","label":"Шкаф · электрощитовая","triangles":1336,"geometryKiB":68.3,"drawCalls":8,"dimensions":[2.56,1.01,2.34]},
-    {"id":"bus-shelter","label":"Остановка · павильон","triangles":2312,"geometryKiB":84.3,"drawCalls":5,"dimensions":[3.95,1.42,2.71]},
-    {"id":"modular-fence","label":"Забор · кирпич и пики · 3 м","triangles":3210,"geometryKiB":218.7,"drawCalls":4,"dimensions":[3.58,0.8,2.76]},
-    {"id":"modular-fence-12m","label":"Забор · кирпич и пики · 12 м","triangles":8844,"geometryKiB":601.8,"drawCalls":4,"dimensions":[12.58,0.8,2.76]},
-    {"id":"modular-fence-24m","label":"Забор · кирпич и пики · 24 м","triangles":16356,"geometryKiB":1112.6,"drawCalls":4,"dimensions":[24.58,0.8,2.76]}
-  ]
+    {
+      "id": "stop-sign",
+      "label": "Знак · STOP",
+      "triangles": 746,
+      "geometryKiB": 31.4,
+      "drawCalls": 5,
+      "dimensions": [
+        1.03,
+        0.23,
+        2.69
+      ]
+    },
+    {
+      "id": "tires",
+      "label": "Шины · стопка",
+      "triangles": 16704,
+      "geometryKiB": 633.2,
+      "drawCalls": 1,
+      "dimensions": [
+        1.89,
+        1.62,
+        1.22
+      ]
+    },
+    {
+      "id": "utility-building",
+      "label": "Здание · технический блок",
+      "triangles": 2982,
+      "geometryKiB": 113.9,
+      "drawCalls": 6,
+      "dimensions": [
+        4.34,
+        5.46,
+        4.32
+      ]
+    },
+    {
+      "id": "garbage-bags",
+      "label": "Мусор · чёрные мешки",
+      "triangles": 10530,
+      "geometryKiB": 256.5,
+      "drawCalls": 2,
+      "dimensions": [
+        2,
+        1.14,
+        1.47
+      ]
+    },
+    {
+      "id": "campfire",
+      "label": "Костёр · поленья",
+      "triangles": 2348,
+      "geometryKiB": 99.2,
+      "drawCalls": 4,
+      "dimensions": [
+        1.45,
+        1.44,
+        1.45
+      ]
+    },
+    {
+      "id": "shipping-container",
+      "label": "Контейнер · грузовой 20 ft",
+      "triangles": 3040,
+      "geometryKiB": 168.4,
+      "drawCalls": 4,
+      "dimensions": [
+        6.38,
+        2.62,
+        2.63
+      ]
+    },
+    {
+      "id": "electrical-cabinet",
+      "label": "Шкаф · электрощитовая",
+      "triangles": 1336,
+      "geometryKiB": 68.3,
+      "drawCalls": 8,
+      "dimensions": [
+        2.56,
+        1.01,
+        2.34
+      ]
+    },
+    {
+      "id": "bus-shelter",
+      "label": "Остановка · павильон",
+      "triangles": 2312,
+      "geometryKiB": 84.3,
+      "drawCalls": 5,
+      "dimensions": [
+        3.95,
+        1.42,
+        2.71
+      ]
+    },
+    {
+      "id": "modular-fence",
+      "label": "Забор · кирпич и пики · 3 м",
+      "triangles": 3210,
+      "geometryKiB": 218.7,
+      "drawCalls": 4,
+      "dimensions": [
+        3.58,
+        0.8,
+        2.76
+      ]
+    },
+    {
+      "id": "modular-fence-12m",
+      "label": "Забор · кирпич и пики · 12 м",
+      "triangles": 8844,
+      "geometryKiB": 601.8,
+      "drawCalls": 4,
+      "dimensions": [
+        12.58,
+        0.8,
+        2.76
+      ]
+    },
+    {
+      "id": "modular-fence-24m",
+      "label": "Забор · кирпич и пики · 24 м",
+      "triangles": 16356,
+      "geometryKiB": 1112.6,
+      "drawCalls": 4,
+      "dimensions": [
+        24.58,
+        0.8,
+        2.76
+      ]
+    },
+    {
+      "id": "concrete-security-fence",
+      "label": "Забор · сборный бетон · 3 м",
+      "triangles": 1352,
+      "geometryKiB": 68.1,
+      "drawCalls": 3,
+      "dimensions": [
+        3.61,
+        0.92,
+        3.01
+      ]
+    },
+    {
+      "id": "concrete-security-fence-12m",
+      "label": "Забор · сборный бетон · 12 м",
+      "triangles": 4172,
+      "geometryKiB": 201.6,
+      "drawCalls": 3,
+      "dimensions": [
+        12.61,
+        0.92,
+        3.01
+      ]
+    },
+    {
+      "id": "concrete-security-fence-24m",
+      "label": "Забор · сборный бетон · 24 м",
+      "triangles": 7932,
+      "geometryKiB": 379.7,
+      "drawCalls": 3,
+      "dimensions": [
+        24.61,
+        0.92,
+        3.01
+      ]
+    },
+    {
+      "id": "powered-mesh-fence",
+      "label": "Забор · энергопериметр · 3 м",
+      "triangles": 3092,
+      "geometryKiB": 197.6,
+      "drawCalls": 4,
+      "dimensions": [
+        3.71,
+        0.903,
+        2.797
+      ]
+    },
+    {
+      "id": "powered-mesh-fence-12m",
+      "label": "Забор · энергопериметр · 12 м",
+      "triangles": 10268,
+      "geometryKiB": 661.4,
+      "drawCalls": 4,
+      "dimensions": [
+        12.71,
+        0.903,
+        2.797
+      ]
+    },
+    {
+      "id": "powered-mesh-fence-24m",
+      "label": "Забор · энергопериметр · 24 м",
+      "triangles": 19836,
+      "geometryKiB": 1279.8,
+      "drawCalls": 4,
+      "dimensions": [
+        24.71,
+        0.903,
+        2.797
+      ]
+    }
+  ],
+  "securityFences": {
+    "source": "components/expedition/security-fences.ts",
+    "sourceBytes": 8908,
+    "textureDownloadBytes": 0,
+    "atlas": "city-atlas.webp",
+    "lengthsMetres": [
+      3,
+      6,
+      9,
+      12,
+      15,
+      18,
+      21,
+      24
+    ],
+    "collision": "Segmented dynamic footprints; rebuilt on placement, resize, rotation, removal and restore",
+    "preview": "Shared MASTER PropPreview with live geometry metrics"
+  }
 }

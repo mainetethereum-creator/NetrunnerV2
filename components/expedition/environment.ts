@@ -45,8 +45,9 @@ export function buildEnvironment(scene:T.Scene,_world:World,_level:number,anisot
   const microbus=createMicrobus(scene,elevationAt(MICROBUS),anisotropy);
   const dressing=createDressing(scene,surfaces);lightSources.push(...dressing.sources);
   const district=createAuthoredDistrict(scene,elevationAt,anisotropy);lightSources.push(...district.sources);
-  const vegetation=createVegetationWorld(scene,elevationAt,_world.canStand,VEGETATION_TREES);
-  const streetDetail=createStreetDetail(scene,elevationAt,_world.canStand,anisotropy);
+  const detailAtlas=new T.TextureLoader().load('/game/props/salvage/material-atlas.webp');detailAtlas.colorSpace=T.SRGBColorSpace;detailAtlas.anisotropy=anisotropy;detailAtlas.minFilter=T.LinearMipmapLinearFilter;detailAtlas.generateMipmaps=true;
+  const vegetation=createVegetationWorld(scene,elevationAt,_world.canStand,VEGETATION_TREES,anisotropy,detailAtlas);
+  const streetDetail=createStreetDetail(scene,elevationAt,_world.canStand,anisotropy,detailAtlas);
   const nature=createNature(scene,surfaces);lightSources.push(...nature.sources);
   const dummy=new T.Object3D();
   const labels:T.Sprite[]=[];
@@ -79,13 +80,11 @@ export function buildEnvironment(scene:T.Scene,_world:World,_level:number,anisot
   }
   // Silhouettes stay cheap and visible beyond the active chunks.
   const landmark=new T.Group();scene.add(landmark);
-  // A paired retaining wall frames the entry breach; the road remains open.
-  for(const z of [24,48]){const wall=new T.Mesh(geo,concrete);wall.position.set(2,1.5,z);wall.scale.set(1,3,14);wall.castShadow=true;wall.receiveShadow=true;scene.add(wall);}
   for(const [x,z,h] of [[100,8,24],[106,8,19],[135,9,14]]){const tower=new T.Mesh(new T.CylinderGeometry(1.2,1.7,h,10),metal);tower.position.set(x,h/2,z);tower.castShadow=true;landmark.add(tower);const lamp=new T.Mesh(geo,amber);lamp.scale.set(.5,.5,.5);lamp.position.set(x,h+.2,z);landmark.add(lamp);}
   const debug=new T.Group();debug.visible=false;scene.add(debug);
   for(const [key] of chunks){const [x,z]=key.split(',').map(Number);const box=new T.Box3Helper(new T.Box3(new T.Vector3(x*size,.15,z*size),new T.Vector3((x+1)*size,.3,(z+1)*size)),0x58c3dd);debug.add(box);}
   for(const e of ENCOUNTERS){const ring=new T.Mesh(new T.RingGeometry(e.activationDistance-.1,e.activationDistance,64),new T.MeshBasicMaterial({color:'#e77b52',side:T.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.set(e.x,.16,e.z);debug.add(ring);const spawn=new T.Mesh(new T.SphereGeometry(.3,8,6),amber);spawn.position.set(e.x,.6,e.z);debug.add(spawn);}
   const drop=new T.Mesh(geo,amber);drop.scale.set(1.2,1,1.2);drop.position.set(EVENTS[1].x,.6,EVENTS[1].z);drop.visible=false;scene.add(drop);
   let activeChunks=0;
-  return {landscape,surfaces,lightSources,dispose(){streetDetail.dispose();landscape.dispose();microbus.dispose();district.dispose();vegetation.dispose();},update(time:number){drop.rotation.y=time*.2;streetDetail.update(time);vegetation.update(time);dressing.update(time);district.update(time);nature.update(time);},stream(p:Point,showDebug:boolean,dropVisible:boolean){streetDetail.stream(p);microbus.stream(p);dressing.stream(p);district.stream(p);nature.stream(p);vegetation.stream(p);activeChunks=0;const x=Math.floor(p.x/size),z=Math.floor(p.z/size);chunks.forEach((g,k)=>{const [a,b]=k.split(',').map(Number);g.visible=Math.abs(a-x)<=RULES.activeRadius&&Math.abs(b-z)<=RULES.activeRadius;if(g.visible)activeChunks++;});labels.forEach(l=>l.visible=l.position.distanceTo(new T.Vector3(p.x,0,p.z))<32);debug.visible=showDebug;drop.visible=dropVisible&&Math.hypot(p.x-drop.position.x,p.z-drop.position.z)<40;},get activeChunks(){return activeChunks;}};
+  return {landscape,surfaces,lightSources,dispose(){detailAtlas.dispose();streetDetail.dispose();landscape.dispose();microbus.dispose();district.dispose();vegetation.dispose();},update(time:number){drop.rotation.y=time*.2;streetDetail.update(time);vegetation.update(time);dressing.update(time);district.update(time);nature.update(time);},stream(p:Point,showDebug:boolean,dropVisible:boolean,camera?:T.Camera){streetDetail.stream(p);microbus.stream(p);dressing.stream(p);district.stream(p,camera);nature.stream(p);vegetation.stream(p);activeChunks=0;const x=Math.floor(p.x/size),z=Math.floor(p.z/size);chunks.forEach((g,k)=>{const [a,b]=k.split(',').map(Number);g.visible=Math.abs(a-x)<=RULES.activeRadius&&Math.abs(b-z)<=RULES.activeRadius;if(g.visible)activeChunks++;});labels.forEach(l=>l.visible=(l.position.x-p.x)**2+(l.position.z-p.z)**2<32*32);debug.visible=showDebug;drop.visible=dropVisible&&Math.hypot(p.x-drop.position.x,p.z-drop.position.z)<40;},get activeChunks(){return activeChunks;},get detailCulled(){return district.detailCulled;}};
 }

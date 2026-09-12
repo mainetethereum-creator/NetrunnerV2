@@ -1,6 +1,6 @@
 # Expedition rendering and asset budgets
 
-Implementation inventory, 2026-09-11. These are source/asset counts, not measured device frame rates. Browser, build, lint and gameplay validation are a separate release step.
+Implementation inventory, mobile strategy updated 2026-09-12. These are source/asset counts, not measured device frame rates. Browser, build, lint and gameplay validation are a separate release step.
 
 ## Runtime and authoring
 
@@ -13,9 +13,12 @@ Implementation inventory, 2026-09-11. These are source/asset counts, not measure
 
 ## Mobile strategy
 
-- Normal mobile tier targets DPR 2, bounded to 2.8 million render pixels. Sustained slow frames select the economy tier: 55% grass density and DPR 1.5, bounded to 1.8 million pixels. Fast sustained frames recover the normal tier (80% grass). Decisions use five-second windows and separate downgrade/recovery thresholds. Actual DPR also respects the device ratio and pixel budget.
+- Touch profiles include coarse primary pointers and `any-pointer: coarse` hybrids. A no-hover fallback covers phones up to 700 px wide in portrait or up to 1100 × 500 px in landscape. The renderer chooses its path at scene creation; CSS uses the same conditions for the stick and compact HUD. A narrow mouse-only window keeps the desktop rendering path.
+- Mobile starts at DPR capped to 1.7 and about 1.1 million render pixels on common phones. Visible gameplay frame cadence is sampled in two-second windows, excluding loading/editor/dialog periods and long one-off stalls. Warmup and cooldown windows prevent reactions to brief fluctuations. Two slow windows lower target scale by 0.07; actual resolution moves only 0.025 per 600 ms, with a floor of 72% of initial resolution and absolute DPR floor 0.75. UI remains native CSS.
+- Recovery requires twelve healthy windows (24 seconds) and increases target scale by only 0.035. Sustained load at the floor selects a 30 fps presentation cadence for the rest of the visit; the normal cadence is capped to 60, including high-refresh screens. Hidden documents cancel animation frames and reset input/timing before resuming. These are cadence targets, not measured phone FPS or thermal guarantees. See `mobile-performance.md` for the full controller and validation notes.
 - Mobile uses the existing antialiased direct renderer. It no longer allocates unused half-float composer/bloom render targets. Desktop keeps its prior exposure, bloom, pixel budget and lighting.
-- Each patch has four spatial grass chunks with conservative bounds and hardware frustum culling. Near/middle/far density fractions are 1 / .65 / .3, followed by the quality multiplier. Patch capacity stays 3,000 blades total; chunk density reduction retains deterministic spatial distribution. There are at most 32 grass draws for the eight default patches before visibility culling.
+- Each patch has four spatial grass chunks with conservative bounds and hardware frustum culling. Distance smoothsteps reduce density from 1 to .65 to .3 over 16–28–42 m. The mobile quality multiplier smoothly changes from 1 near the player to .8 over 16–32 m, preserving full near density. Patch capacity stays 3,000 blades total; chunk density reduction retains deterministic spatial distribution. There are at most 32 grass draws for the eight default patches before visibility culling.
+- Small authored decorative props retain full detail within 27 m, fade over 27–44 m with opaque screen-door coverage, then skip their draws. Buildings/trees retain their silhouettes and geometry. Distant authored groups receive frustum culling; nearby offscreen shadow casters remain available. Streaming runs at 10 Hz. Mobile keeps four local lights and 1024 VSM soft shadows, refreshed at 10 Hz during motion and about 1.4 Hz at rest. Vegetation/street litter share an atlas texture; trilinear mipmaps and capped mobile anisotropy preserve surface stability.
 - Distant soil skips expensive FBM/Voronoi detail beyond 42 m from the camera. Crack detail fades from 22–42 m. Near soil keeps the detailed material.
 
 ## Asset audit
@@ -34,7 +37,9 @@ Implementation inventory, 2026-09-11. These are source/asset counts, not measure
 
 The microbus previously consumed 26,884,608 geometry bytes. Tiny tread/trim boxes now use flat boxes, larger rounded boxes use one bevel subdivision, and merged buffers are indexed. Windows, wheel-arch openings, body panels, interior, weathering and material batches remain. Cylindrical prop subdivisions were reduced where their projected size is small.
 
-All seven architectural catalogue models are 5,122–33,744 triangles each, under the 35,000-triangle large-building budget. Small catalogue props are 562–10,368 triangles per composition, with 1–8 material draws; large buildings have 6–12. Geometries are shared across authored placements. These are low-poly compositions, not one-draw objects.
+All ten architectural catalogue models are 5,122–33,744 triangles each, under the 35,000-triangle large-building budget. Small catalogue props are 562–10,368 triangles per composition, with 1–8 material draws; large buildings have 6–12. Geometries are shared across authored placements. These are low-poly compositions, not one-draw objects. The three new reference-built cyberpunk models each use seven material draws; see `cyber-buildings.md` for their exact bounds, budgets and authored positions.
+
+The seven earlier buildings reuse the same metric cold-concrete shader in existing material bucket 0. Their triangle counts and 6–12 material draws are unchanged; geometry buffers grow from 6,565,828 to 7,319,620 bytes (+753,792) for surface coordinates and distinct per-part UVs. There are no additional texture requests or new geometry parts. Plaster, brick, steel and window materials retain their original atlas tiles. The combined library owns the single downloaded atlas; its shared cyber sublibrary does not dispose that borrowed texture.
 
 | Existing GLB | Triangles | Transfer bytes | Decision |
 | --- | ---: | ---: | --- |
@@ -51,4 +56,4 @@ The two 1,254 × 1,254 PNG atlases now have lossless WebP runtime copies: microb
 
 ## Validation still required
 
-The reference look, transitions between grass tiers, soil fade, MASTER draft restoration/selection, custom pad editing, movement, route slopes, combat, and separate-scene lifecycles need browser/gameplay validation. Physical mobile devices must establish actual frame time and thermal behavior. The detailed animated hero remains the largest GLB; skinned decimation was deliberately avoided to preserve animation. No FPS claim or production deployment is implied by this inventory.
+The reference look, grass/detail fades, smooth resolution changes, touch/hybrid controls in both orientations, soil fade, MASTER draft restoration/selection, custom pad editing, movement, route slopes, combat, and separate-scene lifecycles need browser/gameplay validation. Physical mobile devices must establish actual frame time and thermal behavior. The detailed animated hero remains the largest GLB; skinned decimation was deliberately avoided to preserve animation. No FPS claim or production deployment is implied by this inventory.

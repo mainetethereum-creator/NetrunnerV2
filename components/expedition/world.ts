@@ -9,7 +9,7 @@ import {AUTHORED_COLLIDERS} from './authored-layout.ts';
 export type {Point} from './config.ts';
 export type Solid=Rect & {h:number;kind:'building'|'barrier'|'container'};
 export const SOLIDS:Solid[]=AUTHORED_COLLIDERS.map(s=>({...s}));
-const PROP_COLLIDERS:Rect[]=[...POIS.map(p=>({x:p.x+1.4,z:p.z,w:1.3,d:.9})),{x:2,z:24,w:1,d:14},{x:2,z:48,w:1,d:14},{x:22,z:20,w:1,d:.8},{x:28,z:20,w:1,d:.8}];
+const PROP_COLLIDERS:Rect[]=[...POIS.map(p=>({x:p.x+1.4,z:p.z,w:1.3,d:.9})),{x:22,z:20,w:1,d:.8},{x:28,z:20,w:1,d:.8}];
 const STATIC_COLLIDERS=[MICROBUS,...SOLIDS,...PROP_COLLIDERS,...DRESSING_COLLIDERS,...HANGARS,FOUNTAIN,...RUIN_WALLS];
 export const VEGETATION_TREES=makeVegetationTrees(STATIC_COLLIDERS);
 // Legacy hand-built trees are intentionally disabled. The playable map uses
@@ -19,15 +19,27 @@ const WORLD_COLLIDERS=[...STATIC_COLLIDERS,...VEGETATION_TREES.map(t=>({x:t.x,z:
 export function makeWorld(){
   const landscape=createLandscapeState(WORLD_COLLIDERS),height=createTerrainHeight(landscape);
   const elevation=(p:Point)=>height(p)+(p.z>=56.5&&p.z<=59.5&&p.x>=96&&p.x<=110?Math.min(1.6,(p.x-96)*.4):0);
-  const cells=new Map<string,Rect[]>(),cellSize=8;
+  const cells=new Map<string,Rect[]>(),editorCells=new Map<string,Rect[]>(),cellSize=8;
   for(const rect of WORLD_COLLIDERS)for(let x=Math.floor((rect.x-rect.w/2)/cellSize);x<=Math.floor((rect.x+rect.w/2)/cellSize);x++)for(let z=Math.floor((rect.z-rect.d/2)/cellSize);z<=Math.floor((rect.z+rect.d/2)/cellSize);z++){const key=x+','+z;const bucket=cells.get(key)??[];bucket.push(rect);cells.set(key,bucket);}
-  const nearby=(p:Point,r:number)=>{const found=new Set<Rect>();for(let x=Math.floor((p.x-r)/cellSize);x<=Math.floor((p.x+r)/cellSize);x++)for(let z=Math.floor((p.z-r)/cellSize);z<=Math.floor((p.z+r)/cellSize);z++)for(const rect of cells.get(x+','+z)??[])found.add(rect);return [...found];};
+  const nearby=(p:Point,r:number)=>{const found=new Set<Rect>();for(let x=Math.floor((p.x-r)/cellSize);x<=Math.floor((p.x+r)/cellSize);x++)for(let z=Math.floor((p.z-r)/cellSize);z<=Math.floor((p.z+r)/cellSize);z++){const key=x+','+z;for(const rect of cells.get(key)??[])found.add(rect);for(const rect of editorCells.get(key)??[])found.add(rect);}return [...found];};
   const canStand=(p:Point,r=.34)=>Number.isFinite(p.x)&&Number.isFinite(p.z)&&insideLandscape(p,r)&&!nearby(p,r).some(s=>{
     const x=Math.max(s.x-s.w/2,Math.min(p.x,s.x+s.w/2)),z=Math.max(s.z-s.d/2,Math.min(p.z,s.z+s.d/2));return (p.x-x)**2+(p.z-z)**2<r*r;
   });
   const navigation=new Map<string,boolean>();let navRevision=-1;
   const routeStand=(p:Point)=>{if(navRevision!==landscape.revision){navigation.clear();navRevision=landscape.revision;}const key=p.x+','+p.z;let allowed=navigation.get(key);if(allowed===undefined){allowed=canStand(p);navigation.set(key,allowed);}return allowed;};
-  return {canStand,routeStand,landscape,terrainHeight:height,elevationAt:elevation,spawn:SPAWN,exit:EXTRACTIONS[1]};
+  function setEditorColliders(rects:readonly Rect[]){
+    // Rebuild only the dynamic grid; resizing, rotating, deleting and disposing
+    // a placement never changes the authored collision data.
+    editorCells.clear();navigation.clear();
+    for(const source of rects){
+      const rect={...source};
+      if(![rect.x,rect.z,rect.w,rect.d].every(Number.isFinite)||rect.w<=0||rect.d<=0)continue;
+      for(let x=Math.floor((rect.x-rect.w/2)/cellSize);x<=Math.floor((rect.x+rect.w/2)/cellSize);x++)for(let z=Math.floor((rect.z-rect.d/2)/cellSize);z<=Math.floor((rect.z+rect.d/2)/cellSize);z++){
+        const key=x+','+z,bucket=editorCells.get(key)??[];bucket.push(rect);editorCells.set(key,bucket);
+      }
+    }
+  }
+  return {canStand,routeStand,setEditorColliders,landscape,terrainHeight:height,elevationAt:elevation,spawn:SPAWN,exit:EXTRACTIONS[1]};
 }
 export type World=ReturnType<typeof makeWorld>;
 export function elevationAt(p:Point){return terrainHeight(p)+(p.z>=56.5&&p.z<=59.5&&p.x>=96&&p.x<=110?Math.min(1.6,(p.x-96)*.4):0);}

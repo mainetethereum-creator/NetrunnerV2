@@ -1,7 +1,11 @@
 import * as T from 'three';
+import {SECURITY_FENCE_PROPS,createSecurityFenceLibrary,type SecurityFenceId} from './security-fences';
+import {isFence,fenceLength} from './fence-layout';
+export {isFence,fenceLength} from './fence-layout';
 import {mergeGeometries,mergeVertices} from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 export const CITY_PROPS=[
+ ...SECURITY_FENCE_PROPS,
  {id:'stop-sign',name:'Знак · STOP',category:'Детали',description:'Ржавый восьмиугольник · перфорированная стойка · 2,6 м'},
  {id:'tires',name:'Шины · стопка',category:'Детали',description:'Шесть старых покрышек · рельефный протектор и боковины'},
  {id:'utility-building',name:'Здание · технический блок',category:'Здания',description:'4 × 3,6 м · дверь, площадка, лестница и вентиляция'},
@@ -13,7 +17,7 @@ export const CITY_PROPS=[
  {id:'modular-fence',name:'Забор · кирпич и пики',category:'Ограждения',description:'Модуль 3 м · длина 3–24 м · привязка концов при размещении'},
 ] as const;
 export type CityPropId=typeof CITY_PROPS[number]['id'];
-export const fenceLength=(n=3)=>Math.min(24,Math.max(3,Math.round((Number.isFinite(n)?n:3)/3)*3));
+
 /** Animate only the flame meshes; geometry and materials remain shared between placements. */
 export function animateCityProps(root:T.Object3D,time:number){root.traverse(o=>{if(o.userData.fireLayer){const phase=o.userData.fireLayer; o.scale.y=1+.13*Math.sin(time*8+phase)+.05*Math.sin(time*19+phase);o.rotation.y=.08*Math.sin(time*4+phase);o.scale.x=1+.07*Math.sin(time*6+phase);o.scale.z=1+.06*Math.cos(time*7+phase);}});}
 
@@ -22,6 +26,11 @@ export function createCityLibrary(anisotropy:number,ready?:()=>void){
  const atlasMaps:T.Texture[]=[];
  const atlas=new T.TextureLoader().load('/game/props/salvage/city-atlas.webp',loaded=>{atlasMaps.forEach(t=>{t.source=loaded.source;t.needsUpdate=true;});ready?.();});atlas.colorSpace=T.SRGBColorSpace;
  const textures:T.Texture[]=[];
+ // Keep generated materials on inert placeholder textures until the atlas has
+ // image data. This avoids Three.js trying to upload an incomplete loader
+ // texture when MASTER renders a preview immediately after opening.
+ const securityAtlas=new T.Texture();securityAtlas.colorSpace=atlas.colorSpace;securityAtlas.anisotropy=Math.min(8,anisotropy);textures.push(securityAtlas);atlasMaps.push(securityAtlas);
+ const security=createSecurityFenceLibrary(securityAtlas);
  const mats:T.MeshStandardMaterial[]=Array.from({length:9},(_,i)=>{const map=new T.Texture();map.colorSpace=atlas.colorSpace;map.repeat.set(.329,.329);map.offset.set(i%3/3+.002,(2-Math.floor(i/3))/3+.002);map.anisotropy=Math.min(8,anisotropy);textures.push(map);atlasMaps.push(map);return new T.MeshStandardMaterial({map,bumpMap:map,bumpScale:i===1?.045:.015,roughness:[.83,.98,.96,.29,.96,.7,.83,.98,.56][i],metalness:[.5,0,0,.05,0,.65,.4,0,.1][i]});});
  mats[5].side=T.DoubleSide;
  const material=(p:T.MeshStandardMaterialParameters)=>{mats.push(new T.MeshStandardMaterial(p));return mats.length-1;};
@@ -94,5 +103,5 @@ export function createCityLibrary(anisotropy:number,ready?:()=>void){
  }
  const root=new T.Group();root.name=CITY_PROPS.find(a=>a.id===id)!.name;for(const [m,gs]of buckets){const flat=gs.map(g=>g.index?g.toNonIndexed():g),merged=mergeGeometries(flat)!;const geometry=mergeVertices(merged);merged.dispose();flat.forEach((g,i)=>{if(g!==gs[i])g.dispose();});gs.forEach(g=>g.dispose());const mesh=new T.Mesh(geometry,mats[m]);if(m===flame||m===core)mesh.userData.fireLayer=m===flame?1:2;mesh.castShadow=m!==glass&&m!==flame&&m!==core;mesh.receiveShadow=true;root.add(mesh);}return root;
  }
- return {create(id:CityPropId,length=3){const l=id==='modular-fence'?fenceLength(length):3,key=id+':'+l;let root=cache.get(key);if(!root){root=build(id,l);cache.set(key,root);}return root.clone(true);},dispose(){cache.forEach(g=>g.traverse(o=>{if(o instanceof T.Mesh)o.geometry.dispose();}));mats.forEach(m=>m.dispose());textures.forEach(t=>t.dispose());atlas.dispose();}};
+ return {create(id:CityPropId,length=3){if(SECURITY_FENCE_PROPS.some(p=>p.id===id))return security.create(id as SecurityFenceId,length);const l=isFence(id)?fenceLength(length):3,key=id+':'+l;let root=cache.get(key);if(!root){root=build(id,l);cache.set(key,root);}return root.clone(true);},dispose(){security.dispose();cache.forEach(g=>g.traverse(o=>{if(o instanceof T.Mesh)o.geometry.dispose();}));mats.forEach(m=>m.dispose());textures.forEach(t=>t.dispose());atlas.dispose();}};
 }
