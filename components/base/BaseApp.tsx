@@ -7,6 +7,7 @@ import type { BaseEngine, BaseSnapshot } from "./scene";
 import type { QualityMode } from "./quality";
 import { SPAWN, STATIONS, type StationId } from "./world";
 import GameHud from "../game/GameHud";
+import MovementStick from "../game/MovementStick";
 import styles from "./BaseApp.module.css";
 
 type Quest = { accepted: boolean; visited: StationId[] };
@@ -41,10 +42,9 @@ function Icon({ name, size = 18 }: { name: "map" | "arrow" | "settings" | "power
 export default function BaseApp() {
   const router = useRouter();
   const host = useRef<HTMLDivElement>(null), engine = useRef<BaseEngine | null>(null);
-  const dialogRef = useRef<HTMLDivElement>(null), stickRef = useRef<HTMLDivElement>(null);
-  const activeStick = useRef<number | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false), [, setHero] = useState("RUNNER");
-  const [snapshot, setSnapshot] = useState<BaseSnapshot>({ ...SPAWN, near: null, fps: 0, p95: 0, draws: 0, triangles: 0, ratio: 1, high: false, submitMs: 0, timingLimited: false });
+  const [snapshot, setSnapshot] = useState<BaseSnapshot>({ ...SPAWN, near: null, fps: 0, p95: 0, draws: 0, triangles: 0, ratio: 1, high: false, submitMs: 0, timingLimited: false, target: 60, scale: 1 });
   const [dialog, setDialog] = useState<StationId | "wallet" | "settings" | null>(null);
   const [detail, setDetail] = useState(false), [mapOpen, setMapOpen] = useState(false);
   const [rain, setRain] = useState(true), [quality, setQuality] = useState<QualityMode>("auto"), [quest, setQuest] = useState<Quest>(EMPTY_QUEST);
@@ -118,19 +118,7 @@ export default function BaseApp() {
     return () => { clearTimeout(timer); window.removeEventListener("keydown", onKey); previous?.focus({ preventScroll: true }); };
   }, [dialog]);
 
-  const resetStick = () => {
-    activeStick.current = null; engine.current?.setStick(0, 0);
-    if (stickRef.current) stickRef.current.style.transform = "translate(0, 0)";
-  };
-  const updateStick = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (activeStick.current !== event.pointerId) return;
-    const r = event.currentTarget.getBoundingClientRect();
-    let dx = event.clientX - r.left - r.width / 2, dy = event.clientY - r.top - r.height / 2;
-    const length = Math.hypot(dx, dy), limit = 33;
-    if (length > limit) { dx *= limit / length; dy *= limit / length; }
-    if (stickRef.current) stickRef.current.style.transform = `translate(${dx}px, ${dy}px)`;
-    engine.current?.setStick(dx / limit, dy / limit);
-  };
+  const moveStick = useCallback((x: number, z: number) => engine.current?.setStick(x, z), []);
   const nearest = STATIONS.find((s) => s.id === snapshot.near);
   const npc = dialog && dialog !== "wallet" && dialog !== "settings" ? DIALOGUE[dialog] : null;
 
@@ -158,13 +146,10 @@ export default function BaseApp() {
 
     {!dialog && nearest && ready && <button className={styles.interact} onClick={() => openDialog(nearest.id)}><kbd>E</kbd><span><small>{nearest.role}</small>Talk to {nearest.id === "city" || nearest.id === "stash" ? "terminal" : nearest.name.toLowerCase()}</span><Icon name="arrow" /></button>}
 
-    {!dialog && <div className={styles.touchControls}>
-      <div className={styles.joystick} role="group" aria-label="Movement joystick" onPointerDown={(e) => { if (activeStick.current !== null) return; activeStick.current = e.pointerId; e.currentTarget.setPointerCapture(e.pointerId); updateStick(e); }} onPointerMove={updateStick} onPointerUp={resetStick} onPointerCancel={resetStick} onLostPointerCapture={resetStick}><span ref={stickRef} /><i /></div>
-      <button className={styles.touchAction} disabled={!nearest} aria-label="Interact with nearby NPC" onClick={() => nearest && openDialog(nearest.id)}><Icon name="power" size={24} /><small>TALK</small></button>
-    </div>}
+    <MovementStick onMove={moveStick} disabled={!ready || dialog !== null} />
 
     <GameHud hidden={hideHud || !ready} onSettings={() => setDialog("settings")} onQuest={() => openDialog("contracts")} />
-    {showStats && <div className={styles.performance} aria-label="Live graphics performance"><strong>{snapshot.fps} FPS{snapshot.timingLimited ? "*" : ""}</strong><span>{snapshot.p95} ms p95 · {snapshot.high ? "HIGH" : "LITE"}</span><span>{snapshot.submitMs} ms CPU submit</span><span>{snapshot.draws} draws · {Math.round(snapshot.triangles / 1000)}k triangles</span><span>Render scale {snapshot.ratio.toFixed(2)} · {quality.toUpperCase()}</span>{snapshot.timingLimited && <span>* Possible browser timer limit</span>}</div>}
+    {showStats && <div className={styles.performance} aria-label="Live graphics performance"><strong>{snapshot.fps} FPS{snapshot.timingLimited ? "*" : ""}</strong><span>{snapshot.p95} ms p95 · {snapshot.high ? "HIGH" : "LITE"}</span><span>{snapshot.submitMs} ms CPU submit</span><span>{snapshot.draws} draws · {Math.round(snapshot.triangles / 1000)}k triangles</span><span>DPR {snapshot.ratio.toFixed(2)} · scale {snapshot.scale.toFixed(2)}</span><span>Target {snapshot.target} FPS · {quality.toUpperCase()}</span>{snapshot.timingLimited && <span>* Possible browser timer limit</span>}</div>}
 
     {!ready && <div className={styles.loading}><div className={styles.loadingMark}>C ◈ B</div><span className={styles.eyebrow}>ESTABLISHING REFUGE LINK</span><h2>A light left on for you.</h2><div className={styles.loadLine} /><p>{error || "Preparing the district…"}</p>{error && <button onClick={() => location.reload()}>Reload refuge</button>}</div>}
     {storageNotice && <div className={styles.error} role="status">{storageNotice}</div>}

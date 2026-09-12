@@ -16,9 +16,10 @@ import { createWetFloor } from "./wet-floor";
 import { buildRefugeZones } from "./zones";
 import { buildConcretePerimeter } from "./fence";
 import { adaptQuality, initialQuality, renderRatio, type QualityMode } from "./quality";
+import { adaptMobileBudget, initialMobileBudget, mobileRenderRatio, usesTouchProfile } from "../expedition/mobile-performance";
 import { canStand, findPath, moveWithCollision, nearestStation, BASE_EXPANSION, SPAWN, STATIONS, type Point, type StationId } from "./world";
 
-export type BaseSnapshot = { x: number; z: number; near: StationId | null; fps: number; p95: number; draws: number; triangles: number; ratio: number; high: boolean; submitMs: number; timingLimited: boolean };
+export type BaseSnapshot = { x: number; z: number; near: StationId | null; fps: number; p95: number; draws: number; triangles: number; ratio: number; high: boolean; submitMs: number; timingLimited: boolean; target: 30 | 60; scale: number };
 export type BaseEngine = {
   dispose(): void; setPaused(value: boolean): void; setStick(x: number, y: number): void;
   setRain(value: boolean): void; setQuality(value: QualityMode): void;
@@ -48,11 +49,12 @@ export function createBaseScene(
   const scene = new T.Scene();
   scene.background = new T.Color("#101b23");
   scene.fog = new T.FogExp2("#101d28", 0.014);
-  const mobile = window.matchMedia("(pointer: coarse)").matches;
+  const mobile = usesTouchProfile({ pointerCoarse: matchMedia("(pointer:coarse)").matches, anyPointerCoarse: matchMedia("(any-pointer:coarse)").matches, hoverNone: matchMedia("(hover:none)").matches, width: window.innerWidth, height: window.innerHeight });
   let quality = initialQuality(mobile);
+  let budget = initialMobileBudget(), resolutionScale = 1;
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const renderer = new T.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-  renderer.setPixelRatio(renderRatio(host.clientWidth, host.clientHeight, devicePixelRatio, quality));
+  renderer.setPixelRatio(mobile ? mobileRenderRatio(host.clientWidth, host.clientHeight, devicePixelRatio, resolutionScale) : renderRatio(host.clientWidth, host.clientHeight, devicePixelRatio, quality));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = T.VSMShadowMap;
   renderer.shadowMap.autoUpdate = false;
@@ -60,7 +62,7 @@ export function createBaseScene(
   renderer.info.autoReset = false;
   renderer.toneMapping = T.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.12;
-  const surfaces = createRefugeMaterials(renderer.capabilities.getMaxAnisotropy());
+  const surfaces = createRefugeMaterials(Math.min(mobile ? 4 : Infinity, renderer.capabilities.getMaxAnisotropy()));
   const pmrem = new T.PMREMGenerator(renderer);
   const environment = pmrem.fromEquirectangular(surfaces.skyTexture);
   scene.environment = environment.texture;
@@ -72,15 +74,17 @@ export function createBaseScene(
   const camera = new T.PerspectiveCamera(38, 1, 0.15, 140);
   // Canvas antialiasing does not apply to the composer's offscreen scene.
   // Resolve MSAA before bloom so window slats and facade edges stay smooth at rest.
-  const sceneTarget = new T.WebGLRenderTarget(1, 1, {
-    type: T.HalfFloatType,
-    samples: Math.min(mobile ? 2 : 4, renderer.capabilities.maxSamples),
-  });
-  const composer = new EffectComposer(renderer, sceneTarget);
-  composer.addPass(new RenderPass(scene, camera));
-  const bloom = new UnrealBloomPass(new T.Vector2(800, 600), 0.32, 0.65, 1.05);
-  composer.addPass(bloom);
-  const output = new OutputPass(); composer.addPass(output);
+  // Touch Auto/Lite never allocate postprocessing buffers. Explicit High still
+  // works, and desktop keeps its existing MSAA/bloom rendering.
+  let composer: EffectComposer | undefined, bloom: UnrealBloomPass | undefined, output: OutputPass | undefined;
+  const enablePostprocessing = () => {
+    if (composer) return;
+    composer = new EffectComposer(renderer, new T.WebGLRenderTarget(1, 1, { type: T.HalfFloatType, samples: Math.min(mobile ? 2 : 4, renderer.capabilities.maxSamples) }));
+    composer.addPass(new RenderPass(scene, camera));
+    bloom = new UnrealBloomPass(new T.Vector2(800, 600), 0.32, 0.65, 1.05); composer.addPass(bloom);
+    output = new OutputPass(); composer.addPass(output);
+  };
+  if (!mobile) enablePostprocessing();
   const hemi = new T.HemisphereLight(0x9cb9d6, 0x302a23, 0.45); scene.add(hemi);
   const sun = new T.DirectionalLight(0xffd9ab, 2.2);
   sun.position.set(-14, 19, 8); sun.castShadow = true;
@@ -323,7 +327,7 @@ export function createBaseScene(
   npcs.length = 0;
   const surfaceDetails = addRefugeSurfaceDetails(scene);
 
-  const puddle = createWetFloor(mobile); scene.add(puddle);
+  const puddle = createWetFloor(mobile); puddle.visible = quality.high; scene.add(puddle);
 
   const player = new T.Group(); player.position.set(SPAWN.x, 0.12, SPAWN.z); scene.add(player);
   // A small, unshadowed fill follows the runner and gently reaches nearby paving.
@@ -336,7 +340,10 @@ export function createBaseScene(
   const targetMarker = new T.Mesh(new T.RingGeometry(0.23, 0.28, 40), new T.MeshBasicMaterial({ color: 0xb7decf, transparent: true, opacity: 0.8, depthWrite: false }));
   targetMarker.rotation.x = -Math.PI / 2; targetMarker.visible = false; scene.add(targetMarker);
 
-  let disposed = false, paused = false, rainOn = !reducedMotion, path: Point[] = [];
+  let disposed = false, paused = false, ready = false, contextLost = false, rainOn = !reducedMotion, path: Point[] = [];
+  let assetsPending = 4, assetSettledAt = performance.now();
+  const assetSettled = () => { assetsPending--; assetSettledAt = performance.now(); };
+  const markReady = (name: string) => { ready = true; onReady(name); };
   let mixer: T.AnimationMixer | null = null, runAction: T.AnimationAction | null = null, idleAction: T.AnimationAction | null = null;
   const combat = new CombatDriver(() => {}, () => 100);
   let locomotionBlend = 0;
@@ -373,11 +380,11 @@ export function createBaseScene(
         }
       }
       renderer.shadowMap.needsUpdate = true;
-    }).catch(() => { if (!disposed) onError(`The ${file} building could not load. Reload to retry.`); });
+    }).catch(() => { if (!disposed) onError(`The ${file} building could not load. Reload to retry.`); }).finally(assetSettled);
   }
   // Refuge character selection is independent of the legacy city.
   const character = "NEON SENTINEL";
-  const loadTimeout = window.setTimeout(() => { if (!disposed) onReady("RUNNER"); }, 12000);
+  const loadTimeout = window.setTimeout(() => { if (!disposed) markReady("RUNNER"); }, 12000);
   loader.loadAsync("/game/models/mixamo/neon-sentinel-mixamo-test.glb")
     .then((gltf) => {
       if (disposed) { disposeTree(gltf.scene); return; }
@@ -403,7 +410,7 @@ export function createBaseScene(
           mat.normalScale.setScalar(0.55);
           for (const texture of [mat.map, mat.normalMap, mat.roughnessMap, mat.metalnessMap]) {
             if (!texture) continue;
-            texture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+            texture.anisotropy = Math.min(mobile ? 4 : 8, renderer.capabilities.getMaxAnisotropy());
             texture.minFilter = T.LinearMipmapLinearFilter;
             texture.needsUpdate = true;
           }
@@ -424,9 +431,9 @@ export function createBaseScene(
         for (const track of inPlace.tracks) if (/hips\.position$/i.test(track.name)) for (let i = 0; i < track.values.length; i += 3) { track.values[i] = track.values[0]; track.values[i + 2] = track.values[2]; }
         runAction = mixer.clipAction(inPlace); runAction.setEffectiveWeight(0).play();
       }
-      clearTimeout(loadTimeout); onReady(character.toUpperCase());
+      clearTimeout(loadTimeout); markReady(character.toUpperCase());
       renderer.shadowMap.needsUpdate = true;
-    }).catch(() => { clearTimeout(loadTimeout); if (!disposed) { onReady("RUNNER"); onError("Character model unavailable. A service rig is active; the refuge is still playable."); } });
+    }).catch(() => { clearTimeout(loadTimeout); if (!disposed) { markReady("RUNNER"); onError("Character model unavailable. A service rig is active; the refuge is still playable."); } }).finally(assetSettled);
 
   const rainCount = mobile ? 250 : 650, rainPositions = new Float32Array(rainCount * 6);
   for (let i = 0; i < rainCount; i++) {
@@ -436,26 +443,27 @@ export function createBaseScene(
   const rainGeometry = new T.BufferGeometry(); rainGeometry.setAttribute("position", new T.BufferAttribute(rainPositions, 3));
   const rain = new T.LineSegments(rainGeometry, new T.LineBasicMaterial({ color: 0xb9d8d8, transparent: true, opacity: 0.19, depthWrite: false }));
   rain.frustumCulled = false; scene.add(rain);
-  const keys = new Set<string>(); let stick = { x: 0, y: 0 };
+  const keys = new Set<string>(), stick = { x: 0, y: 0 };
   const azimuth = 0.48;
   const pivot = new T.Vector3(SPAWN.x, 1.05, SPAWN.z), desiredPivot = pivot.clone();
   let frame = 0, last = performance.now(), fpsTime = last, frames = 0, fps = 0, reportTime = 0;
+  let lastPaint = last, qualityWindow = last, qualityFrames = 0, qualityElapsed = 0, lastResolution = 0;
   const startedAt = last;
   let samples: number[] = [], p95 = 0, lastShadow = 0, submitMs = 0, timingLimited = false;
   const resize = () => {
-    const w = host.clientWidth, h = host.clientHeight;
-    const ratio = renderRatio(w, h, devicePixelRatio, quality);
-    renderer.setPixelRatio(ratio); composer.setPixelRatio(ratio);
-    renderer.setSize(w, h); composer.setSize(w, h); camera.aspect = w / Math.max(h, 1); camera.updateProjectionMatrix();
+    const w = Math.max(1, host.clientWidth), h = Math.max(1, host.clientHeight);
+    const ratio = mobile ? mobileRenderRatio(w, h, devicePixelRatio, resolutionScale) : renderRatio(w, h, devicePixelRatio, quality);
+    renderer.setPixelRatio(ratio); composer?.setPixelRatio(ratio);
+    renderer.setSize(w, h); composer?.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix();
   };
   const observer = new ResizeObserver(resize); observer.observe(host); resize();
   const raycaster = new T.Raycaster(), pointer = new T.Vector2(), hit = new T.Vector3(), floor = new T.Plane(new T.Vector3(0, 1, 0), -0.08);
   let down: { x: number; y: number; id: number } | null = null;
-  const onDown = (e: PointerEvent) => { if (e.button !== 0) return; down = { x: e.clientX, y: e.clientY, id: e.pointerId }; renderer.domElement.focus({ preventScroll: true }); };
+  const onDown = (e: PointerEvent) => { if (e.button !== 0 || down || paused || modalOpen || !ready) return; down = { x: e.clientX, y: e.clientY, id: e.pointerId }; renderer.domElement.focus({ preventScroll: true }); };
   const onUp = (e: PointerEvent) => {
     if (!down || e.pointerId !== down.id) return;
     const tap = Math.hypot(e.clientX - down.x, e.clientY - down.y) < 12; down = null;
-    if (!tap || paused) return;
+    if (!tap || paused || modalOpen || !ready) return;
     const r = renderer.domElement.getBoundingClientRect(); pointer.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
     raycaster.setFromCamera(pointer, camera);
     if (raycaster.ray.intersectPlane(floor, hit)) {
@@ -465,36 +473,60 @@ export function createBaseScene(
   };
   const editable = (e: KeyboardEvent) => e.target instanceof HTMLElement && !!e.target.closest("input, textarea, select, button, a, [role=dialog]");
   const keyDown = (e: KeyboardEvent) => {
-    if (editable(e)) return;
+    if (editable(e) || paused || modalOpen || !ready) return;
     const key = e.key.toLowerCase();
     if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", "q", "e", "r", " "].includes(key)) e.preventDefault();
     keys.add(key);
     if (key === "e" && !e.repeat && !paused) { const near = nearestStation(player.position); if (near) onInteract(near.id); }
   };
   const keyUp = (e: KeyboardEvent) => keys.delete(e.key.toLowerCase());
-  const clearInput = () => { keys.clear(); stick = { x: 0, y: 0 }; down = null; path = []; targetMarker.visible = false; };
+  const clearInput = () => { keys.clear(); stick.x = stick.y = 0; down = null; path = []; targetMarker.visible = false; };
+  const resetInput = () => { clearInput(); window.dispatchEvent(new Event("netrunner:input-reset")); };
+  let modalOpen = !!document.querySelector('[aria-modal="true"]');
+  const modalObserver = new MutationObserver(() => {
+    const next = !!document.querySelector('[aria-modal="true"]');
+    if (next && !modalOpen) resetInput();
+    modalOpen = next;
+  });
+  modalObserver.observe(host.parentElement ?? host, { childList: true, subtree: true });
   const wheel = (e: WheelEvent) => { e.preventDefault(); };
-  const lostContext = (e: Event) => { e.preventDefault(); cancelAnimationFrame(frame); onError("Graphics connection lost. Reload the refuge to reconnect."); };
+  const lostContext = (e: Event) => { e.preventDefault(); contextLost = true; resetInput(); cancelAnimationFrame(frame); onError("Graphics connection lost. Reload the refuge to reconnect."); };
   renderer.domElement.addEventListener("pointerdown", onDown);
   renderer.domElement.addEventListener("pointerup", onUp);
   renderer.domElement.addEventListener("pointercancel", clearInput);
   renderer.domElement.addEventListener("wheel", wheel, { passive: false });
   renderer.domElement.addEventListener("webglcontextlost", lostContext);
   window.addEventListener("keydown", keyDown); window.addEventListener("keyup", keyUp); window.addEventListener("blur", clearInput);
-  document.addEventListener("visibilitychange", clearInput);
+  window.addEventListener("netrunner:input-reset", clearInput);
 
   function animate(now: number) {
-    if (disposed) return;
+    if (disposed || document.hidden || contextLost) return;
     frame = requestAnimationFrame(animate);
-    if (document.hidden) { last = now; fpsTime = now; frames = 0; samples = []; return; }
+    if (mobile) {
+      const interval = 1000 / budget.target;
+      if (now - lastPaint < interval - .8) return;
+      lastPaint = Math.max(lastPaint + interval, now - interval);
+    }
     const frameMs = now - last;
     samples.push(frameMs);
     const dt = Math.min(frameMs / 1000, 0.05); last = now;
+    if (mobile) {
+      if (ready && !paused && !modalOpen && (assetsPending === 0 || now - startedAt > 30000) && now - assetSettledAt > 2000 && frameMs > 0 && frameMs < 100) {
+        qualityFrames++; qualityElapsed += frameMs;
+        if (now - qualityWindow > 2000) {
+          if (qualityFrames >= 10) budget = adaptMobileBudget(budget, qualityElapsed / qualityFrames);
+          qualityFrames = qualityElapsed = 0; qualityWindow = now;
+        }
+      } else { qualityFrames = qualityElapsed = 0; qualityWindow = now; }
+      if (now - lastResolution > 600 && Math.abs(resolutionScale - budget.scale) > .001) {
+        resolutionScale += T.MathUtils.clamp(budget.scale - resolutionScale, -.025, .025); resize(); lastResolution = now;
+      }
+    }
     const time = now / 1000;
     surfaceDetails.update(reducedMotion ? 0 : time);
     (puddle.material as T.ShaderMaterial).uniforms.waterTime.value = reducedMotion ? 0 : time;
     let walking = false;
-    if (!paused && !document.querySelector('[aria-modal="true"]')) {
+    if (ready && !paused && !modalOpen) {
       let sx = (keys.has("d") || keys.has("arrowright") ? 1 : 0) - (keys.has("a") || keys.has("arrowleft") ? 1 : 0) + stick.x;
       let sy = (keys.has("s") || keys.has("arrowdown") ? 1 : 0) - (keys.has("w") || keys.has("arrowup") ? 1 : 0) + stick.y;
       let dx = 0, dz = 0;
@@ -523,7 +555,7 @@ export function createBaseScene(
       previousWalking = walking;
     }
     locomotionBlend = T.MathUtils.damp(locomotionBlend, walking ? 1 : 0, 16, dt);
-    combat.tick(dt, paused || !!document.querySelector('[aria-modal="true"]'));
+    combat.tick(dt, paused || modalOpen || !ready);
     if (runAction) runAction.setEffectiveWeight(locomotionBlend * (1 - combat.weight));
     if (idleAction) idleAction.setEffectiveWeight((1 - locomotionBlend) * (1 - combat.weight));
     mixer?.update(dt);
@@ -548,12 +580,12 @@ export function createBaseScene(
     }
     npcs.forEach((n, i) => { if (!reducedMotion) n.position.y = 0.08 + Math.sin(time * 1.7 + i) * 0.015; });
     // Static lighting is cached; refresh shadows at a bounded rate while moving.
-    if ((walking || locomotionBlend > 0.001) && now - lastShadow > (quality.high ? 33 : 65)) {
+    if ((walking || locomotionBlend > 0.001) && now - lastShadow > (mobile ? 100 : quality.high ? 33 : 65)) {
       renderer.shadowMap.needsUpdate = true; lastShadow = now;
     }
     renderer.info.reset();
     const renderStart = performance.now();
-    if (quality.high) composer.render(); else renderer.render(scene, camera);
+    if (quality.high && composer) composer.render(); else renderer.render(scene, camera);
     submitMs = Math.round((performance.now() - renderStart) * 10) / 10;
     frames++;
     if (now - fpsTime > 2000) {
@@ -563,7 +595,7 @@ export function createBaseScene(
       // Some embedded/background hosts force a 1 Hz rAF despite cheap rendering.
       // Flag that cadence rather than presenting it as a meaningful GPU benchmark.
       timingLimited = fps <= 2 && p95 >= 900 && p95 <= 1100 && submitMs < 50;
-      if (now - startedAt > 10000 && !timingLimited) {
+      if (!mobile && now - startedAt > 10000 && !timingLimited) {
         const next = adaptQuality(quality, fps);
         if (next.high !== quality.high || next.scale !== quality.scale) {
           quality = next; puddle.visible = quality.high; rainGeometry.setDrawRange(0, quality.high ? rainCount * 2 : Math.min(rainCount, 180) * 2); resize();
@@ -571,26 +603,36 @@ export function createBaseScene(
       }
     }
     if (now - reportTime > 130) {
-      onSnapshot({ x: player.position.x, z: player.position.z, near: nearestStation(player.position)?.id ?? null, fps, p95, draws: renderer.info.render.calls, triangles: renderer.info.render.triangles, ratio: renderer.getPixelRatio(), high: quality.high, submitMs, timingLimited }); reportTime = now;
+      onSnapshot({ x: player.position.x, z: player.position.z, near: nearestStation(player.position)?.id ?? null, fps, p95, draws: renderer.info.render.calls, triangles: renderer.info.render.triangles, ratio: renderer.getPixelRatio(), high: quality.high, submitMs, timingLimited, target: mobile ? budget.target : 60, scale: mobile ? resolutionScale : quality.scale }); reportTime = now;
     }
   }
+  const visibility = () => {
+    resetInput(); cancelAnimationFrame(frame);
+    last = lastPaint = fpsTime = qualityWindow = performance.now(); frames = qualityFrames = qualityElapsed = 0; samples = [];
+    if (!document.hidden && !disposed && !contextLost) frame = requestAnimationFrame(animate);
+  };
+  document.addEventListener("visibilitychange", visibility);
   frame = requestAnimationFrame(animate);
   return {
-    setPaused(value) { paused = value; clearInput(); },
-    setStick(x, y) { stick = { x, y }; },
+    setPaused(value) { paused = value; resetInput(); },
+    setStick(x, y) {
+      if (paused || modalOpen || !ready || document.hidden || contextLost) { stick.x = stick.y = 0; return; }
+      stick.x = Number.isFinite(x) ? T.MathUtils.clamp(x, -1, 1) : 0;
+      stick.y = Number.isFinite(y) ? T.MathUtils.clamp(y, -1, 1) : 0;
+    },
     setRain(value) { rainOn = value; },
-    setQuality(value) { quality = initialQuality(mobile, value); puddle.visible = quality.high; rainGeometry.setDrawRange(0, quality.high ? rainCount * 2 : Math.min(rainCount, 180) * 2); renderer.shadowMap.needsUpdate = true; resize(); },
+    setQuality(value) { quality = initialQuality(mobile, value); if (quality.high) enablePostprocessing(); puddle.visible = quality.high; rainGeometry.setDrawRange(0, quality.high ? rainCount * 2 : Math.min(rainCount, 180) * 2); renderer.shadowMap.needsUpdate = true; resize(); },
     resetCamera() { pivot.copy(desiredPivot); },
-    goTo(id) { const station = STATIONS.find((s) => s.id === id); if (station && !paused) { path = findPath(player.position, { x: station.x, z: station.z + 1 }); targetMarker.position.set(station.x, 0.1, station.z + 1); targetMarker.visible = path.length > 0; } },
+    goTo(id) { const station = STATIONS.find((s) => s.id === id); if (station && ready && !paused && !modalOpen) { path = findPath(player.position, { x: station.x, z: station.z + 1 }); targetMarker.position.set(station.x, 0.1, station.z + 1); targetMarker.visible = path.length > 0; } },
     dispose() {
       disposed = true; cancelAnimationFrame(frame); clearTimeout(loadTimeout); observer.disconnect(); draco.dispose();
       window.removeEventListener("keydown", keyDown); window.removeEventListener("keyup", keyUp); window.removeEventListener("blur", clearInput);
-      document.removeEventListener("visibilitychange", clearInput);
+      document.removeEventListener("visibilitychange", visibility); window.removeEventListener("netrunner:input-reset", clearInput); modalObserver.disconnect();
       renderer.domElement.removeEventListener("pointerdown", onDown); renderer.domElement.removeEventListener("pointerup", onUp);
       renderer.domElement.removeEventListener("pointercancel", clearInput); renderer.domElement.removeEventListener("wheel", wheel);
       renderer.domElement.removeEventListener("webglcontextlost", lostContext);
       combat.dispose(); mixer?.stopAllAction(); if (mixer) mixer.uncacheRoot(mixer.getRoot());
-      puddle.getRenderTarget().dispose(); disposeTree(scene); environment.dispose(); surfaces.dispose(); bloom.dispose(); output.dispose(); composer.dispose(); renderer.dispose();
+      puddle.getRenderTarget().dispose(); disposeTree(scene); environment.dispose(); surfaces.dispose(); bloom?.dispose(); output?.dispose(); composer?.dispose(); renderer.dispose();
       renderer.domElement.remove();
     },
   };

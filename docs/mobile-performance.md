@@ -1,5 +1,38 @@
 # Expedition mobile rendering and controls
 
+## Base page (`/`)
+
+The base reuses `MovementStick`, the compact `GameHud`, and the same touch-profile,
+DPR and cadence helpers below. Its existing camera-relative movement and collision
+solver receive the stick vector. Opening a base dialog or HUD panel clears keyboard,
+stick, click destination and captured pointer state; blur, visibility changes,
+pointer cancellation, lost capture, disabling the stick and viewport resize also
+reset the stick. Hidden tabs stop animation frames. Context loss stops the loop and
+keeps it stopped until reload.
+
+Touch Auto starts with direct rendering, the existing Lite reflection setting,
+1024 VSM shadows refreshed at most 10 Hz during locomotion, reduced rain and
+anisotropy capped at four. Postprocessing buffers are created only if High is
+explicitly selected. Desktop rendering and the High/Lite selector remain available.
+The mobile DPR starts at the shared 1.7 / 1.1-million-pixel budget, moves gradually
+toward the shared adaptive scale, and settles at the shared 30 FPS fallback under
+sustained load. Measurements exclude loading, modal dialogs and individual stalls;
+an unresolved asset request stops excluding samples after 30 seconds, while each
+late asset completion adds another two-second settling window. The statistics panel
+reports DPR, resolution scale and cadence target separately from measured FPS.
+
+The touch base map collapses to a 44 px button with a scrollable destination list.
+The single nearby-station action sits above the controls in portrait and between
+them in short landscape. Dialogs layer above all controls; safe-area offsets and
+dynamic viewport height apply to the touch layout.
+
+Validation for this base integration: lint, TypeScript, production build and all 46
+existing tests passed. A local production browser smoke check loaded the base with
+no console warnings/errors, verified click-to-move and explicit High, and exercised
+the settings/map UI at 390 × 844 and 844 × 390 in a mouse-only browser. This browser does not expose touch emulation: real joystick
+movement, simultaneous touch, portrait/landscape layout and sustained phone FPS
+still need a touch-capable browser or physical-device acceptance pass.
+
 Implemented for coarse primary pointers and `any-pointer: coarse` hybrids, including mouse-plus-touchscreen devices and phones in landscape above the old 650/700 px media breakpoints. The same CSS and renderer-profile conditions include a no-hover fallback for phones up to 700 px wide or up to 1100 × 500 px in landscape. Narrow mouse-only windows retain the desktop renderer. The pure `usesTouchProfile` helper selects the renderer path once at scene creation; it does not rebuild the renderer when input devices change. The virtual stick has one captured pointer, a radial dead zone, equal diagonal speed, and release/cancel/lost-capture/blur/visibility/modal resets. The four combat buttons remain separate touch targets for movement plus skill use. Inventory and other secondary controls expand from one menu button. The HUD stays in CSS at native browser resolution; only the WebGL drawing buffer scales. Safe-area offsets and dynamic viewport heights keep controls within the viewport.
 
 ## Render budget
