@@ -30,9 +30,9 @@ never stopped them. Follow these rules in every session working in this repo:
 ## What this project is
 
 Netrunner **is the CyberBase game**: a browser 3D action / extraction RPG
-(Next.js + React UI, Three.js scenes, Base wallet via wagmi). Routes: `/` Runner's
-Refuge (Base), `/expedition` Outlands, `/metro` (frozen prototype),
-`/editor/vegetation` (dev tool), `/ui-kit-preview`.
+(Next.js + React UI, Three.js scenes, Base wallet via wagmi). Routes: `/` Hub (landing
+page), `/base` Runner's Refuge (Base), `/expedition` Outlands, `/metro` (frozen prototype),
+`/editor/vegetation` (dev tool), `/ui-kit-preview`. UI kits: `docs/ui-kits/README.md`.
 
 Before changing code read, in order: this file, `PROJECT_STATE.md`,
 `ARCHITECTURE.md`, `CODEMAP.md`, `DECISIONS.md`, the latest `AI_HANDOFF.md`, and the
@@ -55,7 +55,7 @@ feature notes in `docs/` for the area you touch.
 ## Refactor checklist (after every change)
 
 1. `npm test`, `npm run lint`, `npx tsc --noEmit` pass (run `npm run build` for larger steps).
-2. The game starts (`npm run dev`, then `/` and `/expedition`) with no console errors.
+2. The game starts (`npm run dev`, then `/` hub, `/base` and `/expedition`) with no console errors.
 3. The map looks the same (compare screenshots at spawn).
 4. Player movement works (WASD, Shift, tap-to-move / map destinations).
 5. The camera follows the player.

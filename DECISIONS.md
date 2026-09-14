@@ -116,3 +116,18 @@ owner before camera and player state are extracted.
 formula. The metro stick is now clamped to [−1, 1] and non-finite values become 0 like
 in the other scenes; `Metro3D.tsx` already sends clamped finite values, so nothing
 changes in play.
+
+## ADR-014: UI kits as React + CSS; hub at `/`, refuge at `/base`
+**Status:** accepted (owner request, 2026-09-14)
+**Decision:** The CyberBase Hub, in-game HUD and Dialogue kits are integrated as React
+components with CSS frames. Only artwork without baked text ships, cropped and compressed
+to WebP in `public/ui` by `scripts/import-ui-kits.mjs`; references and layout grids live in
+`docs/ui-kits`. Kit PNGs with baked text or placeholder quality are rebuilt in CSS. The hub
+is the landing page `/` (`src/ui/hub`, no game code imported); Runner's Refuge moves to
+`/base`, and expedition, metro and the vegetation editor return to `/base`.
+**Reason:** the kits require separate layers, text rendered by code and three layouts
+(desktop, mobile landscape, mobile portrait); the zips are ≈ 66 MB of mostly duplicated
+PNGs, the imported runtime artwork is ≈ 0.5 MB; the hub must open without loading Three.js.
+**Consequences:** old links to `/` now open the hub (PLAY and the Base card lead to `/base`).
+Updated kits are re-imported with the script; `tests/hub.test.mjs` guards routes, artwork and
+the absence of references in `public/`.

@@ -9,14 +9,14 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 |---|---|
 | `app/` | Next.js routes (see ARCHITECTURE §1.1) |
 | `components/` | Game code (legacy layout, being migrated into `src/`) |
-| `src/` | New layered engine code (`assets/`, `core/loop/`, `input/`, `renderer/three/`) |
+| `src/` | New layered engine code (`assets/`, `core/loop/`, `input/`, `renderer/three/`, `ui/hub/`) |
 | `lib/wagmi.ts` | Base wallet (wagmi) config |
 | `public/` | Runtime assets (models, textures, atlases, draco decoder, vegetation bin, UI images) |
 | `assets/fonts/Martius` | Display font (licensed, see LICENSE.txt) |
 | `vendor/vegetation` | MIT tree generator used only by the vegetation editor |
-| `scripts/` | Bakes (landscape, vegetation), asset audit, agent process cleanup |
+| `scripts/` | Bakes (landscape, vegetation), asset audit, agent process cleanup, `import-ui-kits.mjs` (UI kit artwork → WebP) |
 | `tests/` | `node:test` suites (`npm test`) |
-| `docs/` | Feature notes (expeditions, combat HUD, buildings, mobile performance, fences, vegetation, budgets) |
+| `docs/` | Feature notes (expeditions, combat HUD, buildings, mobile performance, fences, vegetation, budgets); `ui-kits/` (kit mapping, references, layout grids) |
 | `eslint.config.mjs` | Next lint config + **src/ boundary rules** |
 | `.dream-loop/`, `.cache/` | Git-ignored agent/browser scratch, not part of the game |
 
@@ -24,7 +24,10 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 
 | File | Purpose |
 |---|---|
-| `src/assets/registry.ts` | **[P]** Runtime asset URLs (Draco decoder, hero model, refuge buildings) + `registeredAssetFiles()` |
+| `src/assets/registry.ts` | **[P]** Runtime asset URLs (Draco decoder, hero model, refuge buildings, UI kit artwork `ui.*`) + `registeredAssetFiles()` |
+| `src/ui/hub/HubApp.tsx` | **[R]** Hub landing page `/`: backdrop + character layers, logo, profile, wallet menu (wagmi), navigation (side list / portrait tab bar), PLAY, cards; three layouts |
+| `src/ui/hub/hub-content.ts` | **[P]** Hub navigation items, card texts/tones/routes/artwork, `shortAddress` |
+| `src/ui/hub/HubIcon.tsx`, `Hub.module.css` | **[R]** Hub SVG icons; hub styles (chamfered CSS frames, portrait → landscape → desktop breakpoints) |
 | `src/core/loop/frame-loop.ts` | **[E]** `createFrameLoop` — rAF scheduling, hidden-tab `stop`/`skip`, mobile cadence cap, clamped delta, `fixedUpdate → update → render` with `alpha`; injectable platform |
 | `src/input/movement-input.ts` | **[P]** `createMovementInput` — held keys + stick → camera-relative direction (`resolve`), run key, stick clamping |
 | `src/input/keyboard/move-keys.ts` | **[P]** WASD/arrow bindings, expedition editor pan bindings (Q as back), `keyAxis` |
@@ -37,19 +40,20 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 | File | Purpose |
 |---|---|
 | `layout.tsx` | Root layout, Martius font, `Web3Provider` |
-| `page.tsx` | `/` → `BaseApp` |
+| `page.tsx` | `/` → `HubApp` (hub landing page) |
+| `base/page.tsx` | `/base` → `BaseApp` |
 | `expedition/page.tsx` | `/expedition` → `Expedition` |
 | `metro/page.tsx` | `/metro` → `Metro3D` |
 | `editor/vegetation/page.tsx` | `/editor/vegetation` → `VegetationEditor` |
 | `ui-kit-preview/*` | UI kit sandbox (Ghost Signal, ability matrix, `matrix-state.ts` [P]) |
-| `globals.css` | Global styles |
+| `globals.css` | Global styles + CyberBase UI kit tokens (`--cb-*`: colors, font, chamfer clip, corner lines) |
 
-## components/base — Runner's Refuge (`/`)
+## components/base — Runner's Refuge (`/base`)
 
 | File | Purpose |
 |---|---|
-| `BaseApp.tsx` | **[R][S]** Base UI: loading, dialogues (`DIALOGUE`), orientation quest (localStorage), wallet dialog, settings, minimap/destinations, interact button, MASTER toggle, HUD |
-| `BaseApp.module.css` | Base UI styles incl. touch layout |
+| `BaseApp.tsx` | **[R][S]** Base UI: loading, NPC dialogues (`DIALOGUE`; portrait / name bar / text / replies per the Dialogue kit), orientation quest (localStorage), wallet dialog, settings (incl. return to hub), minimap/destinations, interact button, MASTER toggle, HUD |
+| `BaseApp.module.css` | Base UI styles incl. touch layout; UI kit skin and NPC dialog layouts (desktop / portrait / landscape) at the end |
 | `BaseEditorPanel.tsx` | **[R]** MASTER panel for the base (lazy) |
 | `scene.ts` | **[3][E]** `createBaseScene`: renderer/composer/lights, refuge geometry, NPCs, GLB buildings, hero + animation + combat, input, camera, rain, quality, loop, MASTER, snapshots |
 | `world.ts` | **[P]** Spawn, bounds, colliders, stations, `canStand`, `moveWithCollision`, `findPath`, `nearestStation`, editor overrides (module state) |
@@ -91,7 +95,7 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 
 | File | Purpose |
 |---|---|
-| `GameHud.tsx` | **[R][S]** Vitals, skills 1–4, menu, panels; listens to `netrunner:stats|panel`, dispatches `netrunner:cast` |
+| `GameHud.tsx` | **[R][S]** Vitals (runner avatar), skills 1–4, menu, panels; listens to `netrunner:stats|panel`, dispatches `netrunner:cast`; UI kit skin at the end of `GameHud.module.css` |
 | `CharacterPanel.tsx`, `character-draft.ts` | **[R][S]/[P]** Character/inventory/talents panel, draft attributes |
 | `MovementStick.tsx` | **[R]** Touch stick → `onMove`, resets on blur/visibility/modals |
 | `combat.ts` | **[P]** Classes, skills, `CombatState` |
@@ -139,6 +143,7 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 | File | Covers |
 |---|---|
 | `engine-architecture.test.mjs` | Asset registry files exist; scenes use shared loader/disposal, the shared frame loop and `src/input` movement; pure `src` layers import no three/react/components |
+| `hub.test.mjs` | Hub links point to existing routes, artwork exists as WebP, no kit references in `public/`, hub imports no game code, game routes return to `/base` |
 | `input.test.mjs` | Movement direction is bit-identical to the legacy scene formula (all key combos × stick values × dead zones × editor bindings), stick clamping, `stickVector` re-export |
 | `frame-loop.test.mjs` | Frame timing equals the legacy scene loops (incl. mobile cadence cap), hidden-tab modes, stop/dispose, fixed steps and alpha, exceptions |
 | `base-world`, `base-npc`, `base-quality` | Base navigation, NPC editing hooks, quality |

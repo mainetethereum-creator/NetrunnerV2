@@ -1,10 +1,12 @@
 # Project state — Netrunner / CyberBase
 
-Last updated: 2026-09-14 · branch `refactor/engine-architecture` · architecture refactor step 3.
+Last updated: 2026-09-14 · branch `refactor/engine-architecture` · architecture refactor step 3 + UI kit integration (hub, HUD, dialogue).
 
 ## Implemented (the working game — must be preserved)
 
-- **Base `/` — Runner's Refuge:** procedural refuge (courtyard, zones, metro pit, perimeter fence, service street) + GLB buildings (workshop, oracle ×3 placements, city gate); PBR concrete/metal/stone, rain, wet-floor reflections (High), adaptive quality; NPC stations with dialogues (Cybersmith, Cryptomancer, Oracle, Green Exchange, Keeper, City airlock, locker, Quantum Charge, Outlands breach); orientation quest (localStorage); Base wallet connect; settings (rain, quality, perf stats, reset camera); minimap destinations with pathfinding; MASTER map editor for NPCs/props.
+- **Hub `/`:** landing page from the CyberBase Hub UI kit (`src/ui/hub`): backdrop and character layers, profile, wallet menu, navigation (side list / portrait tab bar), PLAY → `/base`, Season / SkyNet / NFT cards (coming soon), Base and Metro cards; desktop, mobile landscape and mobile portrait layouts.
+- **UI kits:** in-game HUD kit skin on Base and Expedition (player panel with runner avatar, HP/EN, objective, location header, minimap, interaction prompt, skills, menu, stick) and Dialogue kit layout for NPC dialogs; artwork imported by `scripts/import-ui-kits.mjs` (see `docs/ui-kits/README.md`).
+- **Base `/base` — Runner's Refuge:** procedural refuge (courtyard, zones, metro pit, perimeter fence, service street) + GLB buildings (workshop, oracle ×3 placements, city gate); PBR concrete/metal/stone, rain, wet-floor reflections (High), adaptive quality; NPC stations with dialogues (Cybersmith, Cryptomancer, Oracle, Green Exchange, Keeper, City airlock, locker, Quantum Charge, Outlands breach); orientation quest (localStorage); Base wallet connect; settings (rain, quality, perf stats, reset camera); minimap destinations with pathfinding; MASTER map editor for NPCs/props.
 - **Expedition `/expedition` — Outlands:** 144 × 72 m world in 24 m chunks; terrain, asphalt highway, hangars, cyber buildings, props, fences, microbus, fires, baked vegetation, grass; POIs, loot tables, events, extraction (4 s), death loss, local stash; enemies implemented but disabled (`EXPEDITION_ENEMIES_ENABLED=false`); MASTER props / trees / landscape editors; debug panel (`?debug=1`).
 - **Metro `/metro`:** frozen environment prototype.
 - **Character & combat:** Neon Sentinel GLB (Draco), in-place run, procedural idle pose, class combat (Warrior / Mage / Ranger, skills 1–4, energy, cooldowns), retargeted ranger shot, great sword; HUD vitals/skills/menu; character, inventory and talents panel.
@@ -36,9 +38,17 @@ Last updated: 2026-09-14 · branch `refactor/engine-architecture` · architectur
 - Browser A/B on the same machine state: the Browser pane was throttled to 2–5 frames per 2 s (unfocused pane, GPU shared with other running apps), so absolute distances are not comparable with step 2. The same scripted key holds were run on step 3 and on step 2 (`git stash`): Base W → (79.65643629339714, 90.88132104136145) and Expedition D → (9.177398984555857, 35.90764416489171) in **both** — bit-identical. E at the breach starts extraction; no console errors.
 - Not re-run in this step because of the throttled pane: Cybersmith route → dialog (needs ~15 s of real frames) and mobile stick drag. The stick code path changed only by moving `stickVector` (re-exported, unit-tested). Re-check both in the next browser session.
 
+**UI kits (hub, HUD, dialogue):**
+- `npm test` 97/97 (new `hub.test.mjs`), lint clean, tsc clean, `npm run build` succeeds (routes `/`, `/base`, `/expedition`, `/metro`, …).
+- Assets: the three zips (≈ 66 MB) → runtime artwork `public/ui` ≈ 480 KB (WebP, cropped to art without baked text) + references and layout grids in `docs/ui-kits` ≈ 450 KB.
+- Browser: hub at 1536×864, 844×390 and 390×844 — layout grids match the kit (desktop: nav 250 px, card column 476 px; landscape fits without scrolling; portrait scrolls with a fixed tab bar); all hub artwork loads; no console errors. `/base` loads at the new route; settings contain "Return to hub"; expedition "Leave without loot" links to `/base`.
+- HUD skin checked on `/base` and `/expedition` at 618×910 (screenshots) and on `/expedition` at 1536×864 (element geometry: no overlaps); positions of all controls are unchanged. NPC dialog (Cryptomancer via Missions / Contracts) renders portrait, name bar, text, a yellow primary reply and the back reply in the portrait layout; at 1536×864 it is docked at the bottom (1120 × 419 px) with the portrait column (270 px) left of name, text and replies; Esc closes it.
+
 ## Partially implemented
 
-- New layers: `src/assets/registry.ts`, `src/renderer/three/*`, `src/core/loop/frame-loop.ts`, `src/input/*`. Everything else still lives in `components/`.
+- Hub: Character, Inventory, Season, Events, Leaderboard, Marketplace and News are marked "Soon"; Season / SkyNet / NFT cards are static; the profile shows the local hero (Neon Sentinel, Lv. 1), not an account.
+- HUD kit elements without game logic yet: mobile attack button (the game has no touch basic-attack input), minimap target pill ("last fuel station"), chat bar. NPC portraits are initials in the portrait frame (no NPC artwork exists).
+- New layers: `src/assets/registry.ts`, `src/renderer/three/*`, `src/core/loop/frame-loop.ts`, `src/input/*`, `src/ui/hub/*`. Everything else still lives in `components/`.
 - The loop's `fixedUpdate` phase exists and is tested but no scene uses it yet (needs render interpolation of gameplay state, step 6).
 - Asset registry covers the Draco decoder, hero model and refuge buildings; other asset paths are still hardcoded.
 - Expedition enemies are disabled; combat damage resolves at activation; level stays 1; talents are locked.
@@ -57,6 +67,8 @@ See `ARCHITECTURE.md` §5 (steps 3–12) and `docs/` feature notes.
 - Real tab switching (document actually hidden) was simulated with a synthetic `visibilitychange` event in the browser and covered by unit tests; check once on a real device/browser.
 - The browser network log accumulates across reloads; count requests per document (Resource Timing) when checking duplicate loads.
 - `D:\V2 Cyber\CyberBase` is a paused, separate project created by mistake; do not build on it.
+- Pre-existing: on a narrow desktop window (< 650 px, mouse) the base MASTER toggle overlaps the HUD menu buttons.
+- The Claude Browser pane cannot take screenshots while the Claude window is minimized; use element geometry (`getBoundingClientRect`) or bring the window forward.
 
 ## Next recommended task
 

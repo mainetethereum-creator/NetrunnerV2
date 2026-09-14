@@ -1,42 +1,49 @@
-# AI handoff — 2026-09-14 · architecture refactor step 3
+# AI handoff — 2026-09-14 · CyberBase UI kits (hub, in-game HUD, dialogue)
 
 Author: Claude (Opus 5). Read `AGENTS.md` first. Branch: `refactor/engine-architecture`.
+Owner request: integrate `CyberBase_Hub_UI_Kit`, `CyberBase_Ingame_HUD_Kit` and
+`CyberBase_Dialogue_UI_Kit` (desktop + mobile variants) and keep them small in the repo.
+Kit mapping, rules and sizes: `docs/ui-kits/README.md`. Decision: ADR-014.
 
-## 1. What was done in this step
+## 1. What was done
 
-- **Movement input layer** `src/input/`:
-  - `movement-input.ts` — `createMovementInput()`: held keys (`keys`), stick (`setStick` clamps to
-    [−1, 1], non-finite → 0; `clearStick`; `clear`), `running` (Shift) and
-    `resolve(out, azimuth, deadZone, bindings)` → camera-relative world direction, returns
-    `false` inside the dead zone. Arithmetic is copied from the scenes, statement by statement.
-  - `keyboard/move-keys.ts` — `MOVE_KEYS` (WASD + arrows), `EDITOR_PAN_KEYS` (Q also means back
-    while the expedition MASTER editor pans), `RUN_KEY`, `keyAxis`.
-  - `touch/stick-vector.ts` — `stickVector` (moved; `components/expedition/mobile-performance.ts`
-    re-exports it, `MovementStick.tsx` imports the new path).
-- **Scenes use it** without behaviour change: base (dead zone 0.12, walk 3.1 / run 5),
-  expedition (0.1, 4 / 6, editor pan bindings), metro (0.1, 3.1 / 5).
-  Scenes still own when movement is allowed, speeds, `preventDefault` and action keys.
-- Tests: `tests/input.test.mjs` (bit-identical to the legacy formula, clamping, re-export);
-  `tests/engine-architecture.test.mjs` asserts scenes resolve movement through `src/input`.
-- Docs: `ARCHITECTURE.md`, `CODEMAP.md`, `DECISIONS.md` (ADR-013), `PROJECT_STATE.md`,
-  `AGENTS.md` (browser-check note), this file.
-
-Previous steps: 1 asset registry + shared glTF loader/disposal + boundaries; 2 shared frame loop
-(ADR-012). See git history.
+- **Assets:** `scripts/import-ui-kits.mjs` crops kit artwork to regions without baked text,
+  converts it to WebP (`public/ui/hub`, ≈ 480 KB instead of ≈ 66 MB of zips) and writes small
+  references + layout grids to `docs/ui-kits`. URLs are in `src/assets/registry.ts` (`ASSET_URLS.ui`).
+- **Hub** (`src/ui/hub`, route `/`): backdrop and character layers, logo, profile, wallet menu
+  (wagmi), navigation (side list on desktop / landscape, tab bar in portrait), PLAY → `/base`,
+  cards (Season, SkyNet, NFT "coming soon"; Base → `/base`; Metro → `/metro`). Text is React,
+  frames are CSS; three layouts by breakpoints.
+- **Routes:** Runner's Refuge moved to `/base` (`app/base/page.tsx`); expedition, metro and the
+  vegetation editor return to `/base`; base settings gained "Return to hub".
+- **In-game HUD kit skin** (CSS appended at the end of `GameHud.module.css`,
+  `Expedition.module.css`, `BaseApp.module.css`, `MovementStick.module.css`; tokens `--cb-*` in
+  `app/globals.css`): chamfered navy panels with cyan corner lines, runner avatar and yellow level
+  badge, green HP / blue EN with labels, cyan skill slots, round menu buttons, objective with
+  yellow bar, location header, round minimap, interaction prompt, joystick ring with arrows.
+  **Positions and sizes of HUD elements were not changed** (they are tuned for phones).
+- **Dialogue kit:** NPC dialogs in `BaseApp.tsx` get a portrait frame (NPC initials), name / role
+  bar, text panel and replies; the first actionable reply is yellow. Layouts: desktop (docked at the
+  bottom, portrait left), mobile portrait (single column), mobile landscape (small portrait left).
+- Tests: `tests/hub.test.mjs`; `engine-architecture.test.mjs` now also checks UI artwork exists.
 
 ## 2. Files
 
-Created: `src/input/movement-input.ts`, `src/input/keyboard/move-keys.ts`,
-`src/input/touch/stick-vector.ts`, `tests/input.test.mjs`.
-Changed: `components/base/scene.ts`, `components/expedition/scene.ts`,
-`components/metro3d/scene.ts`, `components/expedition/mobile-performance.ts`,
-`components/game/MovementStick.tsx`, `tests/engine-architecture.test.mjs`, docs above.
+Created: `src/ui/hub/{HubApp.tsx,HubIcon.tsx,hub-content.ts,Hub.module.css}`, `app/base/page.tsx`,
+`scripts/import-ui-kits.mjs`, `public/ui/hub/*.webp`, `docs/ui-kits/**`, `tests/hub.test.mjs`.
+Changed: `app/page.tsx`, `app/globals.css`, `src/assets/registry.ts`, `components/game/GameHud.tsx`,
+`components/game/GameHud.module.css`, `components/game/MovementStick.module.css`,
+`components/base/BaseApp.tsx`, `components/base/BaseApp.module.css`,
+`components/expedition/Expedition.tsx` (links), `components/expedition/Expedition.module.css`,
+`components/metro3d/Metro3D.tsx` (links), `components/editor/VegetationEditor.tsx` (link),
+`AGENTS.md`, `CODEMAP.md`, `DECISIONS.md` (ADR-014), `PROJECT_STATE.md`, this file.
 
 ## 3. Key decisions
 
-- ADR-013: input owns keys, stick and the key/stick → world-direction formula; gameplay policy
-  (can move? speed? modal? editor?) stays in the scenes until player state is extracted (step 6).
-- The metro stick is now clamped like the other scenes (its UI already sends clamped values).
+- Kit PNGs for HUD and Dialogue are flat placeholders with baked text → rebuilt in CSS, no images shipped.
+- Hub cards and character use real kit artwork, cropped so no baked text remains; `card-base.webp`
+  doubles as the hub backdrop. Hub icons are inline SVG.
+- The skin is additive CSS; removing the "UI kit skin" blocks restores the previous look.
 
 ## 4. Commands
 
@@ -46,41 +53,35 @@ npm test
 npm run lint
 npx tsc --noEmit
 npm run build
-npm run dev        # http://localhost:3000  (/, /expedition, /metro)
+npm run dev        # http://localhost:3000  (/, /base, /expedition, /metro)
+node scripts/import-ui-kits.mjs <unzipped-kits-folder> --sheet contact-sheet.png   # re-import kits
 ```
 
 Stop the dev server when finished.
 
 ## 5. Manual checks
 
-1. `/` and `/expedition` look like before; no console errors; `/metro` loads.
-2. WASD / arrows / Shift movement speed feels unchanged; the camera follows.
-3. Area map → Cybersmith → "Talk to cybersmith" → dialog → Esc (not re-run in step 3, see §6).
-4. `/expedition`: E at the breach starts extraction; MASTER open → W/A/Q/D pan the editor pivot.
-5. Phone or touch emulation: stick moves the player in portrait and landscape (not re-run in step 3).
+1. `/` hub on desktop, phone portrait (tab bar) and phone landscape (fits one screen); PLAY and the Base card open `/base`; wallet menu opens and closes (Esc / click outside).
+2. `/base`: HUD skin, "Talk to" prompt, Cybersmith dialog → portrait / name / text / replies; settings → Return to hub.
+3. `/expedition`: HUD skin; E at the breach starts extraction; "Leave without loot" returns to `/base`.
+4. Phone: stick ring works, dialog fits in portrait and landscape.
 
 ## 6. Known issues
 
-- **Browser pane frame rate:** in this session the Claude Browser pane ran at 2–5 frames per
-  2 s while unfocused and while other GPU-heavy apps were running, although
-  `document.hidden` was false. Absolute distances then differ from earlier steps. Measure
-  requestAnimationFrame calls first; if they are low, compare against `HEAD` with
-  `git stash -u` under the same conditions (done for step 3: bit-identical).
-- Rest: see `PROJECT_STATE.md` (architecture problems in `ARCHITECTURE.md` §3, dead asset
-  references, phone checks pending).
+See `PROJECT_STATE.md`. Headlines: hub menu items and Season / SkyNet / NFT are placeholders;
+no mobile attack button or minimap target pill yet; NPC portraits are initials; pre-existing MASTER
+toggle overlap on very narrow desktop windows; Browser pane screenshots fail while the Claude
+window is minimized.
 
 ## 7. Next recommended step
 
-Step 4: camera rig — fixed-angle follow camera shared by the three scenes, no behaviour change.
-Owner request in progress: integrate the CyberBase Hub / in-game HUD / Dialogue UI kits
-(separate commits, see the next handoff).
+Architecture step 4: camera rig (fixed-angle follow camera shared by the three scenes), no behaviour change.
+UI follow-ups when the owner wants them: NPC portrait art, mobile attack button bound to the existing
+basic attack, hub sections for character / inventory.
 
 ## 8. Do not rewrite without a strong reason
 
-- Game content: maps, builders, materials, lighting, character, HUD, mobile layout.
-- `src/core/loop/frame-loop.ts` timing semantics and the `updateFrame` / `renderFrame` split.
-- `src/input/movement-input.ts` arithmetic order (`input.test.mjs` compares with `===`).
-- Source lines asserted by tests (`editor.stream(editor.active?pivot:player.position)`,
-  `createLazyEditor(()=>import(`, NPC override lines in `base/scene.ts`,
-  `Boolean(state.near)||state.extraction>0`, "EXPEDITION OBJECTIVE", "LOCAL SIGNAL" in `Expedition.tsx`).
-- The lazy MASTER editor boundary and dependency-graph tests; `src/` boundary rules.
+- HUD element positions and mobile media queries (tuned for phones); change looks only in the skin blocks.
+- Kit rules: no baked text, separate backdrop / character layers, references never in `public/`.
+- Earlier steps: frame loop timing, `src/input` arithmetic, source lines asserted by tests
+  (`Boolean(state.near)||state.extraction>0`, "EXPEDITION OBJECTIVE", "LOCAL SIGNAL" in `Expedition.tsx`, …).
