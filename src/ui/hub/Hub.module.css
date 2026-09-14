@@ -420,6 +420,18 @@ a.navItem:hover { color: var(--text); }
 }
 .footer b { color: var(--cyan); font-weight: 400; }
 
+/* Narrow phones: logo, profile and wallet share one header row. */
+@media (max-width: 430px) {
+  .header { gap: 8px; }
+  .logo strong { font-size: 20px; letter-spacing: 0.07em; }
+  .logo small { font-size: 7px; letter-spacing: 0.2em; white-space: nowrap; }
+  .account { gap: 6px; }
+  .profile { padding: 3px; }
+  .avatar { width: 32px; height: 32px; }
+  .wallet { gap: 6px; padding: 0 8px; font-size: 12px; }
+  .wallet svg { width: 16px; height: 16px; }
+}
+
 /* Mobile landscape ---------------------------------------------------------- */
 
 @media (min-width: 700px) and (orientation: landscape) {
@@ -542,7 +554,7 @@ a.navItem:hover { color: var(--text); }
     height: 100dvh;
     min-height: 700px;
     overflow: hidden;
-    grid-template-columns: 250px minmax(0, 1fr) minmax(380px, 31vw);
+    grid-template-columns: 250px minmax(0, 1fr) minmax(340px, 27vw);
     grid-template-rows: auto minmax(0, 1fr) auto;
     grid-template-areas: "header header header" "nav hero content" "footer footer footer";
     column-gap: 28px;
@@ -605,12 +617,19 @@ a.navItem:hover { color: var(--text); }
 
   .content {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+    grid-template-rows: auto auto auto auto;
     grid-template-areas: "season" "skynet" "nft" "play";
+    align-content: end;
     gap: 12px;
     min-height: 0;
   }
-  .card { aspect-ratio: auto; }
+  /* Cards keep their shape and shrink with the window height, so PLAY stays on screen. */
+  .card {
+    aspect-ratio: 2.25;
+    height: auto;
+    width: min(100%, calc((100dvh - 290px) / 3 * 2.25));
+    margin-left: auto;
+  }
   .play { min-height: 96px; }
   .play strong { font-size: 48px; }
 
