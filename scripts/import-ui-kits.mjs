@@ -27,9 +27,7 @@ const DIALOGUE = 'CyberBase_Dialogue_UI_Kit/CyberBase_Dialogue_UI_Kit';
 // crop: [left, top, width, height] in source pixels.
 const ART = [
   {out: 'public/ui/hub/character.webp', src: `${HUB}/shared/png/character.png`, trim: true, width: 860, quality: 78},
-  {out: 'public/ui/hub/card-season.webp', src: `${HUB}/shared/png/season_card.png`, crop: [720, 240, 740, 462], width: 640},
-  {out: 'public/ui/hub/card-skynet.webp', src: `${HUB}/shared/png/skynet_card.png`, crop: [810, 200, 630, 530], width: 600},
-  {out: 'public/ui/hub/card-nft.webp', src: `${HUB}/shared/png/nft_card.png`, crop: [840, 234, 640, 464], width: 600},
+  // Hub cards (Season / SkyNet / NFT) come from the owner's HUBB set: scripts/import-hub-cards.mjs.
   {out: 'public/ui/hub/avatar-runner.webp', src: `${HUB}/shared/png/profile_panel.png`, crop: [378, 226, 244, 272], width: 160, quality: 82},
 ];
 

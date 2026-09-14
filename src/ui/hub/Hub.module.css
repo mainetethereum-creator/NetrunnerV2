@@ -248,10 +248,10 @@ a.navItem:hover { color: var(--text); }
   min-width: 0;
 }
 .cards { display: contents; list-style: none; }
-.cards li { min-width: 0; filter: drop-shadow(0 0 8px var(--glow, rgba(74, 150, 255, 0.28))); }
-.area_season { grid-area: season; }
-.area_skynet { grid-area: skynet; --glow: rgba(255, 64, 82, 0.3); }
-.area_nft { grid-area: nft; --glow: rgba(154, 130, 255, 0.3); }
+.cards li { min-width: 0; filter: drop-shadow(0 0 10px var(--glow)); }
+.area_season { grid-area: season; --glow: rgba(74, 150, 255, 0.28); }
+.area_skynet { grid-area: skynet; --glow: rgba(255, 64, 82, 0.26); }
+.area_nft { grid-area: nft; --glow: rgba(154, 120, 255, 0.3); }
 
 .playWrap { grid-area: play; filter: drop-shadow(0 0 14px rgba(255, 214, 46, 0.45)); }
 .play {
@@ -300,43 +300,111 @@ a.navItem:hover { color: var(--text); }
 .play i svg { width: 22px; height: 22px; }
 .play:hover { --fill: linear-gradient(180deg, #fff07a 0%, #ffdb3d 55%, #f5c41c 100%); }
 
+/* Feature cards (owner HUBB set) ------------------------------------------------
+   Background art + thin tone frame in CSS, title and badge artwork, small texts.
+   Everything inside is sized in container units, so the card looks the same at any width. */
+
 .card {
-  --fill: linear-gradient(90deg, var(--panel-solid) 30%, rgba(7, 18, 42, 0.35) 62%, rgba(7, 18, 42, 0.05)), var(--art) right center / cover no-repeat;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 10px;
+  --cut: 14px;
+  --fill:
+    linear-gradient(90deg, rgba(4, 9, 20, 0.92) 0%, rgba(4, 9, 20, 0.7) 30%, rgba(4, 9, 20, 0.12) 64%, rgba(4, 9, 20, 0.35) 100%),
+    var(--art) center / cover no-repeat;
+  display: block;
+  container-type: size;
+  width: 100%;
   height: 100%;
-  min-height: 148px;
-  padding: 16px 14px 14px 18px;
+  aspect-ratio: 1.85;
 }
-.blue { --frame: rgba(88, 160, 255, 0.85); --accent: #7fc4ff; }
-.red { --frame: rgba(255, 64, 82, 0.85); --accent: #ff6b78; }
-.violet { --frame: rgba(154, 130, 255, 0.85); --accent: #b6a6ff; }
+.blue { --frame: rgba(96, 164, 255, 0.62); --accent: #5aa8ff; }
+.red { --frame: rgba(255, 74, 86, 0.6); --accent: #ff4a55; }
+.violet { --frame: rgba(156, 126, 255, 0.64); --accent: #9d7dff; }
 
-.cardText { display: flex; flex-direction: column; gap: 4px; max-width: 62%; align-self: center; }
-.cardText strong {
-  font-size: 26px;
-  font-weight: 800;
+.cardBody {
+  position: absolute;
+  left: 5cqw;
+  right: 38%;
+  top: 9cqh;
+  bottom: 9cqh;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.brand {
+  font-size: clamp(7px, 1.15cqw, 11px);
   line-height: 1;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.45em;
   text-transform: uppercase;
-  text-shadow: 0 2px 10px #000;
+  color: rgba(222, 230, 244, 0.82);
 }
-.subtitle { font-size: 13px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); }
-.note { margin-top: 6px; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
-.eyebrow { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--red); }
+.brand::after {
+  content: "";
+  display: block;
+  width: max(18px, 3.4cqw);
+  height: 2px;
+  margin-top: 0.75em;
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+}
 
-.status {
-  flex: none;
-  padding: 5px 8px;
-  border: 1px solid var(--line-soft);
-  background: rgba(5, 10, 20, 0.8);
-  font-size: 9px;
-  font-style: normal;
-  letter-spacing: 0.16em;
+.titleArt {
+  display: block;
+  margin-top: auto;
+  height: clamp(30px, 27cqh, 150px);
+  aspect-ratio: var(--title-ratio);
+  max-width: 100%;
+  background: var(--title-art) left center / contain no-repeat;
+}
+
+.cardTagline {
+  display: block;
+  margin-top: 0.9em;
+  font-size: clamp(7.5px, 1.15cqw, 12px);
+  line-height: 1.7;
+  letter-spacing: 0.3em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: rgba(226, 232, 244, 0.86);
+  text-shadow: 0 1px 6px #000;
+}
+.cardTagline span, .aside span, .footnote span { display: block; white-space: nowrap; }
+
+.statusArt {
+  display: block;
+  margin-top: auto;
+  height: clamp(18px, 12cqh, 54px);
+  aspect-ratio: var(--status-ratio);
+  max-width: 100%;
+  background: var(--status-art) left center / contain no-repeat;
+}
+
+.aside, .footnote {
+  position: absolute;
+  right: 4cqw;
+  padding-right: max(6px, 1.4cqw);
+  border-right: 2px solid var(--accent);
+  font-size: clamp(6.5px, 0.95cqw, 10px);
+  line-height: 1.6;
+  letter-spacing: 0.22em;
+  text-align: right;
+  text-transform: uppercase;
+  color: rgba(214, 224, 240, 0.74);
+  text-shadow: 0 1px 6px #000;
+}
+.aside { top: 9cqh; }
+.footnote { bottom: 9cqh; }
+
+/* Short cards: tighter text. */
+@container (max-height: 175px) {
+  .cardTagline { font-size: 7px; line-height: 1.5; margin-top: 0.6em; }
+  .aside, .footnote { display: none; }
+}
+/* Small cards (phone landscape row): title and badge only. */
+@container (max-width: 300px) {
+  .cardBody { left: 7cqw; right: 7cqw; top: 10cqh; bottom: 10cqh; }
+  .brand, .cardTagline, .aside, .footnote { display: none; }
+  .titleArt { margin-top: 0; height: clamp(24px, 30cqh, 60px); }
+  .statusArt { height: clamp(16px, 16cqh, 30px); }
 }
 
 .footer {
@@ -440,18 +508,7 @@ a.navItem:hover { color: var(--text); }
   .play { min-height: 84px; padding: 0 56px; }
   .play strong { font-size: 36px; }
 
-  .card {
-    --fill: linear-gradient(180deg, var(--panel-solid) 6%, rgba(7, 18, 42, 0.25) 52%, rgba(7, 18, 42, 0.8)), var(--art) center / cover no-repeat;
-    min-height: 150px;
-    flex-direction: column;
-    align-items: stretch;
-    padding: 12px;
-  }
-  .cardText { max-width: none; align-self: stretch; }
-  .cardText strong { font-size: 19px; }
-  .subtitle { font-size: 10px; letter-spacing: 0.08em; }
-  .note { display: none; }
-  .status { align-self: flex-end; margin-top: auto; }
+  .card { aspect-ratio: auto; min-height: 150px; }
 }
 
 /* Short phone landscape: everything above the fold. */
@@ -474,12 +531,7 @@ a.navItem:hover { color: var(--text); }
   .play small { font-size: 9px; margin-top: 3px; }
   .play i { width: 34px; height: 34px; right: 10px; }
 
-  .card { min-height: 112px; padding: 9px 10px; }
-  .cardText { gap: 2px; }
-  .cardText strong { font-size: 15px; }
-  .eyebrow { font-size: 8px; letter-spacing: 0.1em; }
-  .subtitle { font-size: 9px; letter-spacing: 0.06em; }
-  .status { padding: 3px 5px; font-size: 7px; }
+  .card { min-height: 112px; }
   .footer { font-size: 8px; }
 }
 
@@ -553,13 +605,12 @@ a.navItem:hover { color: var(--text); }
 
   .content {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1.1fr) minmax(0, 1.15fr) minmax(0, 0.85fr) auto;
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) auto;
     grid-template-areas: "season" "skynet" "nft" "play";
     gap: 12px;
     min-height: 0;
   }
-  .card { min-height: 0; }
-  .cardText strong { font-size: clamp(22px, 2vw, 32px); }
+  .card { aspect-ratio: auto; }
   .play { min-height: 96px; }
   .play strong { font-size: 48px; }
 

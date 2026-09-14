@@ -42,7 +42,8 @@ Changed: `app/page.tsx`, `app/globals.css`, `src/assets/registry.ts`, `component
 ## 3. Key decisions
 
 - Kit PNGs for HUD and Dialogue are flat placeholders with baked text → rebuilt in CSS, no images shipped.
-- Hub cards and character use real kit artwork, cropped so no baked text remains; the hub
+- Hub cards use the owner's HUBB set (clean backgrounds, title and badge artwork, CSS tone frame,
+  container-unit sizing; `scripts/import-hub-cards.mjs`, ADR-018); the character is kit artwork; the hub
   backdrops are separate owner images per layout, WebP q92 (`backdrop-{desktop,landscape,portrait}.webp`). Hub icons are inline SVG.
 - The skin is additive CSS; removing the "UI kit skin" blocks restores the previous look.
 

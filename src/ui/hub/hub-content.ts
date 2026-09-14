@@ -1,5 +1,5 @@
-// Hub data: navigation and feature cards. Text lives here, not in images
-// (UI kit rule: artwork only in PNG/WebP, everything readable is rendered by React).
+// Hub data: navigation and feature cards. Readable text lives here. Card titles and
+// "coming soon" badges are owner artwork; their text is kept here as accessible labels.
 import {ASSET_URLS} from '../../assets/registry.ts';
 
 export type HubIconName =
@@ -41,17 +41,27 @@ export const HUB_NAV: readonly HubNavItem[] = [
 // from the base (ADR-015), so no card links into the game.
 export type HubCardId = 'season' | 'skynet' | 'nft';
 
+export interface HubCardArt {
+  src: string;
+  /** width / height of the image, so the element keeps the artwork's shape. */
+  ratio: number;
+}
+
 export interface HubCard {
   id: HubCardId;
   tone: 'blue' | 'red' | 'violet';
-  eyebrow?: string;
+  /** Text shown in the title artwork (its accessible label). */
   title: string;
   subtitle: string;
-  note?: string;
-  /** Shown instead of the arrow when the card has no route yet. */
-  status?: string;
+  tagline: readonly string[];
+  /** Small decorative lines at the top right and bottom right. */
+  aside: readonly string[];
+  footnote: readonly string[];
+  status: string;
   href?: string;
   art: string;
+  titleArt: HubCardArt;
+  statusArt: HubCardArt;
 }
 
 export const HUB_CARDS: readonly HubCard[] = [
@@ -60,28 +70,39 @@ export const HUB_CARDS: readonly HubCard[] = [
     tone: 'blue',
     title: 'Season 1',
     subtitle: 'The Awakening',
-    note: 'New challenges. Higher rewards.',
+    tagline: ['Some things', 'were never meant', 'to stay asleep.'],
+    aside: ['A higher', 'tomorrow', 'anyway'],
+    footnote: ['55.7558° N', '37.6173° E'],
     status: 'Coming soon',
     art: ASSET_URLS.ui.hubCards.season,
+    titleArt: {src: ASSET_URLS.ui.hubCardTitles.season, ratio: 970 / 392},
+    statusArt: {src: ASSET_URLS.ui.hubCardBadges.season, ratio: 1107 / 264},
   },
   {
     id: 'skynet',
     tone: 'red',
-    eyebrow: 'Limited time event',
     title: 'SkyNet',
     subtitle: 'The machines take over.',
-    note: 'The resistance fights back.',
+    tagline: ['No signals.', 'No mercy.', 'A different tomorrow.'],
+    aside: ['Humanity', 'was a phase'],
+    footnote: ['47.2861° N', '9.5228° E'],
     status: 'Coming soon',
     art: ASSET_URLS.ui.hubCards.skynet,
+    titleArt: {src: ASSET_URLS.ui.hubCardTitles.skynet, ratio: 986 / 354},
+    statusArt: {src: ASSET_URLS.ui.hubCardBadges.skynet, ratio: 1120 / 254},
   },
   {
     id: 'nft',
     tone: 'violet',
     title: 'NFT Collection',
     subtitle: 'CyberBase Genesis',
-    note: 'Own. Play. Belong.',
+    tagline: ['People.', 'Places.', 'A brighter tomorrow.', 'Onchain.'],
+    aside: ['Own', 'Belong', 'Build', 'Beyond'],
+    footnote: ['CyberBase', 'MMXXV'],
     status: 'Coming soon',
     art: ASSET_URLS.ui.hubCards.nft,
+    titleArt: {src: ASSET_URLS.ui.hubCardTitles.nft, ratio: 987 / 281},
+    statusArt: {src: ASSET_URLS.ui.hubCardBadges.nft, ratio: 1115 / 258},
   },
 ];
 

@@ -152,6 +152,21 @@ downloads only the backdrop it shows. The Base card crop is no longer used.
 **Consequences:** URLs live in `ASSET_URLS.ui.hubBackdrop`; to change a background, overwrite the file
 with the same settings (see `docs/ui-kits/README.md`).
 
+## ADR-018: Hub feature cards from the owner's HUBB set
+**Status:** accepted (owner, 2026-09-15) · supersedes the kit card crops of ADR-014
+**Decision:** Season 1, SkyNet and NFT Collection cards follow the owner's reference
+(`HUBB/референс.png`): clean background art (`feature-*.webp`), a thin CSS frame in the card tone,
+the owner's textured title artwork and "coming soon" badges (`title-*.webp`, `badge-*.webp`) with
+`role="img"` labels carrying the same text, and small texts (brand, tagline, top-right line,
+coordinates) rendered by React. Sizes use container units, so the composition is identical on desktop,
+portrait and landscape; small landscape cards show only title and badge. The framed HUBB card images
+are not used because their baked neon frames would force a fixed card shape.
+**Reason:** owner design for the cards; the titles are artwork by request, so the kit rule "no baked
+text" is relaxed for them while labels keep the text accessible.
+**Consequences:** `scripts/import-hub-cards.mjs` re-imports the set. Images are cached for 30 days
+(`next.config.ts`), so replaced artwork must get a new file name (this is why the backgrounds are
+`feature-*` and not the old `card-*`).
+
 ## ADR-016: Wallet-first access, EVM wallets, Base as the primary chain
 **Status:** accepted as a product rule (owner, 2026-09-14) · **not implemented yet**
 **Decision:**

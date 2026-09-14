@@ -30,28 +30,37 @@ function NavEntry({item}: {item: HubNavItem}) {
   );
 }
 
+function Lines({items}: {items: readonly string[]}) {
+  return <>{items.map((line) => <span key={line}>{line}</span>)}</>;
+}
+
+// Card layers: background art (CSS), frame (CSS), title and badge artwork with text labels,
+// small texts in React. Sizes follow the card width (container units), see Hub.module.css.
 function CardEntry({card}: {card: HubCard}) {
   const className = `${styles.card} ${styles[card.tone]}`;
-  const style = {'--art': `url(${card.art})`} as CSSProperties;
+  const style = {
+    '--art': `url(${card.art})`,
+    '--title-art': `url(${card.titleArt.src})`,
+    '--title-ratio': card.titleArt.ratio,
+    '--status-art': `url(${card.statusArt.src})`,
+    '--status-ratio': card.statusArt.ratio,
+  } as CSSProperties;
   const body = (
     <>
-      <span className={styles.cardText}>
-        {card.eyebrow && <small className={styles.eyebrow}>{card.eyebrow}</small>}
-        <strong>{card.title}</strong>
-        <span className={styles.subtitle}>{card.subtitle}</span>
-        {card.note && <span className={styles.note}>{card.note}</span>}
+      <span className={styles.cardBody}>
+        <small className={styles.brand}>CyberBase</small>
+        <span className={styles.titleArt} role="img" aria-label={`${card.title}. ${card.subtitle}`} />
+        <span className={styles.cardTagline}><Lines items={card.tagline} /></span>
+        <span className={styles.statusArt} role="img" aria-label={card.status} />
       </span>
-      {card.href ? (
-        <i className={styles.cardArrow} aria-hidden="true"><HubIcon name="chevron" /></i>
-      ) : (
-        card.status && <em className={styles.status}>{card.status}</em>
-      )}
+      <span className={styles.aside} aria-hidden="true"><Lines items={card.aside} /></span>
+      <span className={styles.footnote} aria-hidden="true"><Lines items={card.footnote} /></span>
     </>
   );
   return card.href ? (
     <Link href={card.href} className={className} style={style}>{body}</Link>
   ) : (
-    <div className={className} style={style} aria-disabled="true">{body}</div>
+    <article className={className} style={style} aria-label={card.title}>{body}</article>
   );
 }
 

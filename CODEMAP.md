@@ -14,7 +14,7 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 | `public/` | Runtime assets (models, textures, atlases, draco decoder, vegetation bin, UI images) |
 | `assets/fonts/Martius` | Display font (licensed, see LICENSE.txt) |
 | `vendor/vegetation` | MIT tree generator used only by the vegetation editor |
-| `scripts/` | Bakes (landscape, vegetation), asset audit, agent process cleanup, `import-ui-kits.mjs` (UI kit artwork → WebP) |
+| `scripts/` | Bakes (landscape, vegetation), asset audit, agent process cleanup, `import-ui-kits.mjs` (UI kit artwork → WebP), `import-hub-cards.mjs` (owner HUBB card art, titles, badges → WebP) |
 | `tests/` | `node:test` suites (`npm test`) |
 | `docs/` | Feature notes (expeditions, combat HUD, buildings, mobile performance, fences, vegetation, budgets); `ui-kits/` (kit mapping, references, layout grids) |
 | `eslint.config.mjs` | Next lint config + **src/ boundary rules** |

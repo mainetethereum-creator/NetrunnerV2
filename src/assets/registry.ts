@@ -24,10 +24,21 @@ export const ASSET_URLS = {
     },
     hubCharacter: "/ui/hub/character.webp",
     runnerAvatar: "/ui/hub/avatar-runner.webp",
+    /** Hub feature cards: clean backgrounds, title artwork and "coming soon" badges (`scripts/import-hub-cards.mjs`). */
     hubCards: {
-      season: "/ui/hub/card-season.webp",
-      skynet: "/ui/hub/card-skynet.webp",
-      nft: "/ui/hub/card-nft.webp",
+      season: "/ui/hub/feature-season.webp",
+      skynet: "/ui/hub/feature-skynet.webp",
+      nft: "/ui/hub/feature-nft.webp",
+    },
+    hubCardTitles: {
+      season: "/ui/hub/title-season.webp",
+      skynet: "/ui/hub/title-skynet.webp",
+      nft: "/ui/hub/title-nft.webp",
+    },
+    hubCardBadges: {
+      season: "/ui/hub/badge-season.webp",
+      skynet: "/ui/hub/badge-skynet.webp",
+      nft: "/ui/hub/badge-nft.webp",
     },
   },
 } as const;
@@ -46,5 +57,7 @@ export function registeredAssetFiles(): string[] {
     ASSET_URLS.ui.hubCharacter,
     ASSET_URLS.ui.runnerAvatar,
     ...Object.values(ASSET_URLS.ui.hubCards),
+    ...Object.values(ASSET_URLS.ui.hubCardTitles),
+    ...Object.values(ASSET_URLS.ui.hubCardBadges),
   ];
 }

@@ -32,7 +32,9 @@ Every kit has three layouts: **desktop**, **mobile landscape**, **mobile portrai
 | Output | Source | Size |
 |---|---|---|
 | `public/ui/hub/character.webp` | `character.png` (trimmed) | 2.1 MB → 139 KB |
-| `public/ui/hub/card-{season,skynet,nft}.webp` | card PNGs, cropped to artwork without baked text / buttons | 4.2 MB → 164 KB |
+| `public/ui/hub/feature-{season,skynet,nft}.webp` | owner card backgrounds without frames / text (HUBB set), 1280 px, WebP q90 | 6.7 MB → 409 KB |
+| `public/ui/hub/title-{season,skynet,nft}.webp` | owner title artwork (title + subtitle + accent line), 640 px, WebP q92 | 262 KB |
+| `public/ui/hub/badge-{season,skynet,nft}.webp` | owner "coming soon" badges, 480 px, WebP q92 | 51 KB |
 | `public/ui/hub/backdrop-{desktop,landscape,portrait}.webp` | owner backgrounds (not from the kits, see below), full resolution, WebP q92 | 6.6 MB → ≈ 880 KB (one loads per device) |
 | `public/ui/hub/avatar-runner.webp` | portrait from `profile_panel.png` | 706 KB → 7 KB |
 | `docs/ui-kits/references/*.webp` | 9 reference screens, 900 px wide | 11.9 MB → 383 KB |
@@ -49,6 +51,25 @@ Dialogue placeholder PNGs.
 Runtime URLs are registered in `src/assets/registry.ts` (`ASSET_URLS.ui`);
 `tests/engine-architecture.test.mjs` and `tests/hub.test.mjs` check the files exist and that
 no reference image is shipped from `public/`.
+
+## Hub feature cards (ADR-018)
+
+Season 1 / SkyNet / NFT Collection follow the owner's reference (`HUBB/референс.png`):
+background art, a thin frame in the card tone (CSS), "CYBERBASE" with an accent line, the owner's
+textured title artwork, a three- or four-line tagline, the owner's "coming soon" badge, a small text
+top right and coordinates bottom right (React text from `src/ui/hub/hub-content.ts`).
+Title and badge artwork carry `role="img"` labels with the same text. Everything inside a card is
+sized in container units, so desktop, portrait and landscape cards keep the same composition;
+small landscape cards show only the title and badge.
+
+The framed card images of the HUBB set are not used: their neon frames are baked in, which would
+force a fixed card shape. Re-import with:
+
+```bash
+node scripts/import-hub-cards.mjs "<HUBB folder>" --sheet contact-sheet.png
+```
+
+Images are cached for 30 days (`next.config.ts`); when artwork changes, give the file a new name.
 
 ## Hub backdrops (ADR-017)
 

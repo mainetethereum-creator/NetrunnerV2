@@ -17,7 +17,7 @@ test('hub navigation and cards link only to existing routes',()=>{
 });
 
 test('hub artwork exists as webp and kit references are not shipped to public/',()=>{
-  for(const card of HUB_CARDS)assert.ok(existsSync(join('public',card.art)),card.art);
+  for(const card of HUB_CARDS)for(const url of [card.art,card.titleArt.src,card.statusArt.src])assert.ok(existsSync(join('public',url)),url);
   const files=walk('public/ui');
   assert.ok(files.every(file=>file.endsWith('.webp')),'only compressed artwork in public/ui');
   assert.ok(files.every(file=>!/reference/i.test(file)),'references stay in docs/ui-kits');
