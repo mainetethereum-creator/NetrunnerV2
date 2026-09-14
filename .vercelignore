@@ -1,0 +1,10 @@
+# Files never uploaded by `vercel deploy` (mirrors .gitignore; Vercel builds from source).
+.next/
+node_modules/
+.vercel/
+.env*
+!.env.example
+*.log
+tsconfig.tsbuildinfo
+.dream-loop/
+.cache/
