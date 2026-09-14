@@ -32,7 +32,7 @@ never stopped them. Follow these rules in every session working in this repo:
 Netrunner **is the CyberBase game**: a browser 3D action / extraction RPG
 (Next.js + React UI, Three.js scenes, Base wallet via wagmi). Routes: `/` Hub (landing
 page), `/base` Runner's Refuge (Base), `/expedition` Outlands, `/metro` (frozen prototype),
-`/editor/vegetation` (dev tool), `/ui-kit-preview`. UI kits: `docs/ui-kits/README.md`.
+`/editor/vegetation` and `/ui-kit-preview` (development only, ADR-019). UI kits: `docs/ui-kits/README.md`.
 
 Owner product rules: the hub links into the game only through PLAY → `/base` (ADR-015);
 access will require a connected EVM wallet (Coinbase Wallet / Base Account, MetaMask, Rabby, OKX,
@@ -56,6 +56,9 @@ feature notes in `docs/` for the area you touch.
 - No big ECS rewrite; component/system structure only where it clearly simplifies.
 - The current maps stay the source of truth; move them to data only with verified visual parity.
 - Editors are dev tools and must stay out of the production gameplay graph.
+  Players never see development tools (ADR-019): development pages are `app/**/page.dev.tsx`
+  (routes only in `next dev`), and in-game editor / debug UI renders only when
+  `DEV_TOOLS = process.env.CYBERBASE_DEV_TOOLS === "1"` (baked in by `next.config.ts`) is true.
 
 ## Refactor checklist (after every change)
 

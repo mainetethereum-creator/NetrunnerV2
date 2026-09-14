@@ -167,6 +167,23 @@ text" is relaxed for them while labels keep the text accessible.
 (`next.config.ts`), so replaced artwork must get a new file name (this is why the backgrounds are
 `feature-*` and not the old `card-*`).
 
+## ADR-019: Development tools never reach players
+**Status:** accepted (owner, 2026-09-15) · makes ADR-009 enforceable in production
+**Decision:** The MASTER map editor (base and expedition: props, trees, landscape panels), the
+expedition debug panel and test teleports (`?debug`, `?van`, `?fence`, `?vegetation`), the vegetation
+generator page and the UI kit preview page are development tools.
+- Editor pages are `app/**/page.dev.tsx`. `next.config.ts` adds the `dev.tsx` page extension only in
+  the development phase, so production builds contain no such routes (players get 404).
+- `next.config.ts` bakes `CYBERBASE_DEV_TOOLS` into the bundle: `"1"` in `next dev` (or in a build started
+  with `CYBERBASE_DEV_TOOLS=1`), otherwise `"0"`. `BaseApp.tsx` and `Expedition.tsx` render editor and
+  debug UI only when `DEV_TOOLS = process.env.CYBERBASE_DEV_TOOLS === "1"`; the constant is local to each
+  file, so the production build compiles that UI out.
+- Systems players see stay: landscape and grass rendering, baked vegetation, the lazy editor seams in
+  the scenes (never triggered without the UI).
+**Reason:** the production deployment showed the MASTER button and the editor pages to players.
+**Consequences:** `tests/dev-tools.test.mjs`. New development pages use `page.dev.tsx`; new editor or
+debug UI checks `DEV_TOOLS`.
+
 ## ADR-016: Wallet-first access, EVM wallets, Base as the primary chain
 **Status:** accepted as a product rule (owner, 2026-09-14) · **not implemented yet**
 **Decision:**

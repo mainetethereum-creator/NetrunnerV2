@@ -10,6 +10,7 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 | `app/` | Next.js routes (see ARCHITECTURE §1.1) |
 | `components/` | Game code (legacy layout, being migrated into `src/`) |
 | `src/` | New layered engine code (`assets/`, `core/loop/`, `input/`, `renderer/three/`, `ui/hub/`) |
+| `next.config.ts` | Next config by phase: development pages (`page.dev.tsx`) and `CYBERBASE_DEV_TOOLS` only in `next dev` (ADR-019); image cache headers |
 | `lib/wagmi.ts` | Wallet (wagmi) config: Base mainnet only, `baseAccount` connector + EIP-6963 injected wallets, cookie storage, Builder Code attribution (target rules: ADR-016) |
 | `public/` | Runtime assets (models, textures, atlases, draco decoder, vegetation bin, UI images) |
 | `assets/fonts/Martius` | Display font (licensed, see LICENSE.txt) |
@@ -44,8 +45,8 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 | `base/page.tsx` | `/base` → `BaseApp` |
 | `expedition/page.tsx` | `/expedition` → `Expedition` |
 | `metro/page.tsx` | `/metro` → `Metro3D` |
-| `editor/vegetation/page.tsx` | `/editor/vegetation` → `VegetationEditor` |
-| `ui-kit-preview/*` | UI kit sandbox (Ghost Signal, ability matrix, `matrix-state.ts` [P]) |
+| `editor/vegetation/page.dev.tsx` | `/editor/vegetation` → `VegetationEditor` (development only, ADR-019) |
+| `ui-kit-preview/*` | UI kit sandbox (Ghost Signal, ability matrix, `matrix-state.ts` [P]); `page.dev.tsx`, development only |
 | `globals.css` | Global styles + CyberBase UI kit tokens (`--cb-*`: colors, font, chamfer clip, corner lines) |
 
 ## components/base — Runner's Refuge (`/base`)
@@ -143,6 +144,7 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 | File | Covers |
 |---|---|
 | `engine-architecture.test.mjs` | Asset registry files exist; scenes use shared loader/disposal, the shared frame loop and `src/input` movement; pure `src` layers import no three/react/components |
+| `dev-tools.test.mjs` | `next.config` enables dev tools / development pages only in development; editor pages are `page.dev.tsx`; MASTER / debug / teleports are gated |
 | `hub.test.mjs` | Hub links point to existing routes, artwork exists as WebP, no kit references in `public/`, hub imports no game code, game routes return to `/base` |
 | `input.test.mjs` | Movement direction is bit-identical to the legacy scene formula (all key combos × stick values × dead zones × editor bindings), stick clamping, `stickVector` re-export |
 | `frame-loop.test.mjs` | Frame timing equals the legacy scene loops (incl. mobile cadence cap), hidden-tab modes, stop/dispose, fixed steps and alpha, exceptions |

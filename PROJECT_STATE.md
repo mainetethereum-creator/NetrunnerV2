@@ -11,7 +11,7 @@ Last updated: 2026-09-14 · branch `refactor/engine-architecture` · architectur
 - **Metro `/metro`:** frozen environment prototype.
 - **Character & combat:** Neon Sentinel GLB (Draco), in-place run, procedural idle pose, class combat (Warrior / Mage / Ranger, skills 1–4, energy, cooldowns), retargeted ranger shot, great sword; HUD vitals/skills/menu; character, inventory and talents panel.
 - **Controls:** WASD / arrows, Shift run, E interact, Space fire (expedition), 1–4 skills, I inventory, H hide HUD; tap / click to move; mobile stick with dead zone; touch profile with adaptive DPR and 30 fps fallback.
-- **Tools:** vegetation editor `/editor/vegetation`, UI kit preview `/ui-kit-preview`.
+- **Tools (development only, ADR-019):** vegetation editor `/editor/vegetation`, UI kit preview `/ui-kit-preview`, MASTER map editor, expedition debug panel and test teleports. Production builds contain none of them.
 
 ## Architecture refactor progress
 

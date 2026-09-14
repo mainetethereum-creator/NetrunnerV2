@@ -87,6 +87,9 @@ with the owner before implementing; open questions are listed in the ADR.
 ## 8. Do not rewrite without a strong reason
 
 - HUD element positions and mobile media queries (tuned for phones); change looks only in the skin blocks.
+- Development tools never reach players (ADR-019): editor pages are `app/**/page.dev.tsx`; in-game editor
+  and debug UI checks `DEV_TOOLS = process.env.CYBERBASE_DEV_TOOLS === "1"` (set by `next.config.ts`).
+  Production builds contain no `/editor/vegetation`, `/ui-kit-preview`, MASTER button or debug panel.
 - Kit rules: no baked text, separate backdrop / character layers, references never in `public/`.
 - Earlier steps: frame loop timing, `src/input` arithmetic, source lines asserted by tests
   (`Boolean(state.near)||state.extraction>0`, "EXPEDITION OBJECTIVE", "LOCAL SIGNAL" in `Expedition.tsx`, …).

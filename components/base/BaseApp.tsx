@@ -11,6 +11,8 @@ import MovementStick from "../game/MovementStick";
 import styles from "./BaseApp.module.css";
 import type {WorldEditor} from "../world-editor/controller";
 import dynamic from "next/dynamic";
+// Development tools (MASTER editor) are compiled out of production builds (ADR-019, next.config.ts).
+const DEV_TOOLS = process.env.CYBERBASE_DEV_TOOLS === "1";
 const BaseEditorPanel=dynamic(()=>import("./BaseEditorPanel"),{ssr:false});
 
 type Quest = { accepted: boolean; visited: StationId[] };
@@ -130,8 +132,8 @@ export default function BaseApp() {
   return <main className={`${styles.root} ${hideHud ? styles.hideHud : ""}`}>
     <button className={styles.hudToggle} onClick={() => setHideHud(!hideHud)} aria-label={hideHud ? "Show interface" : "Hide interface"}>{hideHud ? "H · Show interface" : "H · Hide interface"}</button>
     <div ref={host} className={styles.viewport} />
-    <button className={styles.editorToggle} disabled={!ready} onClick={()=>{setMaster(!master);engine.current?.setMaster(!master);}}>MASTER · {master?"Закрыть":"Редактор карты"}</button>
-    {master&&worldEditor&&<aside className={styles.editorPanel}><BaseEditorPanel editor={worldEditor}/></aside>}
+    {DEV_TOOLS && <button className={styles.editorToggle} disabled={!ready} onClick={()=>{setMaster(!master);engine.current?.setMaster(!master);}}>MASTER · {master?"Закрыть":"Редактор карты"}</button>}
+    {DEV_TOOLS&&master&&worldEditor&&<aside className={styles.editorPanel}><BaseEditorPanel editor={worldEditor}/></aside>}
     <div className={styles.vignette} />
     <header className={styles.header}>
       <div className={styles.headerRight}>
