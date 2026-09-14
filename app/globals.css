@@ -1,4 +1,24 @@
 :root { --bg: #07161a; --white: #f4efe1; }
+/* CyberBase UI kit tokens (docs/ui-kits/README.md): navy panels, cyan lines, yellow accents,
+   chamfered corners (--cb-clip) with a line drawn along each cut (--cb-corners). */
+:root {
+  --cb-panel: rgba(7, 15, 31, 0.8);
+  --cb-panel-strong: rgba(6, 13, 28, 0.94);
+  --cb-line: rgba(84, 160, 245, 0.62);
+  --cb-line-soft: rgba(84, 160, 245, 0.28);
+  --cb-cyan: #4ab8ff;
+  --cb-yellow: #ffd62e;
+  --cb-text: #eaf2ff;
+  --cb-muted: #93a8c8;
+  --cb-hp: #3ddc84;
+  --cb-en: #2f9bff;
+  --cb-font: "Bahnschrift", "DIN Alternate", "Roboto Condensed", "Arial Narrow", system-ui, sans-serif;
+  --cb-clip: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  --cb-corners: linear-gradient(135deg, transparent 7px, rgba(84, 160, 245, 0.62) 7px 8.4px, transparent 8.4px) left top / 10px 10px no-repeat border-box,
+    linear-gradient(-45deg, transparent 7px, rgba(84, 160, 245, 0.62) 7px 8.4px, transparent 8.4px) right bottom / 10px 10px no-repeat border-box;
+  --cb-corners-gold: linear-gradient(135deg, transparent 7px, rgba(255, 214, 46, 0.85) 7px 8.4px, transparent 8.4px) left top / 10px 10px no-repeat border-box,
+    linear-gradient(-45deg, transparent 7px, rgba(255, 214, 46, 0.85) 7px 8.4px, transparent 8.4px) right bottom / 10px 10px no-repeat border-box;
+}
 * { box-sizing: border-box; }
 html, body { margin: 0; width: 100%; min-height: 100%; background: var(--bg); color: var(--white); font-family: var(--font-display), system-ui, sans-serif; -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
 button, input { font: inherit; }

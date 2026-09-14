@@ -162,10 +162,10 @@ export default function BaseApp() {
     {storageNotice && <div className={styles.error} role="status">{storageNotice}</div>}
     {ready && error && <div className={styles.error} role="status">{error}<button onClick={() => setError("")} aria-label="Dismiss notice">×</button></div>}
 
-    {dialog && <div className={styles.scrim} onPointerDown={(e) => { if (e.target === e.currentTarget) setDialog(null); }}>
-      <div ref={dialogRef} className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="base-dialog-title">
+    {dialog && <div className={`${styles.scrim} ${npc ? styles.npcScrim : ""}`} onPointerDown={(e) => { if (e.target === e.currentTarget) setDialog(null); }}>
+      <div ref={dialogRef} className={`${styles.dialog} ${npc ? styles.npcDialog : ""}`} role="dialog" aria-modal="true" aria-labelledby="base-dialog-title">
         <div className={styles.dialogTop}><span className={styles.eyebrow}>{npc ? "LOCAL CHANNEL / CONNECTED" : "REFUGE SYSTEMS"}</span><button onClick={() => setDialog(null)} aria-label="Close dialog"><Icon name="cross" /></button></div>
-        {npc && <><div className={styles.speaker}><div className={styles.avatar}>{npc.initial}</div><div><span className={styles.eyebrow}>{npc.role}</span><h2 id="base-dialog-title">{npc.name}</h2></div><i /></div>
+        {npc && <><div className={styles.portrait} aria-hidden="true"><span>{npc.initial}</span></div><div className={styles.speaker}><div><span className={styles.eyebrow}>{npc.role}</span><h2 id="base-dialog-title">{npc.name}</h2></div><i /></div>
           <div className={styles.speech}><h3>{detail && dialog === "smith" ? "One cell. Twenty-four hours." : npc.title}</h3><p>{detail && dialog === "smith" ? "The daily routine will start here: bring a battery, place it in the charging dock, and return after a 24-hour cycle. The station is being commissioned. Charging, timers, and rewards are not active yet." : npc.text}</p></div>
           <div className={styles.choices}>
             {dialog === "contracts" && !quest.accepted && <button className={styles.primaryChoice} onClick={() => { saveQuest({ accepted: true, visited: [] }); setDialog(null); }}><span><strong>Get to know the refuge</strong><small>Visit three contacts · Local exploration quest</small></span><Icon name="arrow" /></button>}

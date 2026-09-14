@@ -31,6 +31,36 @@
  .loot{left:240px;bottom:24px;min-height:44px}.interaction{left:56%;bottom:35%;max-width:230px}.message{left:49%;bottom:88px;transform:translateX(-50%);width:260px;max-width:36%;text-align:center}
  .controls{bottom:133px}.header{left:145px;bottom:max(5px,env(safe-area-inset-bottom))}.master{top:10px;max-height:calc(100dvh - 20px)}.debug{top:100px;max-height:calc(100dvh - 120px)}
 }
+/* CyberBase in-game HUD kit skin (docs/ui-kits/README.md): restyles only, positions above stay. */
+.root{font-family:var(--cb-font)}
+.header{font-family:var(--cb-font);letter-spacing:.14em}.header span{color:var(--cb-muted)}
+.signal{padding:6px 28px 8px;font-family:var(--cb-font);letter-spacing:.18em;color:#d4e6ff;background:linear-gradient(90deg,transparent,rgba(5,12,26,.74) 16%,rgba(5,12,26,.74) 84%,transparent);border-bottom:1px solid var(--cb-line-soft)}
+.signal:after{content:'';position:absolute;left:14%;right:14%;bottom:-1px;height:1px;background:var(--cb-cyan);box-shadow:0 0 8px var(--cb-cyan)}
+.signal i{background:var(--cb-line)}
+.map{border:1px solid var(--cb-line);background:radial-gradient(circle,rgba(10,24,48,.88) 0 60%,rgba(5,12,26,.92) 61%);box-shadow:0 0 16px rgba(74,184,255,.25),inset 0 0 18px rgba(74,184,255,.16)}
+.map small{font-family:var(--cb-font);color:var(--cb-text)}.map>span{font-family:var(--cb-font);color:var(--cb-cyan)}
+.contract{padding:11px 16px 12px 22px;border:1px solid var(--cb-line);background:var(--cb-corners),linear-gradient(100deg,rgba(6,13,28,.9),rgba(6,13,28,.64));clip-path:var(--cb-clip);text-shadow:none}
+.contract:before{content:'';position:absolute;left:10px;top:34px;bottom:36px;width:3px;background:var(--cb-yellow);box-shadow:0 0 8px rgba(255,214,46,.55)}
+.contract>small{font-family:var(--cb-font);letter-spacing:.14em;color:var(--cb-cyan)}
+.contract>strong{font-family:var(--cb-font);font-weight:600;letter-spacing:.01em}
+.contract>span{font-family:var(--cb-font);color:#b9cbe6}
+.contract>div{font-family:var(--cb-font);letter-spacing:.1em;color:var(--cb-muted)}
+.contract i{background:rgba(84,160,245,.25)}.contract i b{background:var(--cb-yellow)}
+.loot{border:1px solid var(--cb-line);background:var(--cb-corners),rgba(6,13,28,.84);clip-path:var(--cb-clip);text-shadow:none}
+.loot>svg{color:var(--cb-cyan)}.loot small{font-family:var(--cb-font);color:var(--cb-muted)}.loot strong{font-family:var(--cb-font)}.loot b{font-family:var(--cb-font);color:var(--cb-yellow)}
+.interaction{border:1px solid var(--cb-line);border-radius:0;background:var(--cb-corners),linear-gradient(100deg,rgba(8,20,42,.95),rgba(6,13,28,.86));clip-path:var(--cb-clip);box-shadow:inset 3px 0 0 var(--cb-cyan)}
+.interaction:before{display:none}
+.interaction kbd{background:rgba(5,12,26,.92);color:var(--cb-text);border:1px solid var(--cb-line);font-family:var(--cb-font)}
+.interaction small{font-family:var(--cb-font);letter-spacing:.14em;color:var(--cb-cyan)}
+.interaction strong{font-family:var(--cb-font);font-weight:600}
+.message{font-family:var(--cb-font);color:#d9e8ff}
+.controls button{border:1px solid var(--cb-line-soft);border-radius:0;background:var(--cb-corners),rgba(6,13,28,.84);clip-path:var(--cb-clip);font-family:var(--cb-font);letter-spacing:.06em}
+.controls [aria-pressed=true]{border-color:var(--cb-cyan);background:var(--cb-corners),rgba(20,52,96,.92);color:#fff}
+.controls .masterButton{color:var(--cb-yellow)!important}
+.result{border:1px solid var(--cb-line);background:var(--cb-corners),linear-gradient(160deg,rgba(9,19,40,.97),rgba(4,9,20,.97));clip-path:var(--cb-clip);font-family:var(--cb-font)}
+.result h1{letter-spacing:.06em;text-transform:uppercase}
+.result a{background:linear-gradient(180deg,#ffe45c,#f0b900);color:#141005;font-weight:700;letter-spacing:.12em;text-transform:uppercase;clip-path:var(--cb-clip)}
+@media(hover:hover) and (pointer:fine){.contract:hover,.loot:hover{background:var(--cb-corners),rgba(16,38,74,.92)}.controls button:hover:not(:disabled),.interaction:hover:not(:disabled){background:var(--cb-corners),rgba(18,44,84,.94)}}
 @media(prefers-reduced-motion:reduce){.root button{transition:none}}
 @media(prefers-reduced-transparency:reduce),(prefers-contrast:more){.contract,.loot,.interaction,.controls button,.map,.message{background:#081a21;backdrop-filter:none}.root:after{background:none}.contract,.loot,.map{border-color:#c6d6b2}}
 @media(max-width:900px),(pointer:coarse),(any-pointer:coarse){.header{left:140px;width:110px}.header a{flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;font-size:7px}.header span{font-size:8px}}

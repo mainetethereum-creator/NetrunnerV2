@@ -56,3 +56,69 @@
 }
 
 .editorToggle{position:absolute;bottom:90px;right:20px;z-index:45;padding:12px;background:#172b30;color:#e5d2a9;border:1px solid #8b8b71;border-radius:5px}.editorPanel{position:absolute;top:80px;right:16px;bottom:145px;z-index:44;width:min(390px,calc(100vw - 32px));overflow:auto;padding:16px;background:#0e2028f5;border:1px solid #567477;box-sizing:border-box;color:#d9e5df}.editorPanel h2{font:16px monospace}.editorPanel>label{display:grid;margin-top:18px}.editorPanel select,.editorPanel>button{padding:10px;background:#183237;color:#dae4df;max-width:100%;border:1px solid #567477}
+
+/* CyberBase in-game HUD + Dialogue kit skin (docs/ui-kits/README.md). Positions above stay. */
+.root{font-family:var(--cb-font);--line:var(--cb-line-soft);--muted:var(--cb-muted)}
+.root button{border-color:var(--cb-line-soft);background:rgba(6,13,28,.86)}
+.root button:hover:not(:disabled){background:rgba(18,42,80,.92);border-color:var(--cb-cyan)}
+.root button:focus-visible{outline-color:var(--cb-yellow)}
+.root kbd{font-family:var(--cb-font);background:rgba(5,12,26,.92);border-color:var(--cb-line);box-shadow:none;color:var(--cb-text)}
+.vignette{background:linear-gradient(180deg,rgba(4,10,21,.62),transparent 29%,transparent 65%,rgba(4,10,21,.7)),radial-gradient(ellipse at center,transparent 46%,rgba(4,10,21,.3))}
+.eyebrow{font-family:var(--cb-font);letter-spacing:.14em;color:var(--cb-cyan)}
+.root .wallet{border:1px solid var(--cb-line);background:var(--cb-corners),rgba(6,13,28,.86);clip-path:var(--cb-clip);letter-spacing:.04em}
+.baseDot{background:var(--cb-en);box-shadow:0 0 10px rgba(47,155,255,.5)}
+.root .minimap{border:1px solid var(--cb-line);background:var(--cb-corners),rgba(6,13,28,.84);clip-path:var(--cb-clip)}
+.mapTitle,.mapBottom{font-family:var(--cb-font);letter-spacing:.12em;color:#cfe3ff}
+.destinations{border-color:var(--cb-line-soft);background:rgba(5,11,24,.96)}
+.destinations button{font-family:var(--cb-font)!important;letter-spacing:.04em}
+.root .interact{border:1px solid var(--cb-line);background:var(--cb-corners),linear-gradient(100deg,rgba(8,20,42,.95),rgba(6,13,28,.88));clip-path:var(--cb-clip);box-shadow:inset 3px 0 0 var(--cb-cyan)}
+.interact>span{font-family:var(--cb-font);font-weight:600;letter-spacing:.03em}
+.interact small{font-family:var(--cb-font);letter-spacing:.14em;color:var(--cb-cyan)}
+.loading{background:radial-gradient(ellipse at 45% 35%,#13284a,#040a15 70%)}
+.loadingMark{font-family:var(--cb-font);color:var(--cb-cyan);text-shadow:0 0 18px rgba(74,184,255,.5)}
+.loading h2{font-family:var(--cb-font);letter-spacing:.02em}
+.loadLine{background:var(--cb-cyan)}
+.error{background:var(--cb-panel-strong);border-color:var(--cb-line);font-family:var(--cb-font)}
+
+/* Dialogue window */
+.scrim{background:rgba(2,6,14,.62)}
+.dialog{border:1px solid var(--cb-line);background:var(--cb-corners),linear-gradient(150deg,rgba(9,19,40,.97),rgba(4,9,20,.98));clip-path:var(--cb-clip);box-shadow:none;color:var(--cb-text)}
+.dialog h2,.speech h3{font-family:var(--cb-font)}
+.speech p,.modalCopy{color:#b9cbe6}
+.choices button{border:1px solid var(--cb-line-soft);background:var(--cb-corners),rgba(10,24,50,.82);clip-path:var(--cb-clip)}
+.choices strong{letter-spacing:.03em}
+.choices small{font-family:var(--cb-font);color:var(--cb-muted)}
+.choices button>span:last-child{font-family:var(--cb-font);color:var(--cb-cyan)}
+.choices .primaryChoice,.npcDialog .choices>button:first-child:not(:last-child){border-color:rgba(255,214,46,.85);background:var(--cb-corners-gold),linear-gradient(90deg,rgba(90,70,6,.62),rgba(40,32,6,.5));color:#fff6cf}
+.choices .primaryChoice>span:last-child,.npcDialog .choices>button:first-child:not(:last-child)>span:last-child{color:var(--cb-yellow)}
+.questChecklist{border-color:var(--cb-line-soft);background:rgba(5,12,26,.6)}
+.questChecklist p>span{color:var(--cb-yellow)}
+.settingRows strong{font-family:var(--cb-font);color:var(--cb-cyan)}
+.walletInfo{border-color:var(--cb-line-soft)}
+.diagnostics{font-family:var(--cb-font)}
+.portrait{display:none}
+.npcScrim{align-items:flex-end;padding-bottom:max(24px,env(safe-area-inset-bottom))}
+.dialog.npcDialog{width:min(1120px,100%);display:grid;grid-template-columns:clamp(180px,22vw,270px) minmax(0,1fr);grid-template-areas:"top top" "portrait speaker" "portrait speech" "portrait choices";column-gap:24px;align-items:start;padding:16px 22px 20px}
+.npcDialog .dialogTop{grid-area:top;padding-bottom:10px;margin-bottom:14px}
+.npcDialog .portrait{grid-area:portrait;align-self:stretch;position:relative;display:grid;place-items:center;min-height:220px;border:1px solid var(--cb-line);clip-path:var(--cb-clip);background:var(--cb-corners),repeating-linear-gradient(0deg,rgba(74,184,255,.09) 0 1px,transparent 1px 16px),repeating-linear-gradient(90deg,rgba(74,184,255,.09) 0 1px,transparent 1px 16px),radial-gradient(circle at 50% 40%,rgba(26,60,110,.7),rgba(5,11,24,.96) 72%)}
+.npcDialog .portrait:after{content:'';position:absolute;inset:10px;border:1px solid rgba(74,184,255,.22);pointer-events:none}
+.npcDialog .portrait span{font-size:clamp(44px,5vw,72px);font-weight:700;letter-spacing:.06em;color:#dff1ff;text-shadow:0 0 22px rgba(74,184,255,.7)}
+.npcDialog .speaker{grid-area:speaker;margin:0 0 12px;padding:8px 14px;border:1px solid var(--cb-line-soft);background:linear-gradient(90deg,rgba(30,70,130,.5),rgba(6,13,28,.2) 72%);clip-path:var(--cb-clip)}
+.npcDialog .speaker h2{font-size:22px;letter-spacing:.12em;text-transform:uppercase;margin:3px 0 0}
+.npcDialog .speech{grid-area:speech;margin-bottom:12px;padding:14px 18px;border:1px solid var(--cb-line-soft);background:var(--cb-corners),rgba(5,12,26,.72);clip-path:var(--cb-clip)}
+.npcDialog .speech h3{font-size:21px;font-weight:600;margin:0 0 8px}
+.npcDialog .choices{grid-area:choices}
+@media(max-width:700px),(orientation:portrait) and (max-width:1023px){
+ .npcScrim{align-items:center}
+ .dialog.npcDialog{grid-template-columns:minmax(0,1fr);grid-template-areas:"top" "portrait" "speaker" "speech" "choices";padding:14px}
+ .npcDialog .portrait{min-height:0;width:min(52vw,220px);aspect-ratio:1;justify-self:center;margin-bottom:12px}
+ .npcDialog .speaker h2{font-size:18px}.npcDialog .speech h3{font-size:19px}
+}
+@media(orientation:landscape) and (max-height:500px){
+ .npcScrim{padding:8px}
+ .dialog.npcDialog{grid-template-columns:clamp(110px,18vw,160px) minmax(0,1fr);column-gap:14px;padding:10px 14px;max-height:calc(100dvh - 16px)}
+ .npcDialog .dialogTop{margin-bottom:8px;padding-bottom:6px}
+ .npcDialog .portrait{min-height:110px}
+ .npcDialog .speaker{margin-bottom:8px;padding:5px 10px}.npcDialog .speaker h2{font-size:16px}
+ .npcDialog .speech{padding:8px 12px;margin-bottom:8px}.npcDialog .speech h3{font-size:16px;margin-bottom:4px}
+}
