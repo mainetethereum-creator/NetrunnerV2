@@ -57,6 +57,7 @@ Last updated: 2026-09-14 · branch `refactor/engine-architecture` · architectur
 
 ## Planned
 
+- **Wallet-first access (ADR-016, owner rule, not implemented):** no guest mode — connect wallet → hub → PLAY → base; Coinbase Wallet / Base Account, MetaMask, Rabby, OKX and other EVM wallets (EIP-6963 + WalletConnect); Base mainnet as the primary chain with a switch-to-Base prompt. Today guests can still enter the hub and the base.
 See `ARCHITECTURE.md` §5 (steps 3–12) and `docs/` feature notes.
 
 ## Known issues

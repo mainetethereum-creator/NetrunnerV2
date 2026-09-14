@@ -34,6 +34,11 @@ Netrunner **is the CyberBase game**: a browser 3D action / extraction RPG
 page), `/base` Runner's Refuge (Base), `/expedition` Outlands, `/metro` (frozen prototype),
 `/editor/vegetation` (dev tool), `/ui-kit-preview`. UI kits: `docs/ui-kits/README.md`.
 
+Owner product rules: the hub links into the game only through PLAY → `/base` (ADR-015);
+access will require a connected EVM wallet (Coinbase Wallet / Base Account, MetaMask, Rabby, OKX,
+others) with **Base** as the primary chain (ADR-016 — recorded, not implemented yet; do not add new
+guest-only flows).
+
 Before changing code read, in order: this file, `PROJECT_STATE.md`,
 `ARCHITECTURE.md`, `CODEMAP.md`, `DECISIONS.md`, the latest `AI_HANDOFF.md`, and the
 feature notes in `docs/` for the area you touch.

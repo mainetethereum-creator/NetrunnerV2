@@ -140,3 +140,25 @@ on desktop and mobile. The Base card artwork stays as the hub backdrop (`backdro
 **Reason:** jumping from the hub straight into the metro skipped the base, which is the game's hub
 for expeditions and the metro.
 **Consequences:** `tests/hub.test.mjs` fails if a hub item links anywhere but `/` or `/base`.
+
+## ADR-016: Wallet-first access, EVM wallets, Base as the primary chain
+**Status:** accepted as a product rule (owner, 2026-09-14) · **not implemented yet**
+**Decision:**
+- **No guest mode.** The player connects a wallet before entering the hub. Without a connected
+  wallet the hub, `/base`, `/expedition` and `/metro` show only the connect screen.
+  Flow: connect wallet → hub → PLAY → base → expedition or metro.
+- **Wallets:** Coinbase Wallet / Base Account, MetaMask, Rabby, OKX Wallet and other EVM wallets.
+  Browser extensions are discovered through EIP-6963 (already enabled); mobile wallets without
+  an injected provider need WalletConnect (to be added).
+- **Chain:** Base mainnet (chain id 8453) is the primary gameplay chain. A wallet connected on
+  another network is asked to switch to Base before entering. Onchain transactions keep the
+  Builder Code attribution configured in `lib/wagmi.ts`.
+**Current state (2026-09-14):** `lib/wagmi.ts` configures only Base, the `baseAccount` connector and
+EIP-6963 discovery. Guests can still enter: the hub wallet menu says "play as a guest" and the base
+wallet dialog says "Explore freely as a guest".
+**Open questions for implementation:** WalletConnect project id; development testnet (e.g. Base
+Sepolia); how local development and automated browser checks reach gated routes without a real
+wallet (a development-only path that production builds exclude); session persistence (wagmi cookie
+storage is already on).
+**Consequences:** when implemented, guest texts and paths are removed, the connect screen becomes the
+entry to `/`, and tests assert that gated routes require a connected wallet on Base.

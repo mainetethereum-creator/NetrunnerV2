@@ -79,6 +79,9 @@ window is minimized.
 Architecture step 4: camera rig (fixed-angle follow camera shared by the three scenes), no behaviour change.
 UI follow-ups when the owner wants them: NPC portrait art, mobile attack button bound to the existing
 basic attack, hub sections for character / inventory.
+Product rule recorded but not implemented: wallet-first access (no guests), EVM wallets (Coinbase
+Wallet / Base Account, MetaMask, Rabby, OKX, others), Base as the primary chain — ADR-016. Confirm
+with the owner before implementing; open questions are listed in the ADR.
 
 ## 8. Do not rewrite without a strong reason
 

@@ -10,7 +10,7 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 | `app/` | Next.js routes (see ARCHITECTURE §1.1) |
 | `components/` | Game code (legacy layout, being migrated into `src/`) |
 | `src/` | New layered engine code (`assets/`, `core/loop/`, `input/`, `renderer/three/`, `ui/hub/`) |
-| `lib/wagmi.ts` | Base wallet (wagmi) config |
+| `lib/wagmi.ts` | Wallet (wagmi) config: Base mainnet only, `baseAccount` connector + EIP-6963 injected wallets, cookie storage, Builder Code attribution (target rules: ADR-016) |
 | `public/` | Runtime assets (models, textures, atlases, draco decoder, vegetation bin, UI images) |
 | `assets/fonts/Martius` | Display font (licensed, see LICENSE.txt) |
 | `vendor/vegetation` | MIT tree generator used only by the vegetation editor |
