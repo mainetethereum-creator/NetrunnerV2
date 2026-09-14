@@ -435,10 +435,13 @@ a.navItem:hover { color: var(--text); }
 /* Mobile landscape ---------------------------------------------------------- */
 
 @media (min-width: 700px) and (orientation: landscape) {
+  /* Menu | character with PLAY at the bottom | three cards stacked on the right. */
   .hub {
-    grid-template-columns: minmax(180px, 21vw) minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr) auto auto;
-    grid-template-areas: "header header" "nav hero" "nav content" "footer footer";
+    height: 100dvh;
+    min-height: 320px;
+    grid-template-columns: minmax(170px, 21vw) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas: "header header" "nav content" "footer footer";
     column-gap: 18px;
     row-gap: 10px;
     padding-bottom: max(10px, env(safe-area-inset-bottom));
@@ -509,18 +512,20 @@ a.navItem:hover { color: var(--text); }
   .navItem[aria-current="page"] svg { color: var(--yellow); }
   .navSoon { opacity: 0.62; }
 
-  .hero { min-height: 60px; align-items: flex-start; }
-  .slogan { font-size: 11px; }
+  .hero { display: none; }
 
   .content {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    grid-template-areas: ". play play" "season skynet nft";
-    gap: 10px;
+    grid-template-columns: minmax(0, 1fr) minmax(210px, 42%);
+    grid-template-rows: repeat(3, minmax(0, 1fr));
+    grid-template-areas: ". season" ". skynet" "play nft";
+    gap: 8px 14px;
+    min-height: 0;
   }
+  .playWrap { align-self: end; }
   .play { min-height: 84px; padding: 0 56px; }
   .play strong { font-size: 36px; }
 
-  .card { aspect-ratio: auto; min-height: 150px; }
+  .card { aspect-ratio: auto; min-height: 0; }
 }
 
 /* Short phone landscape: everything above the fold. */
@@ -543,7 +548,6 @@ a.navItem:hover { color: var(--text); }
   .play small { font-size: 9px; margin-top: 3px; }
   .play i { width: 34px; height: 34px; right: 10px; }
 
-  .card { min-height: 112px; }
   .footer { font-size: 8px; }
 }
 
@@ -612,7 +616,7 @@ a.navItem:hover { color: var(--text); }
     color: rgba(210, 222, 245, 0.55);
   }
 
-  .hero { min-height: 0; align-items: flex-end; justify-content: flex-end; padding-bottom: 12px; }
+  .hero { display: flex; min-height: 0; align-items: flex-end; justify-content: flex-end; padding-bottom: 12px; }
   .slogan { font-size: 20px; letter-spacing: 0.08em; text-align: left; color: rgba(210, 222, 245, 0.7); }
 
   .content {
