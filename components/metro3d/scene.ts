@@ -2,6 +2,7 @@ import * as T from 'three';
 import { createGltfLoader } from '../../src/renderer/three/gltf-loader';
 import { disposeObjectTree } from '../../src/renderer/three/dispose';
 import { ASSET_URLS } from '../../src/assets/registry';
+import { createFrameLoop, type FrameTick } from '../../src/core/loop/frame-loop';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
@@ -61,11 +62,12 @@ export function createMetro(host:HTMLElement,level:number,onState:(s:Snapshot)=>
   renderer.domElement.addEventListener('pointerdown',down);renderer.domElement.addEventListener('pointerup',up);
   const lost=(e:Event)=>{e.preventDefault();onError('Graphics connection lost. Reload this level.');};renderer.domElement.addEventListener('webglcontextlost',lost);
   const pivot=new T.Vector3(world.spawn.x,1,world.spawn.z),azimuth=.48;
-  let frame=0,last=performance.now(),report=last,windowStart=last,count=0,fps=0,lastShadow=0,lastLights=0;
+  const loopStart=performance.now();
+  let report=loopStart,windowStart=loopStart,count=0,fps=0,lastShadow=0,lastLights=0;
   let selected:typeof env.lightSources=[];
-  function animate(now:number) {
-    if(disposed)return;frame=requestAnimationFrame(animate);if(document.hidden){last=now;return;}
-    const dt=Math.min((now-last)/1000,.05);last=now;const time=now/1000;
+  // The shared loop keeps scheduling while hidden and skips those frames (metro's original behaviour).
+  function updateFrame({now,dt}:FrameTick) {
+    const time=now/1000;
     let sx=(keys.has('d')||keys.has('arrowright')?1:0)-(keys.has('a')||keys.has('arrowleft')?1:0)+stick.x;
     let sz=(keys.has('s')||keys.has('arrowdown')?1:0)-(keys.has('w')||keys.has('arrowup')?1:0)+stick.z;
     let dx=0,dz=0;const len=Math.hypot(sx,sz);
@@ -82,10 +84,13 @@ export function createMetro(host:HTMLElement,level:number,onState:(s:Snapshot)=>
     if(now-lastLights>200){selected=[...env.lightSources].sort((a,b)=>a.p.distanceToSquared(player.position)-b.p.distanceToSquared(player.position)).slice(0,lights.length);lastLights=now;}
     lights.forEach((l,i)=>{const source=selected[i];if(!source){l.intensity=0;return;}l.position.copy(source.p);l.color.copy(source.color);l.intensity=source.power*(source.flicker&&!reduced?.88+.08*Math.sin(time*7+i)+.04*Math.sin(time*17):1);});
     if(now-lastShadow>(mobile?90:45)){keyLight.position.set(player.position.x-9,18,player.position.z+6);keyLight.target.position.copy(player.position);renderer.shadowMap.needsUpdate=true;lastShadow=now;}
+  }
+  function renderFrame({now}:FrameTick) {
     if(mobile)renderer.render(scene,camera);else composer.render();
     count++;if(now-windowStart>2000){fps=Math.round(count*1000/(now-windowStart));count=0;windowStart=now;}
     if(now-report>180){const exitDist=Math.hypot(player.position.x-world.exit.x,player.position.z-world.exit.z),entryDist=Math.hypot(player.position.x-world.spawn.x,player.position.z-world.spawn.z);onState({x:player.position.x,z:player.position.z,room:world.roomAt(player.position)?.name??'Connecting tunnel',fps,draws:renderer.info.render.calls,near:exitDist<2?'exit':entryDist<2?'entry':null,ready});report=now;}
   }
-  frame=requestAnimationFrame(animate);
-  return {setStick(x:number,z:number){stick={x,z};},dispose(){disposed=true;cancelAnimationFrame(frame);observer.disconnect();window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',reset);document.removeEventListener('visibilitychange',reset);renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointerup',up);renderer.domElement.removeEventListener('webglcontextlost',lost);mixer?.stopAllAction();disposeObjectTree(scene);env.surfaces.dispose();environment.dispose();draco.dispose();bloom.dispose();output.dispose();composer.dispose();renderer.dispose();renderer.domElement.remove();}};
+  const loop=createFrameLoop({startTime:loopStart,hidden:'skip',update:updateFrame,render:renderFrame});
+  loop.start();
+  return {setStick(x:number,z:number){stick={x,z};},dispose(){disposed=true;loop.dispose();observer.disconnect();window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',reset);document.removeEventListener('visibilitychange',reset);renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointerup',up);renderer.domElement.removeEventListener('webglcontextlost',lost);mixer?.stopAllAction();disposeObjectTree(scene);env.surfaces.dispose();environment.dispose();draco.dispose();bloom.dispose();output.dispose();composer.dispose();renderer.dispose();renderer.domElement.remove();}};
 }

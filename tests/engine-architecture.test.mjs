@@ -22,6 +22,15 @@ test('scenes load glTF through the shared loader and dispose through the shared 
   }
 });
 
+test('scenes run through the shared frame loop instead of their own requestAnimationFrame loops',()=>{
+  for(const file of SCENES){
+    const code=readFileSync(file,'utf8');
+    assert.match(code,/createFrameLoop\(\{/,file);
+    assert.match(code,/loop\.dispose\(\)/,file);
+    assert.doesNotMatch(code,/requestAnimationFrame\(|cancelAnimationFrame\(/,file);
+  }
+});
+
 test('pure src layers never import Three.js, UI frameworks or legacy components',()=>{
   const pure=['src/core','src/gameplay','src/world','src/input','src/shared'].filter(existsSync);
   const files=['src/assets/registry.ts'];

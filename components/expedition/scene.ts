@@ -4,6 +4,7 @@ import * as T from 'three';
 import { createGltfLoader } from '../../src/renderer/three/gltf-loader';
 import { disposeObjectTree } from '../../src/renderer/three/dispose';
 import { ASSET_URLS } from '../../src/assets/registry';
+import { createFrameLoop, type FrameTick } from '../../src/core/loop/frame-loop';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
@@ -93,13 +94,14 @@ export function createExpedition(host:HTMLElement,onState:(s:Snapshot)=>void,onE
   const lost=(e:Event)=>{e.preventDefault();onError('Graphics connection lost. Reload this level.');};renderer.domElement.addEventListener('webglcontextlost',lost);
   const pivot=new T.Vector3(world.spawn.x,1,world.spawn.z),followTarget=new T.Vector3(),shadowAnchor=new T.Vector3(Infinity,0,0),azimuth=.48;
   let modalOpen=false;const modalObserver=new MutationObserver(()=>{modalOpen=!!document.querySelector('[aria-modal="true"]');if(modalOpen)reset();});modalObserver.observe(host.parentElement??host,{childList:true,subtree:true});
-  let frame=0,last=performance.now(),lastPaint=last,report=last,windowStart=last,count=0,fps=0,lastShadow=0,lastLights=0,lastStream=0;
+  const loopStart=performance.now();
+  let report=loopStart,windowStart=loopStart,count=0,fps=0,lastShadow=0,lastLights=0,lastStream=0;
   const visibleEnemies:typeof session.enemies=[];
   const selected:typeof env.lightSources=[];const lightDistances:number[]=[];
-  function animate(now:number) {
-    if(disposed||document.hidden)return;frame=requestAnimationFrame(animate);
-    if(mobile){const interval=1000/budget.target;if(now-lastPaint<interval-.8)return;lastPaint=Math.max(lastPaint+interval,now-interval);}else lastPaint=now;
-    const elapsed=now-last;const dt=modalOpen?0:Math.min(elapsed/1000,.05);last=now;
+  // The shared loop (src/core/loop) owns rAF, hidden-tab handling, the mobile cadence
+  // cap and the delta clamp. Open modals freeze simulation time.
+  function updateFrame({now,frameMs:elapsed,dt:frameDt}:FrameTick) {
+    const dt=modalOpen?0:frameDt;
     if(mobile&&ready&&!modalOpen&&!editor.active&&elapsed>0&&elapsed<250){qualityFrames++;qualityElapsed+=Math.min(elapsed,80);if(now-qualityWindow>2000){frameMs=qualityElapsed/Math.max(1,qualityFrames);if(qualityFrames>=10)budget=adaptMobileBudget(budget,frameMs);qualityFrames=0;qualityElapsed=0;qualityWindow=now;}}
     if(mobile&&now-lastResolution>600&&Math.abs(resolutionScale-budget.scale)>.001){resolutionScale+=T.MathUtils.clamp(budget.scale-resolutionScale,-.025,.025);resize();lastResolution=now;}
     const time=now/1000;
@@ -127,12 +129,20 @@ export function createExpedition(host:HTMLElement,onState:(s:Snapshot)=>void,onE
     if(now-lastLights>300){selected.length=0;lightDistances.length=0;for(const source of env.lightSources){const distance=source.p.distanceToSquared(player.position);if(distance>42*42)continue;let index=0;while(index<lightDistances.length&&lightDistances[index]<distance)index++;if(index>=lights.length)continue;selected.splice(index,0,source);lightDistances.splice(index,0,distance);if(selected.length>lights.length){selected.pop();lightDistances.pop();}}lastLights=now;}
     lights.forEach((l,i)=>{const source=selected[i];if(!source){l.intensity=0;return;}l.position.copy(source.p);l.color.copy(source.color);l.intensity=source.power*(source.flicker&&!reduced?.88+.08*Math.sin(time*7+i)+.04*Math.sin(time*17):1);});
     const anchor=editor.active?pivot:player.position;const shadowMoving=walking||visibleEnemies.length>0||editor.active||shadowAnchor.distanceToSquared(anchor)>.09;if(now-lastShadow>(mobile?(shadowMoving?100:700):45)){keyLight.position.set(anchor.x-16,32,anchor.z+12);keyLight.target.position.set(anchor.x,anchor.y+4,anchor.z);renderer.shadowMap.needsUpdate=true;shadowAnchor.copy(anchor);lastShadow=now;}
+  }
+  function renderFrame({now}:FrameTick) {
     renderer.info.reset();if(mobile)renderer.render(scene,camera);else composer?.render();
     count++;if(now-windowStart>2000){fps=Math.round(count*1000/(now-windowStart));count=0;windowStart=now;}
     if(now-report>180){const target=[...EXTRACTIONS,...POIS].find(o=>Math.hypot(o.x-player.position.x,o.z-player.position.z)<3);onState({x:player.position.x,z:player.position.z,room:sectorAt(player.position).name,fps,draws:renderer.info.render.calls,near:target?.name??null,ready,hp:session.hp,bag:{...session.bag},status:session.status,message:session.message,discovered:[...session.discovered],activeNPC:session.enemies.filter(e=>e.hp>0&&Math.hypot(e.x-player.position.x,e.z-player.position.z)<25).length,chunks:env.activeChunks,extraction:session.extraction,kills:session.kills,performance:{ratio:renderDpr,scale:resolutionScale,target:mobile?budget.target:60,frameMs,triangles:renderer.info.render.triangles,textures:renderer.info.memory.textures,geometries:renderer.info.memory.geometries,detailCulled:env.detailCulled}});report=now;}
 
   }
-  const visibility=()=>{reset();window.dispatchEvent(new Event('netrunner:input-reset'));cancelAnimationFrame(frame);last=lastPaint=windowStart=qualityWindow=performance.now();count=qualityFrames=qualityElapsed=0;if(!document.hidden&&!disposed)frame=requestAnimationFrame(animate);};document.addEventListener('visibilitychange',visibility);
-  frame=requestAnimationFrame(animate);
-  return {editor,treeEditor,landscape:env.landscape.studio,setLandscapeMode(value:boolean){landscapeMode=value;treeMode=false;treeEditor.setActive(false);editor.cancel();env.landscape.studio.setActive(value&&editor.active);},setTreeMode(value:boolean){treeMode=value;landscapeMode=false;env.landscape.studio.setActive(false);editor.cancel();treeEditor.setActive(value&&masterActive);},setMaster(value:boolean){masterActive=value;reset();editor.setActive(value);treeEditor.setActive(value&&treeMode)},setAutoFire(value:boolean){autoFire=value;},interact(){session.interact(player.position);},attack(){fire();},setDebug(value:boolean){debug=value;},teleport(p:Point){if(world.canStand(p)){player.position.set(p.x,.09,p.z);reset();}},setStick(x:number,z:number){if(modalOpen||editor.active||session.status!=='active'){stick.x=stick.z=0;return;}stick.x=Number.isFinite(x)?T.MathUtils.clamp(x,-1,1):0;stick.z=Number.isFinite(z)?T.MathUtils.clamp(z,-1,1):0;},dispose(){disposed=true;cancelAnimationFrame(frame);observer.disconnect();window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',reset);document.removeEventListener('visibilitychange',visibility);window.removeEventListener('netrunner:input-reset',reset);modalObserver.disconnect();renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointerup',up);renderer.domElement.removeEventListener('webglcontextlost',lost);renderer.domElement.removeEventListener('pointermove',hover);renderer.domElement.removeEventListener('wheel',wheel);editor.dispose();treeEditor.dispose();combat.dispose();env.dispose();mixer?.stopAllAction();disposeObjectTree(scene);env.surfaces.dispose();environment.dispose();draco.dispose();bloom?.dispose();output?.dispose();composer?.dispose();renderer.dispose();renderer.domElement.remove();}};
+  const loop=createFrameLoop({
+    startTime:loopStart,
+    targetFps:()=>mobile?budget.target:null,
+    onVisibilityChange(now){reset();window.dispatchEvent(new Event('netrunner:input-reset'));windowStart=qualityWindow=now;count=qualityFrames=qualityElapsed=0;},
+    update:updateFrame,
+    render:renderFrame,
+  });
+  loop.start();
+  return {editor,treeEditor,landscape:env.landscape.studio,setLandscapeMode(value:boolean){landscapeMode=value;treeMode=false;treeEditor.setActive(false);editor.cancel();env.landscape.studio.setActive(value&&editor.active);},setTreeMode(value:boolean){treeMode=value;landscapeMode=false;env.landscape.studio.setActive(false);editor.cancel();treeEditor.setActive(value&&masterActive);},setMaster(value:boolean){masterActive=value;reset();editor.setActive(value);treeEditor.setActive(value&&treeMode)},setAutoFire(value:boolean){autoFire=value;},interact(){session.interact(player.position);},attack(){fire();},setDebug(value:boolean){debug=value;},teleport(p:Point){if(world.canStand(p)){player.position.set(p.x,.09,p.z);reset();}},setStick(x:number,z:number){if(modalOpen||editor.active||session.status!=='active'){stick.x=stick.z=0;return;}stick.x=Number.isFinite(x)?T.MathUtils.clamp(x,-1,1):0;stick.z=Number.isFinite(z)?T.MathUtils.clamp(z,-1,1):0;},dispose(){disposed=true;loop.dispose();observer.disconnect();window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',reset);window.removeEventListener('netrunner:input-reset',reset);modalObserver.disconnect();renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointerup',up);renderer.domElement.removeEventListener('webglcontextlost',lost);renderer.domElement.removeEventListener('pointermove',hover);renderer.domElement.removeEventListener('wheel',wheel);editor.dispose();treeEditor.dispose();combat.dispose();env.dispose();mixer?.stopAllAction();disposeObjectTree(scene);env.surfaces.dispose();environment.dispose();draco.dispose();bloom?.dispose();output?.dispose();composer?.dispose();renderer.dispose();renderer.domElement.remove();}};
 }

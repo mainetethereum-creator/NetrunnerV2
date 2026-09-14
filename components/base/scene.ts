@@ -6,6 +6,7 @@ import {setBaseEditorColliders,setBaseStationOverride,clearBaseEditor,getBaseSta
 import { createGltfLoader } from "../../src/renderer/three/gltf-loader";
 import { disposeObjectTree } from "../../src/renderer/three/dispose";
 import { ASSET_URLS } from "../../src/assets/registry";
+import { createFrameLoop, type FrameTick } from "../../src/core/loop/frame-loop";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
@@ -428,9 +429,10 @@ export function createBaseScene(
   const keys = new Set<string>(), stick = { x: 0, y: 0 };
   const azimuth = 0.48;
   const pivot = new T.Vector3(SPAWN.x, 1.05, SPAWN.z), desiredPivot = pivot.clone();
-  let frame = 0, last = performance.now(), fpsTime = last, frames = 0, fps = 0, reportTime = 0;
-  let lastPaint = last, qualityWindow = last, qualityFrames = 0, qualityElapsed = 0, lastResolution = 0;
-  const startedAt = last;
+  const loopStart = performance.now();
+  let fpsTime = loopStart, frames = 0, fps = 0, reportTime = 0;
+  let qualityWindow = loopStart, qualityFrames = 0, qualityElapsed = 0, lastResolution = 0;
+  const startedAt = loopStart;
   let samples: number[] = [], p95 = 0, lastShadow = 0, submitMs = 0, timingLimited = false;
   const resize = () => {
     const w = Math.max(1, host.clientWidth), h = Math.max(1, host.clientHeight);
@@ -476,7 +478,7 @@ export function createBaseScene(
   modalObserver.observe(host.parentElement ?? host, { childList: true, subtree: true });
   let editorZoom=28;
   const wheel = (e: WheelEvent) => { e.preventDefault();if(editor.active)editorZoom=T.MathUtils.clamp(editorZoom+e.deltaY*.015,8,65); };
-  const lostContext = (e: Event) => { e.preventDefault(); contextLost = true; resetInput(); cancelAnimationFrame(frame); onError("Graphics connection lost. Reload the refuge to reconnect."); };
+  const lostContext = (e: Event) => { e.preventDefault(); contextLost = true; resetInput(); loop.stop(); onError("Graphics connection lost. Reload the refuge to reconnect."); };
   renderer.domElement.addEventListener("pointermove",onHover);
   renderer.domElement.addEventListener("pointerdown", onDown);
   renderer.domElement.addEventListener("pointerup", onUp);
@@ -486,17 +488,10 @@ export function createBaseScene(
   window.addEventListener("keydown", keyDown); window.addEventListener("keyup", keyUp); window.addEventListener("blur", clearInput);
   window.addEventListener("netrunner:input-reset", clearInput);
 
-  function animate(now: number) {
-    if (disposed || document.hidden || contextLost) return;
-    frame = requestAnimationFrame(animate);
-    if (mobile) {
-      const interval = 1000 / budget.target;
-      if (now - lastPaint < interval - .8) return;
-      lastPaint = Math.max(lastPaint + interval, now - interval);
-    }
-    const frameMs = now - last;
+  // Frame scheduling, hidden-tab handling, the mobile cadence cap and the delta
+  // clamp live in the shared loop (src/core/loop); these are the per-frame phases.
+  function updateFrame({ now, frameMs, dt }: FrameTick) {
     samples.push(frameMs);
-    const dt = Math.min(frameMs / 1000, 0.05); last = now;
     if (mobile) {
       if (ready && !paused && !modalOpen && (assetsPending === 0 || now - startedAt > 30000) && now - assetSettledAt > 2000 && frameMs > 0 && frameMs < 100) {
         qualityFrames++; qualityElapsed += frameMs;
@@ -573,6 +568,9 @@ export function createBaseScene(
     if ((walking || locomotionBlend > 0.001) && now - lastShadow > (mobile ? 100 : quality.high ? 33 : 65)) {
       renderer.shadowMap.needsUpdate = true; lastShadow = now;
     }
+  }
+
+  function renderFrame({ now }: FrameTick) {
     renderer.info.reset();
     const renderStart = performance.now();
     if (quality.high && composer) composer.render(); else renderer.render(scene, camera);
@@ -596,13 +594,17 @@ export function createBaseScene(
       onSnapshot({ x: player.position.x, z: player.position.z, near: nearestStation(player.position)?.id ?? null, fps, p95, draws: renderer.info.render.calls, triangles: renderer.info.render.triangles, ratio: renderer.getPixelRatio(), high: quality.high, submitMs, timingLimited, target: mobile ? budget.target : 60, scale: mobile ? resolutionScale : quality.scale }); reportTime = now;
     }
   }
-  const visibility = () => {
-    resetInput(); cancelAnimationFrame(frame);
-    last = lastPaint = fpsTime = qualityWindow = performance.now(); frames = qualityFrames = qualityElapsed = 0; samples = [];
-    if (!document.hidden && !disposed && !contextLost) frame = requestAnimationFrame(animate);
-  };
-  document.addEventListener("visibilitychange", visibility);
-  frame = requestAnimationFrame(animate);
+  const loop = createFrameLoop({
+    startTime: loopStart,
+    targetFps: () => (mobile ? budget.target : null),
+    onVisibilityChange(now) {
+      resetInput();
+      fpsTime = qualityWindow = now; frames = qualityFrames = qualityElapsed = 0; samples = [];
+    },
+    update: updateFrame,
+    render: renderFrame,
+  });
+  loop.start();
   return {
     editor,setMaster(value){editor.setActive(value);resetInput();},
     setPaused(value) { paused = value; resetInput(); },
@@ -616,9 +618,9 @@ export function createBaseScene(
     resetCamera() { pivot.copy(desiredPivot); },
     goTo(id) { const station = getBaseStations().find((s) => s.id === id); if (station && ready && !paused && !modalOpen && !editor.active) { path = findPath(player.position, { x: station.x, z: station.z + 1 }); targetMarker.position.set(station.x, 0.1, station.z + 1); targetMarker.visible = path.length > 0; } },
     dispose() {
-      disposed = true; cancelAnimationFrame(frame); clearTimeout(loadTimeout); observer.disconnect(); draco.dispose();
+      disposed = true; loop.dispose(); clearTimeout(loadTimeout); observer.disconnect(); draco.dispose();
       window.removeEventListener("keydown", keyDown); window.removeEventListener("keyup", keyUp); window.removeEventListener("blur", clearInput);
-      document.removeEventListener("visibilitychange", visibility); window.removeEventListener("netrunner:input-reset", clearInput); modalObserver.disconnect();
+      window.removeEventListener("netrunner:input-reset", clearInput); modalObserver.disconnect();
       editor.dispose();clearBaseEditor();renderer.domElement.removeEventListener("pointermove",onHover);
       renderer.domElement.removeEventListener("pointerdown", onDown); renderer.domElement.removeEventListener("pointerup", onUp);
       renderer.domElement.removeEventListener("pointercancel", clearInput); renderer.domElement.removeEventListener("wheel", wheel);
