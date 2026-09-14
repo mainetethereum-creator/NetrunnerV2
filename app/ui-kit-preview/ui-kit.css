@@ -1,0 +1,276 @@
+.ui-kit-preview {
+/* ══════════════════════════════════════════════════════════════════════════
+   CyberBase UI kit — shared tokens and primitives for every player surface.
+
+   Design rules this file encodes (see the UI spec):
+     · amber is the interface — anything amber can be pressed or claimed;
+     · every other colour carries meaning and is never decorative;
+     · one chamfer, always top-left + bottom-right, always 1px border;
+     · numbers are mono with tabular figures.
+
+   Class prefix is `cb-` to stay clear of Tailwind utilities. Colour tokens
+   are the ones already used by game data (metro/data/rarity.ts, items.ts,
+   progression/classes.ts, map.ts) so the UI can never disagree with the
+   world.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+& {
+  /* ground + structure — violet-biased neutrals, never flat grey */
+  --cb-void: #07060f;
+  --cb-plate: #0e0c1c;
+  --cb-plate-2: #141227;
+  --cb-plate-3: #1c1934;
+  --cb-edge: #2b2745;
+  --cb-edge-hi: #453f6d;
+  --cb-ink: #eae8f7;
+  --cb-ink-2: #9c97bd;
+  --cb-ink-3: #655f88;
+
+  /* signal colours — meaning, never decoration */
+  --cb-amber: #ffd54a;
+  --cb-amber-soft: #8b7629;
+  --cb-ice: #57eaff;
+  --cb-blood: #ff4d6d;
+  --cb-tox: #7cff6b;
+  --cb-violet: #c46bff;
+
+  /* rarity ladder — metro/data/rarity.ts */
+  --cb-r0: #9aa5b1;
+  --cb-r1: #7cff6b;
+  --cb-r2: #4aa8ff;
+  --cb-r3: #b26bff;
+  
+  
+
+  /* stat colours — metro/data/items.ts */
+  --cb-s-dmg: #ff4d6d;
+  --cb-s-crit: #ffe14a;
+  --cb-s-hp: #7cff6b;
+  --cb-s-en: #00e5ff;
+  --cb-s-def: #9aa5b1;
+  --cb-s-spd: #b26bff;
+  --cb-s-luck: #ffb347;
+
+  /* class accents — progression/classes.ts */
+  --cb-c-warrior: #ff5d52;
+  --cb-c-ranger: #f6df4b;
+  --cb-c-hacker: #57eaff;
+
+  /* geometry */
+  --cb-cut: 10px;
+
+  /* type — the shipping faces, not substitutes */
+  --cb-f-ui: var(--font-display), system-ui, sans-serif;
+  --cb-f-data: ui-monospace, "Cascadia Mono", monospace;
+}
+
+/* ── chamfer primitive ──────────────────────────────────────────────────────
+   Both layers live on pseudo-elements: clipping the host would clip every
+   descendant, which breaks paint on nested panels. Border = ::before,
+   fill = ::after, content sits above both inside an isolated stacking
+   context.                                                                  */
+.cb-cut {
+  --bd: var(--cb-edge);
+  --bg: var(--cb-plate);
+  position: relative;
+  isolation: isolate;
+  background: transparent;
+}
+.cb-cut::before,
+.cb-cut::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  clip-path: polygon(
+    var(--cb-cut) 0,
+    100% 0,
+    100% calc(100% - var(--cb-cut)),
+    calc(100% - var(--cb-cut)) 100%,
+    0 100%,
+    0 var(--cb-cut)
+  );
+}
+.cb-cut::before { inset: 0; z-index: -2; background: var(--bd); }
+.cb-cut::after { inset: 1px; z-index: -1; background: var(--bg); }
+/* --bg MUST be opaque. ::before is a filled rect, not a ring, so a translucent
+   fill lets the border colour through and the label disappears into it. For a
+   tinted look use color-mix against the surface, never rgba(). */
+.cb-cut > * { position: relative; z-index: 1; }
+
+/* 135° hatch — the universal "locked / unavailable" texture */
+.cb-cut.cb-hatch::after {
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(154, 165, 177, 0.16) 0 2px,
+    transparent 2px 7px
+  );
+}
+
+/* ── buttons ─────────────────────────────────────────────────────────────── */
+.cb-btn {
+  --bd: var(--cb-edge-hi);
+  --bg: var(--cb-plate-2);
+  --fg: var(--cb-ink);
+  --cb-cut: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 20px;
+  border: 0;
+  cursor: pointer;
+  font-family: var(--cb-f-ui);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fg);
+  transition: 0.13s;
+}
+.cb-btn:hover { --bd: var(--cb-amber); --bg: var(--cb-plate-3); }
+.cb-btn:active { transform: translateY(1px); }
+.cb-btn-primary { --bd: var(--cb-amber); --bg: var(--cb-amber); --fg: #120e02; }
+.cb-btn-primary:hover {
+  --bg: #ffe17a;
+  --bd: #ffe17a;
+  box-shadow: 0 0 22px rgba(255, 213, 74, 0.32);
+}
+.cb-btn-danger { --bd: var(--cb-blood); --bg: color-mix(in srgb, var(--cb-blood) 12%, #0b0917); --fg: var(--cb-blood); }
+.cb-btn-danger:hover { --bg: var(--cb-blood); --fg: #180309; --bd: var(--cb-blood); }
+.cb-btn-ghost { --bd: var(--cb-edge); --bg: var(--cb-plate); --fg: var(--cb-ink-2); }
+.cb-btn-ghost:hover { --fg: var(--cb-ink); --bd: var(--cb-edge-hi); --bg: var(--cb-plate); }
+.cb-btn[disabled] {
+  cursor: not-allowed;
+  --bd: #26233c;
+  --bg: #121025;
+  --fg: #4d4869;
+  box-shadow: none;
+  transform: none;
+}
+.cb-btn[disabled]::after {
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(154, 165, 177, 0.13) 0 2px,
+    transparent 2px 7px
+  );
+}
+.cb-btn-sm { min-height: 28px; padding: 0 13px; font-size: 10.5px; --cb-cut: 7px; }
+
+/* ── panel shell ─────────────────────────────────────────────────────────── */
+.cb-panel {
+  --cb-cut: 16px;
+  --bd: var(--pa, var(--cb-edge-hi));
+  --bg: #0b0917;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
+}
+.cb-panel-hd {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 20px;
+  border-bottom: 1px solid var(--cb-edge);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--pa, var(--cb-edge-hi)) 13%, transparent),
+    transparent 62%
+  );
+}
+.cb-panel-hd h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--pa, var(--cb-edge-hi));
+}
+.cb-panel-hd .cb-sub {
+  font-family: var(--cb-f-data);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--cb-ink-3);
+}
+.cb-panel-bd { padding: 20px; }
+.cb-panel-ft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 20px;
+  border-top: 1px solid var(--cb-edge);
+  background: rgba(6, 5, 12, 0.5);
+}
+.cb-spacer { flex: 1; }
+.cb-esc {
+  font-family: var(--cb-f-data);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  color: var(--cb-ink-3);
+  border: 1px solid var(--cb-edge-hi);
+  padding: 2px 8px;
+}
+
+/* ── chips, pips, bars ───────────────────────────────────────────────────── */
+.cb-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  font-family: var(--cb-f-data);
+  font-size: 9.5px;
+  letter-spacing: 0.13em;
+  border: 1px solid var(--c, var(--cb-edge-hi));
+  color: var(--c, var(--cb-ink-2));
+  background: color-mix(in srgb, var(--c, var(--cb-ink-3)) 11%, transparent);
+}
+.cb-pip {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  background: var(--c, var(--cb-ink-2));
+  box-shadow: 0 0 7px var(--c, transparent);
+}
+.cb-bar {
+  position: relative;
+  height: 12px;
+  background: #0a0916;
+  border: 1px solid var(--cb-edge);
+  overflow: hidden;
+}
+.cb-bar > i {
+  display: block;
+  height: 100%;
+  width: var(--v, 50%);
+  background: var(--c, var(--cb-ice));
+  box-shadow: 0 0 12px var(--c, var(--cb-ice));
+}
+.cb-bar-seg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0 13px,
+    rgba(7, 6, 15, 0.85) 13px 15px
+  );
+}
+
+/* ── scanline atmosphere for full-screen overlays ────────────────────────── */
+.cb-scan {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.035) 0 1px,
+    transparent 1px 3px
+  );
+  mix-blend-mode: overlay;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cb-btn { transition: none; }
+}
+
+}

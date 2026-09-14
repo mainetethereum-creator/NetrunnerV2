@@ -35,7 +35,7 @@ export function createDistanceDetail(){
     update(p:Point,camera?:T.Camera){
       focus.value.set(p.x,p.z);culled=0;
       if(camera){camera.updateMatrixWorld();frustum.setFromProjectionMatrix(matrix.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse));}
-      for(const entry of entries){const {root,sphere,detail}=entry,distance=Math.hypot(p.x-sphere.center.x,p.z-sphere.center.z)-sphere.radius;
+      for(const entry of entries){if(entry.root.userData.editorStreaming)continue;const {root,sphere,detail}=entry,distance=Math.hypot(p.x-sphere.center.x,p.z-sphere.center.z)-sphere.radius;
         // Offscreen nearby casters stay in the shadow pass. Far groups can be
         // skipped altogether (Three's per-mesh frustum test remains enabled).
         root.visible=(!detail||distance<44)&&(distance<28||!camera||frustum.intersectsSphere(sphere));

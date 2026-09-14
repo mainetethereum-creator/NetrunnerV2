@@ -61,18 +61,10 @@ export function buildEnvironment(scene:T.Scene,_world:World,_level:number,anisot
 
     }
     for(let x=cx*size+6;x<(cx+1)*size;x+=12){const z=cz===1?43:cz*24+12;add(3,x,2.7,z,.18,5.4,.18);add(3,x+.8,5.3,z,1.7,.14,.2);add(5,x+1.3,5.18,z,.7,.08,.3);lightSources.push({p:new T.Vector3(x+1.3,4.7,z),color:new T.Color('#bbd4e6'),power:27,flicker:false});}
-    // Debris compositions and wrecks on shoulders, away from the navigable centre.
-    for(let i=0;i<8;i++){const x=cx*size+2+(i*7)%20,z=cz*size+2+(i*11)%20;if(_world.canStand({x,z},.7))add(3,x,.13,z,.22+(i%3)*.1,.2,.25);}
     for(const p of POIS.filter(inside)){
       const height=elevationAt(p);
       add(3,p.x+1.4,height+.45,p.z,1.3,.9,.9);add(5,p.x+1.4,height+.92,p.z,.65,.06,.12);
-      if(p.kind==='convoy'){add(3,p.x-4,.8,p.z+3,2,1.4,4);add(4,p.x-4,1.6,p.z+3,1.8,.8,2);}
-      if(p.kind==='station'){add(3,p.x-3,1,p.z,1,2,.8);add(3,p.x+3,1,p.z,1,2,.8);add(0,p.x,3.3,p.z-3,9,.4,2);}
-      if(p.kind==='power'){for(let dx=-3;dx<=3;dx+=3)add(3,p.x+dx,1.3,p.z+3,1.4,2.6,1.6);}
       label(p.name,p.x,4.8,p.z+1,4.5);
-      // Small authored stories: discarded equipment, a dead terminal and improvised shelter.
-      add(3,p.x-2.4,.35,p.z+2,1.2,.7,.7);add(4,p.x-2.4,.8,p.z+2,.8,.18,.5);
-      if(p.kind==='camp'){add(3,p.x-3,.4,p.z+1,.65,.8,.65);add(6,p.x-3,.85,p.z+1,.45,.18,.45);lightSources.push({p:new T.Vector3(p.x-3,1.2,p.z+1),color:new T.Color('#eeb376'),power:7,flicker:true});}
     }
     for(const e of EXTRACTIONS.filter(inside)){add(3,e.x,-.02,e.z,5,.13,5);for(const dx of [-2,2]){add(3,e.x+dx,1.2,e.z,.2,2.4,.2);add(5,e.x+dx,2.5,e.z,.4,.2,.4);}label(e.id==='breach'?'CYBERBASE / RETURN':'EXTRACTION / CARGO LIFT',e.x,2.9,e.z,3.6);}
     batches.forEach((items,index)=>{if(!items.length)return;const mesh=new T.InstancedMesh(geo,mats[index],items.length);items.forEach(([x,y,z,w,h,d],i)=>{dummy.position.set(x,y,z);dummy.scale.set(w,h,d);dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);});mesh.castShadow=index!==5&&index!==6;mesh.receiveShadow=true;mesh.computeBoundingSphere();group.add(mesh);});
@@ -86,5 +78,5 @@ export function buildEnvironment(scene:T.Scene,_world:World,_level:number,anisot
   for(const e of ENCOUNTERS){const ring=new T.Mesh(new T.RingGeometry(e.activationDistance-.1,e.activationDistance,64),new T.MeshBasicMaterial({color:'#e77b52',side:T.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.set(e.x,.16,e.z);debug.add(ring);const spawn=new T.Mesh(new T.SphereGeometry(.3,8,6),amber);spawn.position.set(e.x,.6,e.z);debug.add(spawn);}
   const drop=new T.Mesh(geo,amber);drop.scale.set(1.2,1,1.2);drop.position.set(EVENTS[1].x,.6,EVENTS[1].z);drop.visible=false;scene.add(drop);
   let activeChunks=0;
-  return {landscape,surfaces,lightSources,dispose(){detailAtlas.dispose();streetDetail.dispose();landscape.dispose();microbus.dispose();district.dispose();vegetation.dispose();},update(time:number){drop.rotation.y=time*.2;streetDetail.update(time);vegetation.update(time);dressing.update(time);district.update(time);nature.update(time);},stream(p:Point,showDebug:boolean,dropVisible:boolean,camera?:T.Camera){streetDetail.stream(p);microbus.stream(p);dressing.stream(p);district.stream(p,camera);nature.stream(p);vegetation.stream(p);activeChunks=0;const x=Math.floor(p.x/size),z=Math.floor(p.z/size);chunks.forEach((g,k)=>{const [a,b]=k.split(',').map(Number);g.visible=Math.abs(a-x)<=RULES.activeRadius&&Math.abs(b-z)<=RULES.activeRadius;if(g.visible)activeChunks++;});labels.forEach(l=>l.visible=(l.position.x-p.x)**2+(l.position.z-p.z)**2<32*32);debug.visible=showDebug;drop.visible=dropVisible&&Math.hypot(p.x-drop.position.x,p.z-drop.position.z)<40;},get activeChunks(){return activeChunks;},get detailCulled(){return district.detailCulled;}};
+  return {editable:district.editable,vegetation,landscape,surfaces,lightSources,dispose(){detailAtlas.dispose();streetDetail.dispose();landscape.dispose();microbus.dispose();district.dispose();vegetation.dispose();},update(time:number){drop.rotation.y=time*.2;streetDetail.update(time);vegetation.update(time);dressing.update(time);district.update(time);nature.update(time);},stream(p:Point,showDebug:boolean,dropVisible:boolean,camera?:T.Camera){streetDetail.stream(p);microbus.stream(p);dressing.stream(p);district.stream(p,camera);nature.stream(p);vegetation.stream(p);activeChunks=0;const x=Math.floor(p.x/size),z=Math.floor(p.z/size);chunks.forEach((g,k)=>{const [a,b]=k.split(',').map(Number);g.visible=Math.abs(a-x)<=RULES.activeRadius&&Math.abs(b-z)<=RULES.activeRadius;if(g.visible)activeChunks++;});labels.forEach(l=>l.visible=(l.position.x-p.x)**2+(l.position.z-p.z)**2<32*32);debug.visible=showDebug;drop.visible=dropVisible&&Math.hypot(p.x-drop.position.x,p.z-drop.position.z)<40;},get activeChunks(){return activeChunks;},get detailCulled(){return district.detailCulled;}};
 }

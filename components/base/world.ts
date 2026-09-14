@@ -37,13 +37,19 @@ export const STATIONS: { id: StationId; name: string; role: string; x: number; z
   { id: "charge", name: "QUANTUM CHARGE", role: "Daily charging station", x: 26, z: 6.3, color: "#78dfe9" },
 ];
 
+let editorColliders:Rect[]=[];
+const stationOverrides=new Map<StationId,{x:number;z:number;deleted:boolean}>();
+export function setBaseEditorColliders(rects:Rect[]){editorColliders=rects;}
+export function setBaseStationOverride(id:StationId,value:{x:number;z:number;deleted:boolean}){stationOverrides.set(id,value);}
+export function clearBaseEditor(){editorColliders=[];stationOverrides.clear();}
+export function getBaseStations(){return STATIONS.filter(s=>!stationOverrides.get(s.id)?.deleted).map(s=>({...s,...stationOverrides.get(s.id)}));}
 export function canStand(p: Point, radius = PLAYER_RADIUS): boolean {
   if (!Number.isFinite(p.x) || !Number.isFinite(p.z)) return false;
   const inBase = Math.abs(p.x) <= LIMIT.x - radius && Math.abs(p.z) <= LIMIT.z - radius;
   const inCorridor = p.x >= 13 + radius && p.x <= 24 - radius && p.z >= 4.8 + radius && p.z <= 10.2 - radius;
   const inRoom = p.x >= 23 + radius && p.x <= 29 - radius && p.z >= 4 + radius && p.z <= 11 - radius;
   if (!inBase && !inCorridor && !inRoom) return false;
-  return !COLLIDERS.some((r) => {
+  return ![...COLLIDERS,...editorColliders].some((r) => {
     const nx = Math.max(r.x - r.w / 2, Math.min(p.x, r.x + r.w / 2));
     const nz = Math.max(r.z - r.d / 2, Math.min(p.z, r.z + r.d / 2));
     return (p.x - nx) ** 2 + (p.z - nz) ** 2 < radius ** 2;
@@ -93,7 +99,7 @@ export function findPath(start: Point, end: Point): Point[] {
 export function nearestStation(p: Point) {
   let best: (typeof STATIONS)[number] | null = null;
   let distance = 2.05;
-  for (const station of STATIONS) {
+  for (const station of getBaseStations()) {
     const d = Math.hypot(p.x - station.x, p.z - station.z);
     if (d < distance) { best = station; distance = d; }
   }

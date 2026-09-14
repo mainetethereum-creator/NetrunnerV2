@@ -9,5 +9,7 @@ Standalone browser prototype for the new 3D CyberBase direction.
 
 The project is intentionally independent from the legacy 2D city and metro code.
 
+Location: `D:\V2 Cyber\Netrunner` (moved from `D:\Claude Dev\BitMap\Netrunner` on 2026-09-14).
+
 Production preview: https://netrunner-cyberbase.vercel.app
 Git backup branch: https://github.com/mainetethereum-creator/cyberbase/tree/netrunner-v1

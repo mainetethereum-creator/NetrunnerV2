@@ -6,17 +6,18 @@ export class CombatDriver {
  state=new CombatState(); private root:T.Object3D|null=null; private mixer:T.AnimationMixer|null=null; private clips:T.AnimationClip[]=[];
  private sword:ReturnType<typeof createTwoHandedGreatSword>|null=null; private action:T.AnimationAction|null=null; private remaining=0; private report=0;
  private paused=false;
- private disposed=false; private gun:T.Group|null=null; private fx:T.Mesh|null=null;private flash=0;private showRing=false;
- constructor(private hit:(skill:Skill)=>void,private health:()=>number){
+ private disposed=false; private gun:T.Group|null=null; private fx:T.Mesh|null=null;private flash=0;private showRing=false;private showSword:boolean;
+ constructor(private hit:(skill:Skill)=>void,private health:()=>number,showSword=true){
+  this.showSword=showSword;
   try{const id=localStorage.getItem('netrunner.combat.class');if(id&&id in CLASSES)this.state.classId=id as CombatClass;}catch{}
   window.addEventListener('netrunner:cast',this.castEvent);window.addEventListener('netrunner:class',this.classEvent);window.addEventListener('keydown',this.key);
  }
  private castEvent=(e:Event)=>this.cast((e as CustomEvent<number>).detail);
- private classEvent=(e:Event)=>{const id=(e as CustomEvent<CombatClass>).detail;if(id in CLASSES&&this.state.select(id)){try{localStorage.setItem('netrunner.combat.class',id);}catch{}this.sword?.setVisible(id==='warrior');if(this.gun)this.gun.visible=id==='ranger';}};
+ private classEvent=(e:Event)=>{const id=(e as CustomEvent<CombatClass>).detail;if(id in CLASSES&&this.state.select(id)){try{localStorage.setItem('netrunner.combat.class',id);}catch{}this.sword?.setVisible(this.showSword&&id==='warrior');if(this.gun)this.gun.visible=id==='ranger';}};
  private key=(e:KeyboardEvent)=>{if(e.repeat||e.target instanceof HTMLInputElement||e.target instanceof HTMLTextAreaElement||document.querySelector('[aria-modal="true"]'))return;if(/^[1-4]$/.test(e.key)){e.preventDefault();this.cast(Number(e.key)-1);}};
  attach(root:T.Object3D,mixer:T.AnimationMixer,clips:T.AnimationClip[]){this.root=root;this.mixer=mixer;this.clips=[...clips];
   const reference=snapshotPose(root);void loadClassAttack(root,'ranged',reference).then(result=>{if(result&&!this.disposed){result.clip.name='RANGER_SHOT';this.clips.push(result.clip);}});
-  this.sword=createTwoHandedGreatSword(root);this.sword?.setVisible(this.state.classId==='warrior');
+  if(this.showSword){this.sword=createTwoHandedGreatSword(root);this.sword?.setVisible(this.state.classId==='warrior');}
   let hand:T.Object3D|undefined;root.traverse(o=>{if(/(?:^|:)RightHand$/.test(o.name)||o.name==='mixamorigRightHand')hand=o;});
   if(hand){const gun=new T.Group();this.gun=gun;const mat=new T.MeshStandardMaterial({color:0x374845,metalness:.75,roughness:.35});const barrel=new T.Mesh(new T.BoxGeometry(.09,.1,.38),mat);barrel.position.z=.13;gun.add(barrel);const grip=new T.Mesh(new T.BoxGeometry(.075,.17,.09),mat);grip.position.y=-.09;gun.add(grip);const glow=new T.Mesh(new T.BoxGeometry(.02,.025,.19),new T.MeshStandardMaterial({color:0x8ddce8,emissive:0x68b6ca,emissiveIntensity:2}));glow.position.set(.05,.025,.14);gun.add(glow);hand.updateWorldMatrix(true,false);const scale=hand.getWorldScale(new T.Vector3());hand.add(gun);gun.scale.set(1/scale.x,1/scale.y,1/scale.z);gun.rotation.x=Math.PI/2;gun.visible=this.state.classId==='ranger';}
   this.fx=new T.Mesh(new T.RingGeometry(.98,1.02,48,1,0,Math.PI*1.6),new T.MeshBasicMaterial({color:0x8ee5d5,transparent:true,opacity:.5,side:T.DoubleSide,depthWrite:false}));this.fx.rotation.x=-Math.PI/2;this.fx.position.y=.25;this.fx.visible=false;root.parent?.add(this.fx);

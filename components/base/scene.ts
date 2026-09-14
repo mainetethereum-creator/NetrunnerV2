@@ -1,4 +1,8 @@
 import * as T from "three";
+import {createRefugeNpc,isEditableNpcBatch} from "./npc";
+import type {WorldEditor,EditorState} from "../world-editor/controller";
+import {createLazyEditor} from "../world-editor/lazy-editor";
+import {setBaseEditorColliders,setBaseStationOverride,clearBaseEditor,getBaseStations} from "./world";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
@@ -21,6 +25,7 @@ import { canStand, findPath, moveWithCollision, nearestStation, BASE_EXPANSION, 
 
 export type BaseSnapshot = { x: number; z: number; near: StationId | null; fps: number; p95: number; draws: number; triangles: number; ratio: number; high: boolean; submitMs: number; timingLimited: boolean; target: 30 | 60; scale: number };
 export type BaseEngine = {
+  editor:WorldEditor; setMaster(value:boolean):void;
   dispose(): void; setPaused(value: boolean): void; setStick(x: number, y: number): void;
   setRain(value: boolean): void; setQuality(value: QualityMode): void;
   resetCamera(): void; goTo(id: StationId): void;
@@ -45,6 +50,7 @@ export function createBaseScene(
   onSnapshot: (value: BaseSnapshot) => void,
   onInteract: (id: StationId) => void,
   onError: (message: string) => void,
+  onEditor: (state:EditorState) => void = () => {},
 ): BaseEngine {
   const scene = new T.Scene();
   scene.background = new T.Color("#101b23");
@@ -271,29 +277,16 @@ export function createBaseScene(
   for (const [x, z] of [[-9, 7], [9, 7], [-3.7, -5.6], [3.7, -5.6]]) {
     box(x, 0.53, z, 0.26, 1, 0.26, m.dark); box(x, 1.05, z, 0.28, 0.16, 0.28, m.amber);
   }
+  const stationRings=new Map<StationId,T.Mesh>();
   for (const st of STATIONS) {
     const ring = new T.Mesh(new T.RingGeometry(0.58, 0.61, 40), new T.MeshBasicMaterial({ color: st.color, transparent: true, opacity: 0.5, side: T.DoubleSide }));
-    ring.rotation.x = -Math.PI / 2; ring.position.set(st.x, 0.1, st.z); scene.add(ring);
+    ring.rotation.x = -Math.PI / 2; ring.position.set(st.x, 0.1, st.z); scene.add(ring);stationRings.set(st.id,ring);
   }
 
   // Stylised service NPCs with layered coats, visors, backpacks and relaxed arms.
   const npcs: T.Group[] = [];
   function npc(x: number, z: number, accent: T.Material, coat: T.Material) {
-    const group = new T.Group(); group.position.set(x, 0.08, z); scene.add(group);
-    function part(w: number, h: number, d: number, px: number, py: number, pz: number, mat: T.Material) {
-      const mesh = new T.Mesh(new T.BoxGeometry(w, h, d), mat); mesh.position.set(px, py, pz); mesh.castShadow = true; group.add(mesh); return mesh;
-    }
-    part(0.48, 0.67, 0.3, 0, 0.96, 0, coat);
-    part(0.6, 0.3, 0.36, 0, 0.6, 0, coat);
-    part(0.29, 0.32, 0.29, 0, 1.46, 0, m.edge);
-    part(0.27, 0.065, 0.035, 0, 1.49, 0.16, accent);
-    part(0.29, 0.4, 0.18, 0, 1, -0.23, m.brass);
-    for (const side of [-1, 1]) {
-      part(0.18, 0.5, 0.2, side * 0.16, 0.29, 0, m.dark);
-      part(0.2, 0.15, 0.34, side * 0.16, 0.09, 0.07, m.edge);
-      const arm = part(0.15, 0.56, 0.2, side * 0.34, 0.95, 0.05, coat); arm.rotation.z = side * 0.12;
-      part(0.17, 0.14, 0.2, side * 0.36, 0.62, 0.05, m.brass);
-    }
+    const group = createRefugeNpc(accent,coat,m);group.position.set(x,0.08,z);scene.add(group);
     npcs.push(group); return group;
   }
   npc(-7.3, -4.6, m.amber, m.rust); npc(0, -2.4, m.teal, m.dark); npc(8, -4.7, m.amber, m.black);
@@ -312,6 +305,7 @@ export function createBaseScene(
   const staticMeshes = new Map<T.Material, T.Mesh[]>();
   scene.traverse((object) => {
     const mesh = object as T.Mesh;
+    if (isEditableNpcBatch(mesh)) return;
     if (!mesh.isMesh || (mesh as T.InstancedMesh).isInstancedMesh || Array.isArray(mesh.material) || mesh.material.transparent) return;
     if (!staticMeshes.has(mesh.material)) staticMeshes.set(mesh.material, []);
     staticMeshes.get(mesh.material)!.push(mesh);
@@ -324,7 +318,8 @@ export function createBaseScene(
     const combined = new T.Mesh(merged, mat); combined.castShadow = true; combined.receiveShadow = true; scene.add(combined);
     meshes.forEach((mesh) => { mesh.removeFromParent(); mesh.geometry.dispose(); });
   }
-  npcs.length = 0;
+  const npcStations=["smith","contracts","metro","oracle","market"] as const;
+  const editor=createLazyEditor(()=>import("../world-editor/controller").then(({createWorldEditor})=>()=>createWorldEditor(scene,onEditor,{map:"base",anisotropy:4,height:()=>.08,authored:npcs.map((object,i)=>({id:`npc:${npcStations[i]}`,name:npcStations[i],object,onTransform:e=>{setBaseStationOverride(npcStations[i],{x:e.x,z:e.z,deleted:!!e.deleted});const ring=stationRings.get(npcStations[i]);if(ring){ring.position.set(e.x,.1,e.z);ring.visible=!e.deleted;}}})),onColliders:setBaseEditorColliders,onPan:(x,z)=>{pivot.x+=x;pivot.z+=z;},onFocus:(x,z)=>{pivot.x=x;pivot.z=z;}})),()=>onError("Не удалось загрузить MASTER. Повторите попытку."));
   const surfaceDetails = addRefugeSurfaceDetails(scene);
 
   const puddle = createWetFloor(mobile); puddle.visible = quality.high; scene.add(puddle);
@@ -459,6 +454,7 @@ export function createBaseScene(
   const observer = new ResizeObserver(resize); observer.observe(host); resize();
   const raycaster = new T.Raycaster(), pointer = new T.Vector2(), hit = new T.Vector3(), floor = new T.Plane(new T.Vector3(0, 1, 0), -0.08);
   let down: { x: number; y: number; id: number } | null = null;
+  const onHover=(e:PointerEvent)=>{if(!editor.active)return;const r=renderer.domElement.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,1-(e.clientY-r.top)/r.height*2);raycaster.setFromCamera(pointer,camera);if(raycaster.ray.intersectPlane(floor,hit))editor.hover(hit);};
   const onDown = (e: PointerEvent) => { if (e.button !== 0 || down || paused || modalOpen || !ready) return; down = { x: e.clientX, y: e.clientY, id: e.pointerId }; renderer.domElement.focus({ preventScroll: true }); };
   const onUp = (e: PointerEvent) => {
     if (!down || e.pointerId !== down.id) return;
@@ -466,6 +462,7 @@ export function createBaseScene(
     if (!tap || paused || modalOpen || !ready) return;
     const r = renderer.domElement.getBoundingClientRect(); pointer.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
     raycaster.setFromCamera(pointer, camera);
+    if(editor.active){if(raycaster.ray.intersectPlane(floor,hit))editor.click(raycaster,hit);return;}
     if (raycaster.ray.intersectPlane(floor, hit)) {
       const end = { x: hit.x, z: hit.z };
       if (canStand(end)) { path = findPath(player.position, end); targetMarker.position.set(end.x, 0.1, end.z); targetMarker.visible = path.length > 0; }
@@ -474,6 +471,7 @@ export function createBaseScene(
   const editable = (e: KeyboardEvent) => e.target instanceof HTMLElement && !!e.target.closest("input, textarea, select, button, a, [role=dialog]");
   const keyDown = (e: KeyboardEvent) => {
     if (editable(e) || paused || modalOpen || !ready) return;
+    if(editor.active){editor.keyDown(e);return;}
     const key = e.key.toLowerCase();
     if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", "q", "e", "r", " "].includes(key)) e.preventDefault();
     keys.add(key);
@@ -489,8 +487,10 @@ export function createBaseScene(
     modalOpen = next;
   });
   modalObserver.observe(host.parentElement ?? host, { childList: true, subtree: true });
-  const wheel = (e: WheelEvent) => { e.preventDefault(); };
+  let editorZoom=28;
+  const wheel = (e: WheelEvent) => { e.preventDefault();if(editor.active)editorZoom=T.MathUtils.clamp(editorZoom+e.deltaY*.015,8,65); };
   const lostContext = (e: Event) => { e.preventDefault(); contextLost = true; resetInput(); cancelAnimationFrame(frame); onError("Graphics connection lost. Reload the refuge to reconnect."); };
+  renderer.domElement.addEventListener("pointermove",onHover);
   renderer.domElement.addEventListener("pointerdown", onDown);
   renderer.domElement.addEventListener("pointerup", onUp);
   renderer.domElement.addEventListener("pointercancel", clearInput);
@@ -526,7 +526,7 @@ export function createBaseScene(
     surfaceDetails.update(reducedMotion ? 0 : time);
     (puddle.material as T.ShaderMaterial).uniforms.waterTime.value = reducedMotion ? 0 : time;
     let walking = false;
-    if (ready && !paused && !modalOpen) {
+    if (ready && !paused && !modalOpen && !editor.active) {
       let sx = (keys.has("d") || keys.has("arrowright") ? 1 : 0) - (keys.has("a") || keys.has("arrowleft") ? 1 : 0) + stick.x;
       let sy = (keys.has("s") || keys.has("arrowdown") ? 1 : 0) - (keys.has("w") || keys.has("arrowup") ? 1 : 0) + stick.y;
       let dx = 0, dz = 0;
@@ -555,18 +555,19 @@ export function createBaseScene(
       previousWalking = walking;
     }
     locomotionBlend = T.MathUtils.damp(locomotionBlend, walking ? 1 : 0, 16, dt);
-    combat.tick(dt, paused || modalOpen || !ready);
+    combat.tick(dt, paused || modalOpen || !ready || editor.active);
     if (runAction) runAction.setEffectiveWeight(locomotionBlend * (1 - combat.weight));
     if (idleAction) idleAction.setEffectiveWeight((1 - locomotionBlend) * (1 - combat.weight));
     mixer?.update(dt);
     pose?.apply((1 - locomotionBlend) * (1 - combat.weight));
     const portrait = camera.aspect < 0.85;
     // Aim at the hero's body with no sideways or forward composition offset.
-    desiredPivot.set(player.position.x, player.position.y + 0.93, player.position.z);
+    if(!editor.active)desiredPivot.set(player.position.x, player.position.y + 0.93, player.position.z);
+    else desiredPivot.copy(pivot);
     pivot.lerp(desiredPivot, reducedMotion ? 1 : 1 - Math.exp(-dt * 8));
     // End the exponential tail below a subpixel world-space distance.
     if (pivot.distanceToSquared(desiredPivot) < 0.000001) pivot.copy(desiredPivot);
-    const distance = portrait ? 32 : 25;
+    const distance = editor.active ? editorZoom : portrait ? 32 : 25;
     camera.position.set(pivot.x + Math.sin(azimuth) * distance * 0.86, pivot.y + distance * 0.62, pivot.z + Math.cos(azimuth) * distance * 0.86);
     camera.lookAt(pivot);
     rain.visible = rainOn;
@@ -578,7 +579,9 @@ export function createBaseScene(
       }
       rainGeometry.attributes.position.needsUpdate = true;
     }
-    npcs.forEach((n, i) => { if (!reducedMotion) n.position.y = 0.08 + Math.sin(time * 1.7 + i) * 0.015; });
+    editor.stream(editor.active?pivot:player.position);
+    // MASTER used to redraw the whole shadow map every frame; 10 Hz still follows placements.
+    if (editor.active && now - lastShadow > 100) { renderer.shadowMap.needsUpdate = true; lastShadow = now; }
     // Static lighting is cached; refresh shadows at a bounded rate while moving.
     if ((walking || locomotionBlend > 0.001) && now - lastShadow > (mobile ? 100 : quality.high ? 33 : 65)) {
       renderer.shadowMap.needsUpdate = true; lastShadow = now;
@@ -614,20 +617,22 @@ export function createBaseScene(
   document.addEventListener("visibilitychange", visibility);
   frame = requestAnimationFrame(animate);
   return {
+    editor,setMaster(value){editor.setActive(value);resetInput();},
     setPaused(value) { paused = value; resetInput(); },
     setStick(x, y) {
-      if (paused || modalOpen || !ready || document.hidden || contextLost) { stick.x = stick.y = 0; return; }
+      if (editor.active || paused || modalOpen || !ready || document.hidden || contextLost) { stick.x = stick.y = 0; return; }
       stick.x = Number.isFinite(x) ? T.MathUtils.clamp(x, -1, 1) : 0;
       stick.y = Number.isFinite(y) ? T.MathUtils.clamp(y, -1, 1) : 0;
     },
     setRain(value) { rainOn = value; },
     setQuality(value) { quality = initialQuality(mobile, value); if (quality.high) enablePostprocessing(); puddle.visible = quality.high; rainGeometry.setDrawRange(0, quality.high ? rainCount * 2 : Math.min(rainCount, 180) * 2); renderer.shadowMap.needsUpdate = true; resize(); },
     resetCamera() { pivot.copy(desiredPivot); },
-    goTo(id) { const station = STATIONS.find((s) => s.id === id); if (station && ready && !paused && !modalOpen) { path = findPath(player.position, { x: station.x, z: station.z + 1 }); targetMarker.position.set(station.x, 0.1, station.z + 1); targetMarker.visible = path.length > 0; } },
+    goTo(id) { const station = getBaseStations().find((s) => s.id === id); if (station && ready && !paused && !modalOpen && !editor.active) { path = findPath(player.position, { x: station.x, z: station.z + 1 }); targetMarker.position.set(station.x, 0.1, station.z + 1); targetMarker.visible = path.length > 0; } },
     dispose() {
       disposed = true; cancelAnimationFrame(frame); clearTimeout(loadTimeout); observer.disconnect(); draco.dispose();
       window.removeEventListener("keydown", keyDown); window.removeEventListener("keyup", keyUp); window.removeEventListener("blur", clearInput);
       document.removeEventListener("visibilitychange", visibility); window.removeEventListener("netrunner:input-reset", clearInput); modalObserver.disconnect();
+      editor.dispose();clearBaseEditor();renderer.domElement.removeEventListener("pointermove",onHover);
       renderer.domElement.removeEventListener("pointerdown", onDown); renderer.domElement.removeEventListener("pointerup", onUp);
       renderer.domElement.removeEventListener("pointercancel", clearInput); renderer.domElement.removeEventListener("wheel", wheel);
       renderer.domElement.removeEventListener("webglcontextlost", lostContext);

@@ -5,23 +5,29 @@ import {DRESSING_COLLIDERS} from './dressing-layout.ts';
 import {insideLandscape,terrainHeight,createTerrainHeight,HANGARS} from './terrain.ts';
 import {makeTrees,FOUNTAIN,RUIN_WALLS} from './nature-layout.ts';
 import {makeVegetationTrees} from '../vegetation/layout.ts';
+import {readSavedTrees} from '../vegetation/tree-editor-state.ts';
 import {AUTHORED_COLLIDERS} from './authored-layout.ts';
 export type {Point} from './config.ts';
 export type Solid=Rect & {h:number;kind:'building'|'barrier'|'container'};
 export const SOLIDS:Solid[]=AUTHORED_COLLIDERS.map(s=>({...s}));
 const PROP_COLLIDERS:Rect[]=[...POIS.map(p=>({x:p.x+1.4,z:p.z,w:1.3,d:.9})),{x:22,z:20,w:1,d:.8},{x:28,z:20,w:1,d:.8}];
 const STATIC_COLLIDERS=[MICROBUS,...SOLIDS,...PROP_COLLIDERS,...DRESSING_COLLIDERS,...HANGARS,FOUNTAIN,...RUIN_WALLS];
-export const VEGETATION_TREES=makeVegetationTrees(STATIC_COLLIDERS);
+export const DEFAULT_VEGETATION_TREES=makeVegetationTrees(STATIC_COLLIDERS);
+export const VEGETATION_TREES=readSavedTrees(DEFAULT_VEGETATION_TREES);
 // Legacy hand-built trees are intentionally disabled. The playable map uses
 // only the baked models exported by VegetationGeneratorThreeJS.
 export const TREES:ReturnType<typeof makeTrees>=[];
-const WORLD_COLLIDERS=[...STATIC_COLLIDERS,...VEGETATION_TREES.map(t=>({x:t.x,z:t.z,w:.72*t.scale,d:.72*t.scale})),...TREES.map(t=>({x:t.x,z:t.z,w:.8*t.scale,d:.8*t.scale}))];
+const TREE_COLLIDERS=VEGETATION_TREES.map(t=>({x:t.x,z:t.z,w:.72*(t.sx??t.scale),d:.72*(t.sz??t.scale)}));
+const WORLD_COLLIDERS=[...STATIC_COLLIDERS,...TREE_COLLIDERS,...TREES.map(t=>({x:t.x,z:t.z,w:.8*t.scale,d:.8*t.scale}))];
 export function makeWorld(){
   const landscape=createLandscapeState(WORLD_COLLIDERS),height=createTerrainHeight(landscape);
   const elevation=(p:Point)=>height(p)+(p.z>=56.5&&p.z<=59.5&&p.x>=96&&p.x<=110?Math.min(1.6,(p.x-96)*.4):0);
+  let authoredOverride:readonly Rect[]|null=null,treeOverride:readonly Rect[]|null=null;
+  const authoredSet=new Set(SOLIDS);
+  const treeSet=new Set(TREE_COLLIDERS);
   const cells=new Map<string,Rect[]>(),editorCells=new Map<string,Rect[]>(),cellSize=8;
   for(const rect of WORLD_COLLIDERS)for(let x=Math.floor((rect.x-rect.w/2)/cellSize);x<=Math.floor((rect.x+rect.w/2)/cellSize);x++)for(let z=Math.floor((rect.z-rect.d/2)/cellSize);z<=Math.floor((rect.z+rect.d/2)/cellSize);z++){const key=x+','+z;const bucket=cells.get(key)??[];bucket.push(rect);cells.set(key,bucket);}
-  const nearby=(p:Point,r:number)=>{const found=new Set<Rect>();for(let x=Math.floor((p.x-r)/cellSize);x<=Math.floor((p.x+r)/cellSize);x++)for(let z=Math.floor((p.z-r)/cellSize);z<=Math.floor((p.z+r)/cellSize);z++){const key=x+','+z;for(const rect of cells.get(key)??[])found.add(rect);for(const rect of editorCells.get(key)??[])found.add(rect);}return [...found];};
+  const nearby=(p:Point,r:number)=>{const found=new Set<Rect>();for(let x=Math.floor((p.x-r)/cellSize);x<=Math.floor((p.x+r)/cellSize);x++)for(let z=Math.floor((p.z-r)/cellSize);z<=Math.floor((p.z+r)/cellSize);z++){const key=x+','+z;for(const rect of cells.get(key)??[])found.add(rect);for(const rect of editorCells.get(key)??[])found.add(rect);}return [...found].filter(r=>(authoredOverride===null||!authoredSet.has(r as Solid))&&(treeOverride===null||!treeSet.has(r))).concat(authoredOverride??[],treeOverride??[]);};
   const canStand=(p:Point,r=.34)=>Number.isFinite(p.x)&&Number.isFinite(p.z)&&insideLandscape(p,r)&&!nearby(p,r).some(s=>{
     const x=Math.max(s.x-s.w/2,Math.min(p.x,s.x+s.w/2)),z=Math.max(s.z-s.d/2,Math.min(p.z,s.z+s.d/2));return (p.x-x)**2+(p.z-z)**2<r*r;
   });
@@ -39,7 +45,7 @@ export function makeWorld(){
       }
     }
   }
-  return {canStand,routeStand,setEditorColliders,landscape,terrainHeight:height,elevationAt:elevation,spawn:SPAWN,exit:EXTRACTIONS[1]};
+  return {setAuthoredColliders(rects:readonly Rect[]){authoredOverride=rects;navigation.clear();},setTreeColliders(rects:readonly Rect[]){treeOverride=rects;navigation.clear();},canStand,routeStand,setEditorColliders,landscape,terrainHeight:height,elevationAt:elevation,spawn:SPAWN,exit:EXTRACTIONS[1]};
 }
 export type World=ReturnType<typeof makeWorld>;
 export function elevationAt(p:Point){return terrainHeight(p)+(p.z>=56.5&&p.z<=59.5&&p.x>=96&&p.x<=110?Math.min(1.6,(p.x-96)*.4):0);}

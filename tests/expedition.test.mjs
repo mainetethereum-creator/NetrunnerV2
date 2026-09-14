@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {makeWorld,findRoute,move,SOLIDS} from '../components/expedition/world.ts';
 import {POIS,EXTRACTIONS,SPAWN,RULES} from '../components/expedition/config.ts';
 import {ExpeditionSession,bankLoot} from '../components/expedition/session.ts';
@@ -20,4 +21,19 @@ test('extraction cancels outside area; defeat discards expedition bag only',()=>
 test('encounters activate once, cap living enemies, and elite unlocks vault',()=>{
   const run=new ExpeditionSession(()=>.5);const p={x:120,z:31};run.tick(.1,p);const n=run.enemies.length;run.tick(.1,p);assert.equal(run.enemies.length,n);assert.ok(n<=RULES.maxEnemies);const elite=run.enemies.find(e=>e.elite);assert.ok(elite);for(let i=0;i<12;i++){run.attack(p);run.attackCooldown=0;}assert.ok(run.activated.has('cleared:warden'));run.interact(POIS.find(p=>p.id==='core'));assert.equal(run.bag.prototype,2);
 });
+test('building mode keeps expedition encounters disabled without blocking boss loot',()=>{
+  const run=new ExpeditionSession(()=>.5,false),warden={x:120,z:31};
+  for(let i=0;i<20;i++)run.tick(.1,warden);
+  assert.deepEqual(run.enemies,[]);
+  assert.equal(run.hp,100);
+  run.interact(POIS.find(p=>p.id==='core'));
+  assert.equal(run.bag.prototype,2);
+});
 test('signal and supply event fire once and locked archive stays locked',()=>{const run=new ExpeditionSession();run.tick(.1,{x:95,z:39});assert.equal(run.events.size,2);run.interact({x:95,z:39});const bag={...run.bag};run.interact({x:95,z:39});assert.deepEqual(run.bag,bag);run.interact(POIS.find(p=>p.id==='shelter'));assert.deepEqual(run.bag,bag);});
+test('interaction prompt is contextual and expedition player UI is English',()=>{
+  const source=readFileSync(new URL('../components/expedition/Expedition.tsx',import.meta.url),'utf8');
+  assert.match(source,/Boolean\(state\.near\)\|\|state\.extraction>0/);
+  assert.doesNotMatch(source,/Подойдите к контейнеру|ЦЕЛЬ ВЫЛАЗКИ|ЛОКАЛЬНЫЙ СИГНАЛ/);
+  assert.match(source,/EXPEDITION OBJECTIVE/);
+  assert.match(source,/LOCAL SIGNAL/);
+});

@@ -5,25 +5,28 @@ import { useRouter } from "next/navigation";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 import type { BaseEngine, BaseSnapshot } from "./scene";
 import type { QualityMode } from "./quality";
-import { SPAWN, STATIONS, type StationId } from "./world";
+import { SPAWN, getBaseStations, type StationId } from "./world";
 import GameHud from "../game/GameHud";
 import MovementStick from "../game/MovementStick";
 import styles from "./BaseApp.module.css";
+import type {WorldEditor} from "../world-editor/controller";
+import dynamic from "next/dynamic";
+const BaseEditorPanel=dynamic(()=>import("./BaseEditorPanel"),{ssr:false});
 
 type Quest = { accepted: boolean; visited: StationId[] };
 const QUEST_KEY = "cyberbase.refuge.orientation.v1";
 const EMPTY_QUEST: Quest = { accepted: false, visited: [] };
 const CHECKPOINTS: StationId[] = ["smith", "metro", "stash"];
 const DIALOGUE: Record<StationId, { name: string; role: string; initial: string; title: string; text: string }> = {
-  expedition: { name: "OUTLANDS", role: "EXPEDITION ACCESS", initial: "EX", title: "За стеной начинается вылазка.", text: "Разрушенная окраина и промышленный сектор. Ищите контейнеры, отражайте атаки и эвакуируйтесь, чтобы сохранить добычу. WASD или клик — движение, Space — огонь, E — действие. При поражении рюкзак будет потерян." },
-  oracle: { name: "ORACLE", role: "CLASSES & ABILITIES", initial: "OR", title: "Choose who you become.", text: "Выберите класс: мечник, маг или стрелок. У каждого четыре боевых навыка. Улучшения талантов появятся позже." },
+  expedition: { name: "OUTLANDS", role: "EXPEDITION ACCESS", initial: "EX", title: "The expedition begins beyond the wall.", text: "Explore the ruined outskirts and industrial sector. Search containers, survive encounters, and extract to secure your loot. Use WASD or click to move, Space to attack, and E to interact. Your expedition backpack is lost on defeat." },
+  oracle: { name: "ORACLE", role: "CLASSES & ABILITIES", initial: "OR", title: "Choose who you become.", text: "Choose a class: Warrior, Mage, or Ranger. Each class has four combat skills. Talent upgrades will expand in a future update." },
   market: { name: "GREEN EXCHANGE", role: "CANNABIS MARKETPLACE", initial: "GE", title: "A little green in the concrete.", text: "The market is part of the refuge's economy. This is a visual display for now: trading, purchases and inventory transfers are not active." },
   charge: { name: "QUANTUM CHARGE", role: "DAILY CLAIM STATION", initial: "QC", title: "Leave your quantum charge here.", text: "This room will host the daily Claim: place your quantum charge in the dock, let it charge for 24 hours, then return to collect it. The dock is ready for a future update; placement animation, timer and rewards are not active yet." },
   smith: { name: "CYBERSMITH", role: "FABRICATION & POWER", initial: "CS", title: "Keep a little power in reserve.", text: "Out there, everything runs on borrowed energy. In here, we keep your cells alive. Bring your salvage back from the lower lines. This bench will be waiting." },
   contracts: { name: "CRYPTOMANCER", role: "CONTRACT HANDLER", initial: "CR", title: "Every runner needs a way home.", text: "Welcome to the refuge. Find the Cybersmith, check your locker, and speak to the Keeper. Learn this place before you learn what lives beneath it." },
   metro: { name: "THE KEEPER", role: "METRO WARDEN", initial: "TK", title: "The lower lines are awake.", text: "Four sectors lie beneath the refuge: the old station, service tunnels, power complex and restricted research wing. The route is open for exploration. Encounters and salvage are coming later." },
   city: { name: "CITY AIRLOCK", role: "NEON SPRAWL CONNECTION", initial: "01", title: "A whole city on the other side.", text: "The refuge connects to Neon Sprawl: traders, the Oracle, rival runners, and routes into other districts. The city connection will open in a later stage." },
-  stash: { name: "PERSONAL LOCKER", role: "RUNNER STORAGE", initial: "ST", title: "Leave something worth returning for.", text: "Здесь хранится добыча успешных вылазок. Откройте инвентарь, чтобы проверить запас ресурсов." },
+  stash: { name: "PERSONAL LOCKER", role: "RUNNER STORAGE", initial: "ST", title: "Leave something worth returning for.", text: "Loot from successful expeditions is stored here. Open the inventory to review your resource reserves." },
 };
 
 function Icon({ name, size = 18 }: { name: "map" | "arrow" | "settings" | "power" | "cross" | "rain" | "home"; size?: number }) {
@@ -49,6 +52,7 @@ export default function BaseApp() {
   const [detail, setDetail] = useState(false), [mapOpen, setMapOpen] = useState(false);
   const [rain, setRain] = useState(true), [quality, setQuality] = useState<QualityMode>("auto"), [quest, setQuest] = useState<Quest>(EMPTY_QUEST);
   const [showStats, setShowStats] = useState(false);
+  const [master,setMaster]=useState(false),[worldEditor,setWorldEditor]=useState<WorldEditor|null>(null);
   const [hideHud, setHideHud] = useState(false);
   useEffect(() => {
     const toggleHud = (event: KeyboardEvent) => {
@@ -90,6 +94,7 @@ export default function BaseApp() {
       } catch { setStorageNotice("Local progress is unavailable in this browser."); }
       try {
         engine.current = createBaseScene(host.current, (name) => { if (!stopped) { setHero(name); setReady(true); } }, (s) => { if (!stopped) setSnapshot(s); }, openDialog, (message) => { if (!stopped) setError(message); });
+        setWorldEditor(engine.current.editor);
         const motion = matchMedia("(prefers-reduced-motion: reduce)").matches;
         setRain(!motion);
         engine.current.setQuality("auto");
@@ -119,12 +124,14 @@ export default function BaseApp() {
   }, [dialog]);
 
   const moveStick = useCallback((x: number, z: number) => engine.current?.setStick(x, z), []);
-  const nearest = STATIONS.find((s) => s.id === snapshot.near);
+  const nearest = getBaseStations().find((s) => s.id === snapshot.near);
   const npc = dialog && dialog !== "wallet" && dialog !== "settings" ? DIALOGUE[dialog] : null;
 
   return <main className={`${styles.root} ${hideHud ? styles.hideHud : ""}`}>
     <button className={styles.hudToggle} onClick={() => setHideHud(!hideHud)} aria-label={hideHud ? "Show interface" : "Hide interface"}>{hideHud ? "H · Show interface" : "H · Hide interface"}</button>
     <div ref={host} className={styles.viewport} />
+    <button className={styles.editorToggle} disabled={!ready} onClick={()=>{setMaster(!master);engine.current?.setMaster(!master);}}>MASTER · {master?"Закрыть":"Редактор карты"}</button>
+    {master&&worldEditor&&<aside className={styles.editorPanel}><BaseEditorPanel editor={worldEditor}/></aside>}
     <div className={styles.vignette} />
     <header className={styles.header}>
       <div className={styles.headerRight}>
@@ -138,15 +145,15 @@ export default function BaseApp() {
     <div className={styles.mapWrap}>
       <button className={styles.minimap} aria-label={mapOpen ? "Close refuge map" : "Open refuge map"} aria-expanded={mapOpen} onClick={() => setMapOpen(!mapOpen)}>
         <div className={styles.mapTitle}><span>REFUGE / 01</span><span>N ↑</span></div>
-        <svg viewBox="0 0 230 125" aria-hidden="true"><path d="M146 96h45v14h-45zM191 87h29v33h-29z" fill="#244249" stroke="#78cbbb" /><path d="M14 22h132v92H14z" fill="#153034" stroke="#496562" strokeWidth="1" /><path d="M18 24h37v23H18zM61 24h36v20H61zM103 24h39v23h-39zM19 62h8v22h-8zM126 65h11v26h-11z" fill="#3e5552" /><path d="M53 61h17v7H53zM94 61h17v7H94z" fill="#736f4b" /><path d="M79 47v56M29 86h95" stroke="#33524f" strokeDasharray="2 3" />{STATIONS.map((s) => <circle key={s.id} cx={80 + s.x * 4.8} cy={69 + s.z * 4.5} r="2" fill={s.color} />)}<circle cx={80 + snapshot.x * 4.8} cy={69 + snapshot.z * 4.5} r="4" fill="#ebd9b5" stroke="#182c2c" strokeWidth="1.5" /></svg>
+        <svg viewBox="0 0 230 125" aria-hidden="true"><path d="M146 96h45v14h-45zM191 87h29v33h-29z" fill="#244249" stroke="#78cbbb" /><path d="M14 22h132v92H14z" fill="#153034" stroke="#496562" strokeWidth="1" /><path d="M18 24h37v23H18zM61 24h36v20H61zM103 24h39v23h-39zM19 62h8v22h-8zM126 65h11v26h-11z" fill="#3e5552" /><path d="M53 61h17v7H53zM94 61h17v7H94z" fill="#736f4b" /><path d="M79 47v56M29 86h95" stroke="#33524f" strokeDasharray="2 3" />{getBaseStations().map((s) => <circle key={s.id} cx={80 + s.x * 4.8} cy={69 + s.z * 4.5} r="2" fill={s.color} />)}<circle cx={80 + snapshot.x * 4.8} cy={69 + snapshot.z * 4.5} r="4" fill="#ebd9b5" stroke="#182c2c" strokeWidth="1.5" /></svg>
         <div className={styles.mapBottom}><Icon name="map" size={12} /><span>AREA MAP</span><span>+</span></div>
       </button>
-      {mapOpen && <nav className={styles.destinations} aria-label="Refuge destinations">{STATIONS.map((s) => <button key={s.id} onClick={() => { engine.current?.goTo(s.id); setMapOpen(false); }}><span style={{ color: s.color }}>◇</span>{s.name}<span>↗</span></button>)}</nav>}
+      {mapOpen && <nav className={styles.destinations} aria-label="Refuge destinations">{getBaseStations().map((s) => <button key={s.id} onClick={() => { engine.current?.goTo(s.id); setMapOpen(false); }}><span style={{ color: s.color }}>◇</span>{s.name}<span>↗</span></button>)}</nav>}
     </div>
 
-    {!dialog && nearest && ready && <button className={styles.interact} onClick={() => openDialog(nearest.id)}><kbd>E</kbd><span><small>{nearest.role}</small>Talk to {nearest.id === "city" || nearest.id === "stash" ? "terminal" : nearest.name.toLowerCase()}</span><Icon name="arrow" /></button>}
+    {!master && !dialog && nearest && ready && <button className={styles.interact} onClick={() => openDialog(nearest.id)}><kbd>E</kbd><span><small>{nearest.role}</small>Talk to {nearest.id === "city" || nearest.id === "stash" ? "terminal" : nearest.name.toLowerCase()}</span><Icon name="arrow" /></button>}
 
-    <MovementStick onMove={moveStick} disabled={!ready || dialog !== null} />
+    <MovementStick onMove={moveStick} disabled={!ready || dialog !== null || master} />
 
     <GameHud hidden={hideHud || !ready} onSettings={() => setDialog("settings")} onQuest={() => openDialog("contracts")} />
     {showStats && <div className={styles.performance} aria-label="Live graphics performance"><strong>{snapshot.fps} FPS{snapshot.timingLimited ? "*" : ""}</strong><span>{snapshot.p95} ms p95 · {snapshot.high ? "HIGH" : "LITE"}</span><span>{snapshot.submitMs} ms CPU submit</span><span>{snapshot.draws} draws · {Math.round(snapshot.triangles / 1000)}k triangles</span><span>DPR {snapshot.ratio.toFixed(2)} · scale {snapshot.scale.toFixed(2)}</span><span>Target {snapshot.target} FPS · {quality.toUpperCase()}</span>{snapshot.timingLimited && <span>* Possible browser timer limit</span>}</div>}
@@ -162,12 +169,12 @@ export default function BaseApp() {
           <div className={styles.speech}><h3>{detail && dialog === "smith" ? "One cell. Twenty-four hours." : npc.title}</h3><p>{detail && dialog === "smith" ? "The daily routine will start here: bring a battery, place it in the charging dock, and return after a 24-hour cycle. The station is being commissioned. Charging, timers, and rewards are not active yet." : npc.text}</p></div>
           <div className={styles.choices}>
             {dialog === "contracts" && !quest.accepted && <button className={styles.primaryChoice} onClick={() => { saveQuest({ accepted: true, visited: [] }); setDialog(null); }}><span><strong>Get to know the refuge</strong><small>Visit three contacts · Local exploration quest</small></span><Icon name="arrow" /></button>}
-            {dialog === "contracts" && quest.accepted && <div className={styles.questChecklist}>{CHECKPOINTS.map((id) => <p key={id}><span>{quest.visited.includes(id) ? "✓" : "◇"}</span>{STATIONS.find((s) => s.id === id)?.name}</p>)}<small>{complete ? "Orientation complete. No token reward is attached to this introduction." : "Speak to each contact to complete your introduction."}</small></div>}
+            {dialog === "contracts" && quest.accepted && <div className={styles.questChecklist}>{CHECKPOINTS.map((id) => <p key={id}><span>{quest.visited.includes(id) ? "✓" : "◇"}</span>{getBaseStations().find((s) => s.id === id)?.name}</p>)}<small>{complete ? "Orientation complete. No token reward is attached to this introduction." : "Speak to each contact to complete your introduction."}</small></div>}
             {dialog === "charge" && <button className={styles.primaryChoice} disabled><span><strong>Place quantum charge · Daily Claim</strong><small>24-hour cycle · Coming in a future update</small></span></button>}
             {dialog === "metro" && <button onClick={() => router.push("/metro")}><span><strong>Descend to Cyber Metro</strong><small>Explore the frozen environment prototype</small></span><span>↓</span></button>}
-            {dialog === "expedition" && <button onClick={() => router.push("/expedition")}><span><strong>Начать вылазку</strong><small>Outskirts → Industrial → Extraction</small></span><span>→</span></button>}
+            {dialog === "expedition" && <button onClick={() => router.push("/expedition")}><span><strong>Start expedition</strong><small>Outskirts → Industrial → Extraction</small></span><span>→</span></button>}
             {dialog === "city" && <button disabled><span><strong>Enter Neon Sprawl</strong><small>Airlock connection under construction</small></span><span>⌁</span></button>}
-            {(dialog === "stash" || dialog === "oracle") && <button onClick={() => { const panel = dialog === "stash" ? "Инвентарь" : "Древо талантов"; setDialog(null); window.dispatchEvent(new CustomEvent("netrunner:panel", {detail: panel})); }}><span><strong>{dialog === "stash" ? "Открыть инвентарь" : "Выбрать класс"}</strong></span><Icon name="arrow" /></button>}
+            {(dialog === "stash" || dialog === "oracle") && <button onClick={() => { const panel = dialog === "stash" ? "Inventory" : "Talent Tree"; setDialog(null); window.dispatchEvent(new CustomEvent("netrunner:panel", {detail: panel})); }}><span><strong>{dialog === "stash" ? "Open inventory" : "Choose class"}</strong></span><Icon name="arrow" /></button>}
             <button onClick={() => setDialog(null)}><span>Back to the refuge</span><span>ESC ↵</span></button>
           </div>
         </>}

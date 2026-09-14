@@ -3,7 +3,7 @@ import {POIS,EXTRACTIONS} from '../expedition/config.ts';
 import {insideLandscape,terrainHeight} from '../expedition/terrain.ts';
 import {TEST_TREES} from './format.ts';
 
-export type VegetationTree={x:number;z:number;variant:number;scale:number};
+export type VegetationTree={x:number;y?:number;z:number;variant:number;scale:number;rotation?:number;sx?:number;sy?:number;sz?:number};
 
 /** Stable layout for the playable map. It is generated once while the module
  * loads, then used both by navigation and by the baked-instance renderer. */

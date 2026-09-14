@@ -3,10 +3,11 @@ import {loadRuntimeTrees} from './baked-runtime';
 import {RULES} from '../expedition/config';
 import {TEST_PATCH,TEST_TREES,type VegetationAsset,type PlantModel} from './format';
 import type {VegetationTree} from './layout';
+import {createThrottledScheduler} from '../expedition/frame-throttle';
 
 
 type Point={x:number;z:number};
-type Placement=Point&{scale:number;rotation:number};
+type Placement=Point&{y?:number;scale:number;rotation:number;sx?:number;sy?:number;sz?:number};
 
 function geometry(part:PlantModel['parts'][number]){
   const geo=new T.BufferGeometry();
@@ -29,7 +30,7 @@ function addInstances(parent:T.Group,model:PlantModel,points:Placement[],materia
   // Bark, leaves and small details already carry baked vertex colors, so their
   // non-indexed buffers can share one material and one draw call per variant.
   const mesh=new T.InstancedMesh(sharedGeometry??modelGeometry(model),material,points.length);
-  points.forEach((p,i)=>{matrix.position.set(p.x,height(p),p.z);matrix.rotation.y=p.rotation;matrix.scale.setScalar(p.scale);matrix.updateMatrix();mesh.setMatrixAt(i,matrix.matrix);});
+  points.forEach((p,i)=>{matrix.position.set(p.x,p.y??height(p),p.z);matrix.rotation.y=p.rotation;matrix.scale.set(p.sx??p.scale,p.sy??p.scale,p.sz??p.scale);matrix.updateMatrix();mesh.setMatrixAt(i,matrix.matrix);});
   mesh.castShadow=true;mesh.receiveShadow=true;mesh.computeBoundingSphere();parent.add(mesh);
 }
 
@@ -47,13 +48,23 @@ export function buildVegetation(asset:VegetationAsset,height:(p:Point)=>number=(
 /** Playable world: tree/grass geometry is already baked. Only shared geometry,
  * instanced placement and chunk visibility run here. */
 export function createVegetationWorld(scene:T.Scene,height:(p:Point)=>number,_canStand:(p:Point)=>boolean,trees:VegetationTree[],anisotropy=8,sharedAtlas?:T.Texture){
-  const chunks=new Map<string,T.Group>(),abort=new AbortController();let disposed=false;
+  const chunks=new Map<string,T.Group>(),abort=new AbortController();let disposed=false,editorHidden=false,currentTrees=trees,geometries:T.BufferGeometry[]=[];
   const wind={value:0};
   const atlas=sharedAtlas??new T.TextureLoader().load('/game/props/salvage/material-atlas.webp');atlas.colorSpace=T.SRGBColorSpace;atlas.anisotropy=Math.min(8,anisotropy);
   const chunk=(x:number,z:number)=>{const key=`${Math.floor(x/RULES.chunkSize)},${Math.floor(z/RULES.chunkSize)}`;let group=chunks.get(key);if(!group){group=new T.Group();group.name=`Baked vegetation ${key}`;group.visible=false;chunks.set(key,group);scene.add(group);}return group;};
+  let material:T.MeshStandardMaterial|undefined;
+  function rebuild(){if(disposed||!material||!geometries.length)return;for(const group of chunks.values()){for(const child of group.children)if(child instanceof T.InstancedMesh)child.dispose();group.clear();}
+    for(let cx=0;cx<6;cx++)for(let cz=0;cz<3;cz++){
+      const group=chunk(cx*RULES.chunkSize,cz*RULES.chunkSize);
+      geometries.forEach((geometry,variant)=>{
+        const points=currentTrees.filter(t=>t.variant===variant&&Math.floor(t.x/RULES.chunkSize)===cx&&Math.floor(t.z/RULES.chunkSize)===cz).map((t,i)=>({...t,rotation:t.rotation??(i*2.399+t.x*.17)%6.28}));
+        addInstances(group,{parts:[],triangles:0},points,material!,height,geometry);
+      });
+    }
+  }
   void loadRuntimeTrees(abort.signal).then(treeGeometry=>{
-    if(disposed){treeGeometry.forEach(g=>g.dispose());return;}
-    const material=new T.MeshStandardMaterial({color:'#929381',vertexColors:true,roughness:.9,side:T.DoubleSide});
+    if(disposed){treeGeometry.forEach(g=>g.dispose());return;}geometries=treeGeometry;
+    material=new T.MeshStandardMaterial({color:'#929381',vertexColors:true,roughness:.9,side:T.DoubleSide});
     material.onBeforeCompile=shader=>{
       shader.uniforms.vegetationAtlas={value:atlas};shader.uniforms.windTime=wind;
       shader.vertexShader=`uniform float windTime;varying vec3 plantLocal;varying float plantLeaf;\n${shader.vertexShader}`.replace('#include <begin_vertex>',`#include <begin_vertex>
@@ -72,14 +83,12 @@ export function createVegetationWorld(scene:T.Scene,height:(p:Point)=>number,_ca
     };
     material.customProgramCacheKey=()=> 'expedition-vegetation-weathered-v1';
 
-    for(let cx=0;cx<6;cx++)for(let cz=0;cz<3;cz++){
-      const group=chunk(cx*RULES.chunkSize,cz*RULES.chunkSize);
-      treeGeometry.forEach((geometry,variant)=>{
-        const points=trees.filter(t=>t.variant===variant&&Math.floor(t.x/RULES.chunkSize)===cx&&Math.floor(t.z/RULES.chunkSize)===cz).map((t,i)=>({...t,rotation:(i*2.399+t.x*.17)%6.28}));
-        addInstances(group,{parts:[],triangles:0},points,material,height,geometry);
-      });
-      // GrassSystemThreeJS owns playable grass; GitHub trees stay.
-    }
+    rebuild();
   }).catch(error=>{if(!disposed)console.warn('Vegetation unavailable',error);});
-  return {update(time:number){wind.value=time;},stream(p:Point){const px=Math.floor(p.x/RULES.chunkSize),pz=Math.floor(p.z/RULES.chunkSize);chunks.forEach((group,key)=>{const [x,z]=key.split(',').map(Number);group.visible=Math.abs(x-px)<=RULES.activeRadius&&Math.abs(z-pz)<=RULES.activeRadius;});},dispose(){disposed=true;abort.abort();if(!sharedAtlas)atlas.dispose();}};
+  // Every edited/nudged tree recreates one InstancedMesh per chunk x variant
+  // (up to 18x3 GPU buffer allocations). The editor can fire that on every
+  // held-key repeat or dragged transform, so coalesce bursts to ~11 Hz —
+  // the final tree placement still always lands once input settles.
+  const rebuildScheduler=createThrottledScheduler(rebuild,90);
+  return {update(time:number){wind.value=time;},setEditorActive(value:boolean){editorHidden=value;for(const group of chunks.values())if(value)group.visible=false;},replaceTrees(value:VegetationTree[]){currentTrees=value;rebuildScheduler.schedule();},stream(p:Point){const px=Math.floor(p.x/RULES.chunkSize),pz=Math.floor(p.z/RULES.chunkSize);chunks.forEach((group,key)=>{const [x,z]=key.split(',').map(Number);group.visible=!editorHidden&&Math.abs(x-px)<=RULES.activeRadius&&Math.abs(z-pz)<=RULES.activeRadius;});},dispose(){disposed=true;rebuildScheduler.cancel();abort.abort();geometries.forEach(g=>g.dispose());material?.dispose();if(!sharedAtlas)atlas.dispose();}};
 }

@@ -1,4 +1,5 @@
-import type {createPropEditor,EditorState} from './prop-editor';
+import type {EditorState} from './prop-editor';
+import {createLazyEditor} from '../world-editor/lazy-editor';
 import * as T from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
@@ -9,14 +10,14 @@ import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { PoseController } from '../game/pose-controller';
 import { CombatDriver } from '../game/combat-driver';
 import { buildEnvironment } from './environment';
-import { findRoute, move, makeWorld, type Point } from './world';
+import { findRoute, move, makeWorld, DEFAULT_VEGETATION_TREES, type Point } from './world';
 import { ExpeditionSession } from './session';
-import { POIS, EXTRACTIONS, sectorAt } from './config';
+import { POIS, EXTRACTIONS, EXPEDITION_ENEMIES_ENABLED, RULES, sectorAt } from './config';
 import {adaptMobileBudget,initialMobileBudget,mobileRenderRatio,usesTouchProfile} from './mobile-performance';
 
 export type Snapshot=Point & {room:string;fps:number;draws:number;near:string|null;ready:boolean;hp:number;bag:ExpeditionSession['bag'];status:ExpeditionSession['status'];message:string;discovered:string[];activeNPC:number;chunks:number;extraction:number;kills:number;performance:{ratio:number;scale:number;target:number;frameMs:number;triangles:number;textures:number;geometries:number;detailCulled:number}};
-export function createExpedition(host:HTMLElement,onState:(s:Snapshot)=>void,onError:(s:string)=>void,onEditor:(s:EditorState)=>void=()=>{}) {
-  const session=new ExpeditionSession(); let debug=false,autoFire=false,landscapeMode=false;
+export function createExpedition(host:HTMLElement,onState:(s:Snapshot)=>void,onError:(s:string)=>void,onEditor:(s:EditorState)=>void=()=>{},onTreeEditor:(s:EditorState)=>void=()=>{}) {
+  const session=new ExpeditionSession(Math.random,EXPEDITION_ENEMIES_ENABLED); let debug=false,autoFire=false,landscapeMode=false,treeMode=false,masterActive=false;
   const world=makeWorld(),elevationAt=world.elevationAt,scene=new T.Scene();scene.background=new T.Color('#111b2b');scene.fog=new T.FogExp2('#192738',.014);
   scene.matrixAutoUpdate=false;
   // Choose the renderer path once. any-pointer covers mouse + touchscreen
@@ -35,11 +36,8 @@ export function createExpedition(host:HTMLElement,onState:(s:Snapshot)=>void,onE
   const anisotropy=Math.min(mobile?4:8,renderer.capabilities.getMaxAnisotropy());
   const env=buildEnvironment(scene,world,1,anisotropy);
   // The normal gameplay path never creates the authoring library, drafts, ghosts or outline.
-  let editorInstance:ReturnType<typeof createPropEditor>|undefined,editorLoading:Promise<void>|undefined,masterRequested=false;
-  const editor=new Proxy({} as ReturnType<typeof createPropEditor>,{get(_target,key){if(editorInstance)return Reflect.get(editorInstance,key);if(key==='active'||key==='placing')return false;return ()=>{};}});
-  function enableMaster(value:boolean){masterRequested=value;if(editorInstance){editorInstance.setActive(value);env.landscape.studio.setActive(value&&landscapeMode);return;}if(!value)return;
-    editorLoading??=import('./prop-editor').then(({createPropEditor})=>{if(disposed)return;editorInstance=createPropEditor(scene,onEditor,renderer.capabilities.getMaxAnisotropy(),elevationAt,pads=>{world.landscape.setEditorPads(pads);env.landscape.studio.refreshPads();},colliders=>world.setEditorColliders(colliders));editorInstance.setActive(masterRequested);env.landscape.studio.setActive(masterRequested&&landscapeMode);}).catch(()=>{editorLoading=undefined;onError('Не удалось загрузить MASTER. Повторите попытку.');});
-  }
+  const editor=createLazyEditor(()=>import('./prop-editor').then(({createPropEditor})=>()=>createPropEditor(scene,onEditor,renderer.capabilities.getMaxAnisotropy(),elevationAt,pads=>{world.landscape.setEditorPads(pads);env.landscape.studio.refreshPads();},colliders=>world.setEditorColliders(colliders),env.editable,colliders=>world.setAuthoredColliders(colliders),(x,z)=>{pivot.x=T.MathUtils.clamp(pivot.x+x,0,144);pivot.z=T.MathUtils.clamp(pivot.z+z,0,72);},(x,z)=>{pivot.x=x;pivot.z=z;})),()=>onError('Не удалось загрузить MASTER. Повторите попытку.'),value=>env.landscape.studio.setActive(value&&landscapeMode));
+  const treeEditor=createLazyEditor(()=>import('./tree-editor').then(({prepareTreeEditor})=>prepareTreeEditor(scene,onTreeEditor,DEFAULT_VEGETATION_TREES,elevationAt,world.canStand,trees=>env.vegetation.replaceTrees(trees),colliders=>world.setTreeColliders(colliders),(x,z)=>{pivot.x=T.MathUtils.clamp(pivot.x+x,0,144);pivot.z=T.MathUtils.clamp(pivot.z+z,0,72);},(x,z)=>{pivot.x=x;pivot.z=z;})),()=>onError('Не удалось загрузить редактор деревьев.'),value=>env.vegetation.setEditorActive(value));
   const generator=new T.PMREMGenerator(renderer),environment=generator.fromEquirectangular(env.surfaces.skyTexture);generator.dispose();
   scene.environment=environment.texture;scene.environmentIntensity=.48;
   scene.add(new T.HemisphereLight('#a9c5ef','#272b30',.7));
@@ -68,10 +66,13 @@ export function createExpedition(host:HTMLElement,onState:(s:Snapshot)=>void,onE
     const clip=gltf.animations.find(a=>/run/i.test(a.name));if(clip){const inPlace=clip.clone();for(const track of inPlace.tracks)if(/hips\.position$/i.test(track.name))for(let i=0;i<track.values.length;i+=3){track.values[i]=track.values[0];track.values[i+2]=track.values[2];}run=mixer.clipAction(inPlace).setEffectiveWeight(0).play();}
     ready=true;renderer.shadowMap.needsUpdate=true;
   }).catch(()=>{if(!disposed)onError('Character could not load. Return to the refuge and try again.');});
-  const enemyGeo=new T.BoxGeometry(.7,1.2,.55),enemyMat=new T.MeshStandardMaterial({color:'#79664b',roughness:.72,metalness:.4}),eyeGeo=new T.BoxGeometry(.5,.12,.08),eyeMat=new T.MeshStandardMaterial({color:'#f27742',emissive:'#df4222',emissiveIntensity:2});
-  const enemyPool=Array.from({length:14},()=>{const body=new T.Mesh(enemyGeo,enemyMat);body.castShadow=true;const eye=new T.Mesh(eyeGeo,eyeMat);eye.position.set(0,.3,.3);body.add(eye);const legGeo=new T.BoxGeometry(.16,.6,.18);for(const x of [-.23,.23]){const leg=new T.Mesh(legGeo,enemyMat);leg.position.set(x,-.75,0);body.add(leg);}scene.add(body);body.visible=false;return body;});
+  const enemyPool:T.Mesh[]=[];
+  if(EXPEDITION_ENEMIES_ENABLED){
+    const enemyGeo=new T.BoxGeometry(.7,1.2,.55),enemyMat=new T.MeshStandardMaterial({color:'#79664b',roughness:.72,metalness:.4}),eyeGeo=new T.BoxGeometry(.5,.12,.08),eyeMat=new T.MeshStandardMaterial({color:'#f27742',emissive:'#df4222',emissiveIntensity:2}),legGeo=new T.BoxGeometry(.16,.6,.18);
+    for(let i=0;i<RULES.maxEnemies;i++){const body=new T.Mesh(enemyGeo,enemyMat);body.castShadow=true;const eye=new T.Mesh(eyeGeo,eyeMat);eye.position.set(0,.3,.3);body.add(eye);for(const x of [-.23,.23]){const leg=new T.Mesh(legGeo,enemyMat);leg.position.set(x,-.75,0);body.add(leg);}scene.add(body);body.visible=false;enemyPool.push(body);}
+  }
   const beamGeo=new T.BufferGeometry().setFromPoints([new T.Vector3(),new T.Vector3()]),beam=new T.Line(beamGeo,new T.LineBasicMaterial({color:'#8ff3ff',transparent:true,opacity:.9}));beam.visible=false;scene.add(beam);let beamUntil=0;
-  const combat=new CombatDriver(skill=>{if(session.status!=='active')return;const target=session.useSkill(player.position,skill);if(target){if(hero)hero.rotation.y=Math.atan2(target.x-player.position.x,target.z-player.position.z);const points=beamGeo.attributes.position as T.BufferAttribute;points.setXYZ(0,player.position.x,player.position.y+1.3,player.position.z);points.setXYZ(1,target.x,elevationAt(target)+1.2,target.z);points.needsUpdate=true;beamGeo.computeBoundingSphere();beam.visible=skill.range>5;beamUntil=performance.now()+150;}},()=>session.hp);
+  const combat=new CombatDriver(skill=>{if(session.status!=='active')return;const target=session.useSkill(player.position,skill);if(target){if(hero)hero.rotation.y=Math.atan2(target.x-player.position.x,target.z-player.position.z);const points=beamGeo.attributes.position as T.BufferAttribute;points.setXYZ(0,player.position.x,player.position.y+1.3,player.position.z);points.setXYZ(1,target.x,elevationAt(target)+1.2,target.z);points.needsUpdate=true;beamGeo.computeBoundingSphere();beam.visible=skill.range>5;beamUntil=performance.now()+150;}},()=>session.hp,false);
   function fire(){combat.cast(0);}
   let budget=initialMobileBudget(),resolutionScale=1,qualityWindow=0,qualityFrames=0,qualityElapsed=0,frameMs=0,lastResolution=0;
   // Full near grass/materials; only distant density is reduced by the mobile profile.
@@ -82,14 +83,14 @@ export function createExpedition(host:HTMLElement,onState:(s:Snapshot)=>void,onE
   const keys=new Set<string>();const stick={x:0,z:0};let route:Point[]=[];
   const reset=()=>{keys.clear();stick.x=stick.z=0;route.length=0;destination.visible=false;};
   const editable=(e:KeyboardEvent)=>e.target instanceof HTMLElement&&!!e.target.closest('button,a,input,select,textarea');
-  const keydown=(e:KeyboardEvent)=>{if(editable(e)||document.querySelector('[aria-modal="true"]'))return;const k=e.key.toLowerCase();if(editor.active){if(k==='escape')editor.cancel();if(k==='delete'||k==='backspace'){editor.remove();e.preventDefault();}if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright','shift'].includes(k)){keys.add(k);e.preventDefault();}return;}if(k==='e'&&!e.repeat){session.interact(player.position);e.preventDefault();}if(k===' '){fire();e.preventDefault();}if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright','shift'].includes(k)){e.preventDefault();keys.add(k);}};
+  const keydown=(e:KeyboardEvent)=>{if(editable(e)||document.querySelector('[aria-modal="true"]'))return;const k=e.key.toLowerCase();if(editor.active){if((treeMode?treeEditor:editor).keyDown(e))return;if(['w','a','d','q','shift'].includes(k)){keys.add(k);e.preventDefault();}return;}if(k==='e'&&!e.repeat){session.interact(player.position);e.preventDefault();}if(k===' '){fire();e.preventDefault();}if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright','shift'].includes(k)){e.preventDefault();keys.add(k);}};
   const keyup=(e:KeyboardEvent)=>keys.delete(e.key.toLowerCase());
   window.addEventListener('keydown',keydown);window.addEventListener('keyup',keyup);window.addEventListener('blur',reset);window.addEventListener('netrunner:input-reset',reset);
   let pointerDown:Point|null=null;
   const down=(e:PointerEvent)=>{pointerDown={x:e.clientX,z:e.clientY};renderer.domElement.focus({preventScroll:true});};
   const ray=new T.Raycaster(),hit=new T.Vector3(),plane=new T.Plane(new T.Vector3(0,1,0),-.06);
-  const up=(e:PointerEvent)=>{if(!pointerDown)return;const tap=Math.hypot(pointerDown.x-e.clientX,pointerDown.z-e.clientY)<12;pointerDown=null;if(!tap||(!ready&&!editor.active))return;const r=renderer.domElement.getBoundingClientRect();ray.setFromCamera(new T.Vector2((e.clientX-r.left)/r.width*2-1,1-(e.clientY-r.top)/r.height*2),camera);plane.constant=-.06;if(ray.ray.intersectPlane(plane,hit)){for(let i=0;i<4;i++){plane.constant=-elevationAt(hit)-.06;ray.ray.intersectPlane(plane,hit);}if(editor.active){if(landscapeMode)env.landscape.studio.click(hit);else editor.click(ray,hit);return;}route=findRoute(world,player.position,hit);destination.visible=!!route.length;destination.position.set(hit.x,elevationAt(hit)+.09,hit.z);}};
-  const hover=(e:PointerEvent)=>{if(!editor.active||landscapeMode)return;const r=renderer.domElement.getBoundingClientRect();ray.setFromCamera(new T.Vector2((e.clientX-r.left)/r.width*2-1,1-(e.clientY-r.top)/r.height*2),camera);plane.constant=-.06;if(ray.ray.intersectPlane(plane,hit)){for(let i=0;i<4;i++){plane.constant=-elevationAt(hit);ray.ray.intersectPlane(plane,hit);}editor.hover(hit);}};
+  const up=(e:PointerEvent)=>{if(!pointerDown)return;const tap=Math.hypot(pointerDown.x-e.clientX,pointerDown.z-e.clientY)<12;pointerDown=null;if(!tap||(!ready&&!editor.active))return;const r=renderer.domElement.getBoundingClientRect();ray.setFromCamera(new T.Vector2((e.clientX-r.left)/r.width*2-1,1-(e.clientY-r.top)/r.height*2),camera);plane.constant=-.06;if(ray.ray.intersectPlane(plane,hit)){for(let i=0;i<4;i++){plane.constant=-elevationAt(hit)-.06;ray.ray.intersectPlane(plane,hit);}if(editor.active){if(landscapeMode)env.landscape.studio.click(hit);else if(treeMode)treeEditor.click(ray,hit);else editor.click(ray,hit);return;}route=findRoute(world,player.position,hit);destination.visible=!!route.length;destination.position.set(hit.x,elevationAt(hit)+.09,hit.z);}};
+  const hover=(e:PointerEvent)=>{if(!editor.active||landscapeMode)return;const r=renderer.domElement.getBoundingClientRect();ray.setFromCamera(new T.Vector2((e.clientX-r.left)/r.width*2-1,1-(e.clientY-r.top)/r.height*2),camera);plane.constant=-.06;if(ray.ray.intersectPlane(plane,hit)){for(let i=0;i<4;i++){plane.constant=-elevationAt(hit);ray.ray.intersectPlane(plane,hit);}(treeMode?treeEditor:editor).hover(hit);}};
   let editorZoom=22;const wheel=(e:WheelEvent)=>{if(editor.active){e.preventDefault();editorZoom=T.MathUtils.clamp(editorZoom+e.deltaY*.015,5,42);}};
   renderer.domElement.addEventListener('pointermove',hover);renderer.domElement.addEventListener('wheel',wheel,{passive:false});
   renderer.domElement.addEventListener('pointerdown',down);renderer.domElement.addEventListener('pointerup',up);
@@ -107,7 +108,7 @@ export function createExpedition(host:HTMLElement,onState:(s:Snapshot)=>void,onE
     if(mobile&&now-lastResolution>600&&Math.abs(resolutionScale-budget.scale)>.001){resolutionScale+=T.MathUtils.clamp(budget.scale-resolutionScale,-.025,.025);resize();lastResolution=now;}
     const time=now/1000;
     let sx=(keys.has('d')||keys.has('arrowright')?1:0)-(keys.has('a')||keys.has('arrowleft')?1:0)+stick.x;
-    let sz=(keys.has('s')||keys.has('arrowdown')?1:0)-(keys.has('w')||keys.has('arrowup')?1:0)+stick.z;
+    let sz=((keys.has('s')||editor.active&&keys.has('q'))||keys.has('arrowdown')?1:0)-(keys.has('w')||keys.has('arrowup')?1:0)+stick.z;
     let dx=0,dz=0;const len=Math.hypot(sx,sz);
     if(len>.1){sx/=Math.max(1,len);sz/=Math.max(1,len);dx=sx*Math.cos(azimuth)+sz*Math.sin(azimuth);dz=-sx*Math.sin(azimuth)+sz*Math.cos(azimuth);route.length=0;destination.visible=false;}
     else if(route.length){const p=route[0],distance=Math.hypot(p.x-player.position.x,p.z-player.position.z);if(distance<.14)route.shift();else{dx=(p.x-player.position.x)/distance;dz=(p.z-player.position.z)/distance;}}
@@ -121,7 +122,7 @@ export function createExpedition(host:HTMLElement,onState:(s:Snapshot)=>void,onE
     camera.position.set(pivot.x+Math.sin(azimuth)*distance*.86,pivot.y+distance*.62,pivot.z+Math.cos(azimuth)*distance*.86);camera.lookAt(pivot);
     if(now>beamUntil)beam.visible=false;
     if(!editor.active){session.tick(dt,player.position);if(autoFire)fire();}
-    editor.stream(editor.active?pivot:player.position);
+    editor.stream(editor.active?pivot:player.position);treeEditor.stream(editor.active?pivot:player.position);
     env.landscape.studio.update(now*.001,editor.active?pivot:player.position,camera.position);
     if(now-lastStream>100){env.stream(editor.active?pivot:player.position,debug,session.events.has('drop')&&!session.opened.has('drop'),camera);lastStream=now;}
     let enemyIndex=0;for(const enemy of session.enemies)if(enemy.hp>0&&(enemy.x-player.position.x)**2+(enemy.z-player.position.z)**2<900&&enemyIndex<enemyPool.length)visibleEnemies[enemyIndex++]=enemy;visibleEnemies.length=enemyIndex;
@@ -137,5 +138,5 @@ export function createExpedition(host:HTMLElement,onState:(s:Snapshot)=>void,onE
   }
   const visibility=()=>{reset();window.dispatchEvent(new Event('netrunner:input-reset'));cancelAnimationFrame(frame);last=lastPaint=windowStart=qualityWindow=performance.now();count=qualityFrames=qualityElapsed=0;if(!document.hidden&&!disposed)frame=requestAnimationFrame(animate);};document.addEventListener('visibilitychange',visibility);
   frame=requestAnimationFrame(animate);
-  return {editor,landscape:env.landscape.studio,setLandscapeMode(value:boolean){landscapeMode=value;editor.cancel();env.landscape.studio.setActive(value&&editor.active);},setMaster(value:boolean){reset();enableMaster(value);},setAutoFire(value:boolean){autoFire=value;},interact(){session.interact(player.position);},attack(){fire();},setDebug(value:boolean){debug=value;},teleport(p:Point){if(world.canStand(p)){player.position.set(p.x,.09,p.z);reset();}},setStick(x:number,z:number){if(modalOpen||editor.active||session.status!=='active'){stick.x=stick.z=0;return;}stick.x=Number.isFinite(x)?T.MathUtils.clamp(x,-1,1):0;stick.z=Number.isFinite(z)?T.MathUtils.clamp(z,-1,1):0;},dispose(){disposed=true;cancelAnimationFrame(frame);observer.disconnect();window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',reset);document.removeEventListener('visibilitychange',visibility);window.removeEventListener('netrunner:input-reset',reset);modalObserver.disconnect();renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointerup',up);renderer.domElement.removeEventListener('webglcontextlost',lost);renderer.domElement.removeEventListener('pointermove',hover);renderer.domElement.removeEventListener('wheel',wheel);editor.dispose();combat.dispose();env.dispose();mixer?.stopAllAction();disposeTree(scene);env.surfaces.dispose();environment.dispose();draco.dispose();bloom?.dispose();output?.dispose();composer?.dispose();renderer.dispose();renderer.domElement.remove();}};
+  return {editor,treeEditor,landscape:env.landscape.studio,setLandscapeMode(value:boolean){landscapeMode=value;treeMode=false;treeEditor.setActive(false);editor.cancel();env.landscape.studio.setActive(value&&editor.active);},setTreeMode(value:boolean){treeMode=value;landscapeMode=false;env.landscape.studio.setActive(false);editor.cancel();treeEditor.setActive(value&&masterActive);},setMaster(value:boolean){masterActive=value;reset();editor.setActive(value);treeEditor.setActive(value&&treeMode)},setAutoFire(value:boolean){autoFire=value;},interact(){session.interact(player.position);},attack(){fire();},setDebug(value:boolean){debug=value;},teleport(p:Point){if(world.canStand(p)){player.position.set(p.x,.09,p.z);reset();}},setStick(x:number,z:number){if(modalOpen||editor.active||session.status!=='active'){stick.x=stick.z=0;return;}stick.x=Number.isFinite(x)?T.MathUtils.clamp(x,-1,1):0;stick.z=Number.isFinite(z)?T.MathUtils.clamp(z,-1,1):0;},dispose(){disposed=true;cancelAnimationFrame(frame);observer.disconnect();window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',reset);document.removeEventListener('visibilitychange',visibility);window.removeEventListener('netrunner:input-reset',reset);modalObserver.disconnect();renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointerup',up);renderer.domElement.removeEventListener('webglcontextlost',lost);renderer.domElement.removeEventListener('pointermove',hover);renderer.domElement.removeEventListener('wheel',wheel);editor.dispose();treeEditor.dispose();combat.dispose();env.dispose();mixer?.stopAllAction();disposeTree(scene);env.surfaces.dispose();environment.dispose();draco.dispose();bloom?.dispose();output?.dispose();composer?.dispose();renderer.dispose();renderer.domElement.remove();}};
 }
