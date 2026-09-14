@@ -1,6 +1,6 @@
 'use client';
 import {useCallback,useEffect,useRef,type PointerEvent} from 'react';
-import {stickVector} from '../expedition/mobile-performance';
+import {stickVector} from '../../src/input/touch/stick-vector';
 import styles from './MovementStick.module.css';
 
 export default function MovementStick({onMove,disabled=false}:{onMove:(x:number,z:number)=>void;disabled?:boolean}) {

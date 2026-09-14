@@ -7,6 +7,7 @@ import { createGltfLoader } from "../../src/renderer/three/gltf-loader";
 import { disposeObjectTree } from "../../src/renderer/three/dispose";
 import { ASSET_URLS } from "../../src/assets/registry";
 import { createFrameLoop, type FrameTick } from "../../src/core/loop/frame-loop";
+import { createMovementInput } from "../../src/input/movement-input";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
@@ -426,7 +427,7 @@ export function createBaseScene(
   const rainGeometry = new T.BufferGeometry(); rainGeometry.setAttribute("position", new T.BufferAttribute(rainPositions, 3));
   const rain = new T.LineSegments(rainGeometry, new T.LineBasicMaterial({ color: 0xb9d8d8, transparent: true, opacity: 0.19, depthWrite: false }));
   rain.frustumCulled = false; scene.add(rain);
-  const keys = new Set<string>(), stick = { x: 0, y: 0 };
+  const input = createMovementInput(), moveDirection = { x: 0, z: 0 };
   const azimuth = 0.48;
   const pivot = new T.Vector3(SPAWN.x, 1.05, SPAWN.z), desiredPivot = pivot.clone();
   const loopStart = performance.now();
@@ -463,11 +464,11 @@ export function createBaseScene(
     if(editor.active){editor.keyDown(e);return;}
     const key = e.key.toLowerCase();
     if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", "q", "e", "r", " "].includes(key)) e.preventDefault();
-    keys.add(key);
+    input.keys.add(key);
     if (key === "e" && !e.repeat && !paused) { const near = nearestStation(player.position); if (near) onInteract(near.id); }
   };
-  const keyUp = (e: KeyboardEvent) => keys.delete(e.key.toLowerCase());
-  const clearInput = () => { keys.clear(); stick.x = stick.y = 0; down = null; path = []; targetMarker.visible = false; };
+  const keyUp = (e: KeyboardEvent) => input.keys.delete(e.key.toLowerCase());
+  const clearInput = () => { input.clear(); down = null; path = []; targetMarker.visible = false; };
   const resetInput = () => { clearInput(); window.dispatchEvent(new Event("netrunner:input-reset")); };
   let modalOpen = !!document.querySelector('[aria-modal="true"]');
   const modalObserver = new MutationObserver(() => {
@@ -509,21 +510,17 @@ export function createBaseScene(
     (puddle.material as T.ShaderMaterial).uniforms.waterTime.value = reducedMotion ? 0 : time;
     let walking = false;
     if (ready && !paused && !modalOpen && !editor.active) {
-      let sx = (keys.has("d") || keys.has("arrowright") ? 1 : 0) - (keys.has("a") || keys.has("arrowleft") ? 1 : 0) + stick.x;
-      let sy = (keys.has("s") || keys.has("arrowdown") ? 1 : 0) - (keys.has("w") || keys.has("arrowup") ? 1 : 0) + stick.y;
       let dx = 0, dz = 0;
-      const length = Math.hypot(sx, sy);
-      if (length > 0.12) {
-        sx /= Math.max(1, length); sy /= Math.max(1, length); path = []; targetMarker.visible = false;
-        dx = sx * Math.cos(azimuth) + sy * Math.sin(azimuth);
-        dz = -sx * Math.sin(azimuth) + sy * Math.cos(azimuth);
+      if (input.resolve(moveDirection, azimuth, 0.12)) {
+        path = []; targetMarker.visible = false;
+        dx = moveDirection.x; dz = moveDirection.z;
       } else if (path.length) {
         const p = path[0], distance = Math.hypot(p.x - player.position.x, p.z - player.position.z);
         if (distance < 0.12) path.shift();
         else { dx = (p.x - player.position.x) / distance; dz = (p.z - player.position.z) / distance; }
         if (!path.length) targetMarker.visible = false;
       }
-      const speed = keys.has("shift") ? 5 : 3.1;
+      const speed = input.running ? 5 : 3.1;
       const next = moveWithCollision(player.position, dx * speed * dt, dz * speed * dt);
       walking = Math.hypot(next.x - player.position.x, next.z - player.position.z) > 0.0001;
       player.position.x = next.x; player.position.z = next.z;
@@ -609,9 +606,8 @@ export function createBaseScene(
     editor,setMaster(value){editor.setActive(value);resetInput();},
     setPaused(value) { paused = value; resetInput(); },
     setStick(x, y) {
-      if (editor.active || paused || modalOpen || !ready || document.hidden || contextLost) { stick.x = stick.y = 0; return; }
-      stick.x = Number.isFinite(x) ? T.MathUtils.clamp(x, -1, 1) : 0;
-      stick.y = Number.isFinite(y) ? T.MathUtils.clamp(y, -1, 1) : 0;
+      if (editor.active || paused || modalOpen || !ready || document.hidden || contextLost) { input.clearStick(); return; }
+      input.setStick(x, y);
     },
     setRain(value) { rainOn = value; },
     setQuality(value) { quality = initialQuality(mobile, value); if (quality.high) enablePostprocessing(); puddle.visible = quality.high; rainGeometry.setDrawRange(0, quality.high ? rainCount * 2 : Math.min(rainCount, 180) * 2); renderer.shadowMap.needsUpdate = true; resize(); },

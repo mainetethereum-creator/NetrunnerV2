@@ -3,6 +3,7 @@ import { createGltfLoader } from '../../src/renderer/three/gltf-loader';
 import { disposeObjectTree } from '../../src/renderer/three/dispose';
 import { ASSET_URLS } from '../../src/assets/registry';
 import { createFrameLoop, type FrameTick } from '../../src/core/loop/frame-loop';
+import { createMovementInput } from '../../src/input/movement-input';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
@@ -49,11 +50,11 @@ export function createMetro(host:HTMLElement,level:number,onState:(s:Snapshot)=>
   }).catch(()=>{if(!disposed)onError('Character could not load. Return to the refuge and try again.');});
   const resize=()=>{const w=host.clientWidth,h=host.clientHeight,ratio=Math.min(devicePixelRatio,mobile?1:1.35,Math.sqrt((mobile?850000:1500000)/Math.max(1,w*h)));renderer.setPixelRatio(ratio);composer.setPixelRatio(ratio);renderer.setSize(w,h);composer.setSize(w,h);camera.aspect=w/Math.max(1,h);camera.updateProjectionMatrix();};
   const observer=new ResizeObserver(resize);observer.observe(host);resize();
-  const keys=new Set<string>();let stick={x:0,z:0},route:Point[]=[];
-  const reset=()=>{keys.clear();stick={x:0,z:0};route=[];destination.visible=false;};
+  const input=createMovementInput(),moveDirection={x:0,z:0};let route:Point[]=[];
+  const reset=()=>{input.clear();route=[];destination.visible=false;};
   const editable=(e:KeyboardEvent)=>e.target instanceof HTMLElement&&!!e.target.closest('button,a,input,select,textarea');
-  const keydown=(e:KeyboardEvent)=>{if(editable(e))return;const k=e.key.toLowerCase();if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright','shift'].includes(k)){e.preventDefault();keys.add(k);}};
-  const keyup=(e:KeyboardEvent)=>keys.delete(e.key.toLowerCase());
+  const keydown=(e:KeyboardEvent)=>{if(editable(e))return;const k=e.key.toLowerCase();if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright','shift'].includes(k)){e.preventDefault();input.keys.add(k);}};
+  const keyup=(e:KeyboardEvent)=>input.keys.delete(e.key.toLowerCase());
   window.addEventListener('keydown',keydown);window.addEventListener('keyup',keyup);window.addEventListener('blur',reset);document.addEventListener('visibilitychange',reset);
   let pointerDown:Point|null=null;
   const down=(e:PointerEvent)=>{pointerDown={x:e.clientX,z:e.clientY};renderer.domElement.focus({preventScroll:true});};
@@ -68,12 +69,10 @@ export function createMetro(host:HTMLElement,level:number,onState:(s:Snapshot)=>
   // The shared loop keeps scheduling while hidden and skips those frames (metro's original behaviour).
   function updateFrame({now,dt}:FrameTick) {
     const time=now/1000;
-    let sx=(keys.has('d')||keys.has('arrowright')?1:0)-(keys.has('a')||keys.has('arrowleft')?1:0)+stick.x;
-    let sz=(keys.has('s')||keys.has('arrowdown')?1:0)-(keys.has('w')||keys.has('arrowup')?1:0)+stick.z;
-    let dx=0,dz=0;const len=Math.hypot(sx,sz);
-    if(len>.1){sx/=Math.max(1,len);sz/=Math.max(1,len);dx=sx*Math.cos(azimuth)+sz*Math.sin(azimuth);dz=-sx*Math.sin(azimuth)+sz*Math.cos(azimuth);route=[];destination.visible=false;}
+    let dx=0,dz=0;
+    if(input.resolve(moveDirection,azimuth,.1)){dx=moveDirection.x;dz=moveDirection.z;route=[];destination.visible=false;}
     else if(route.length){const p=route[0],distance=Math.hypot(p.x-player.position.x,p.z-player.position.z);if(distance<.14)route.shift();else{dx=(p.x-player.position.x)/distance;dz=(p.z-player.position.z)/distance;}}
-    const speed=keys.has('shift')?5:3.1,next=ready?move(world,player.position,dx*speed*dt,dz*speed*dt):player.position;
+    const speed=input.running?5:3.1,next=ready?move(world,player.position,dx*speed*dt,dz*speed*dt):player.position;
     const walking=Math.hypot(next.x-player.position.x,next.z-player.position.z)>.0001;player.position.x=next.x;player.position.z=next.z;
     if(hero&&walking){const angle=Math.atan2(dx,dz)-hero.rotation.y;hero.rotation.y+=Math.atan2(Math.sin(angle),Math.cos(angle))*Math.min(1,dt*14);}
     blend=T.MathUtils.damp(blend,walking?1:0,16,dt);run?.setEffectiveWeight(blend);mixer?.update(dt);pose?.apply(1-blend);if(!route.length)destination.visible=false;
@@ -92,5 +91,5 @@ export function createMetro(host:HTMLElement,level:number,onState:(s:Snapshot)=>
   }
   const loop=createFrameLoop({startTime:loopStart,hidden:'skip',update:updateFrame,render:renderFrame});
   loop.start();
-  return {setStick(x:number,z:number){stick={x,z};},dispose(){disposed=true;loop.dispose();observer.disconnect();window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',reset);document.removeEventListener('visibilitychange',reset);renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointerup',up);renderer.domElement.removeEventListener('webglcontextlost',lost);mixer?.stopAllAction();disposeObjectTree(scene);env.surfaces.dispose();environment.dispose();draco.dispose();bloom.dispose();output.dispose();composer.dispose();renderer.dispose();renderer.domElement.remove();}};
+  return {setStick(x:number,z:number){input.setStick(x,z);},dispose(){disposed=true;loop.dispose();observer.disconnect();window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',reset);document.removeEventListener('visibilitychange',reset);renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointerup',up);renderer.domElement.removeEventListener('webglcontextlost',lost);mixer?.stopAllAction();disposeObjectTree(scene);env.surfaces.dispose();environment.dispose();draco.dispose();bloom.dispose();output.dispose();composer.dispose();renderer.dispose();renderer.domElement.remove();}};
 }

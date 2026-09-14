@@ -31,6 +31,15 @@ test('scenes run through the shared frame loop instead of their own requestAnima
   }
 });
 
+test('scenes resolve movement input through src/input',()=>{
+  for(const file of SCENES){
+    const code=readFileSync(file,'utf8');
+    assert.match(code,/createMovementInput\(\)/,file);
+    assert.match(code,/input\.resolve\(moveDirection,\s*azimuth,/,file);
+    assert.doesNotMatch(code,/sx\s*\*\s*Math\.cos\(azimuth\)|new Set<string>\(\)[^;]*stick/,file);
+  }
+});
+
 test('pure src layers never import Three.js, UI frameworks or legacy components',()=>{
   const pure=['src/core','src/gameplay','src/world','src/input','src/shared'].filter(existsSync);
   const files=['src/assets/registry.ts'];

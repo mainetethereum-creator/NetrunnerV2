@@ -26,10 +26,5 @@ export function mobileRenderRatio(width:number,height:number,deviceRatio:number,
   const native=Math.max(1,Math.min(deviceRatio||1,1.7,Math.sqrt(1_100_000/Math.max(1,width*height))));
   return Math.max(.75,native*Math.max(MOBILE_MIN_SCALE,Math.min(1,scale)));
 }
-/** Dead zone prevents accidental drift; radial clamp keeps diagonal speed equal. */
-export function stickVector(x:number,y:number,radius:number) {
-  const length=Math.hypot(x,y),strength=Math.min(1,length/Math.max(1,radius));
-  if(strength<.12||!Number.isFinite(length))return {x:0,z:0};
-  const magnitude=(strength-.12)/.88;
-  return {x:x/length*magnitude,z:y/length*magnitude};
-}
+/** Moved to src/input/touch; re-exported for existing imports. */
+export {stickVector} from '../../src/input/touch/stick-vector.ts';
