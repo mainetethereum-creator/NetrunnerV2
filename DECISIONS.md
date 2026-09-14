@@ -99,3 +99,20 @@ fixed-step simulation.
 identical timestamps. Scenes do not use `fixedUpdate` yet: while Object3D is the source
 of truth there is no interpolation, so fixed steps would stutter on high-refresh
 displays. Movement adopts it in step 6.
+
+## ADR-013: Movement input layer
+**Status:** accepted (step 3)
+**Decision:** `src/input/movement-input.ts` (`createMovementInput`) stores held keys and
+the on-screen stick and resolves them into a camera-relative world direction with the
+scene's dead zone (base 0.12, expedition and metro 0.1) and key bindings
+(`MOVE_KEYS`, or `EDITOR_PAN_KEYS` with Q while the expedition MASTER editor pans).
+`stickVector` moved to `src/input/touch` and is re-exported from its old module.
+Scenes keep what is gameplay or scene policy: when movement is allowed (ready,
+paused, modals, editor, session status), walk/run speeds, which keys are captured
+with `preventDefault`, and action keys (E, Space, 1–4, I, H).
+**Reason:** the same key/stick/azimuth formula existed three times; input needs one
+owner before camera and player state are extracted.
+**Consequences:** `tests/input.test.mjs` proves the direction is bit-identical to the old
+formula. The metro stick is now clamped to [−1, 1] and non-finite values become 0 like
+in the other scenes; `Metro3D.tsx` already sends clamped finite values, so nothing
+changes in play.

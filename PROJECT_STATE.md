@@ -1,6 +1,6 @@
 # Project state — Netrunner / CyberBase
 
-Last updated: 2026-09-14 · branch `refactor/engine-architecture` · architecture refactor step 2.
+Last updated: 2026-09-14 · branch `refactor/engine-architecture` · architecture refactor step 3.
 
 ## Implemented (the working game — must be preserved)
 
@@ -18,8 +18,9 @@ Last updated: 2026-09-14 · branch `refactor/engine-architecture` · architectur
 | 0 · Baseline (branch, snapshot commit, checks, screenshots) | done |
 | 1 · Asset registry + shared glTF loader/disposal + boundary rules + docs | done |
 | 2 · `src/core/loop`: one frame loop for all scenes with `fixedUpdate → update → render` | done |
-| 3 · `src/input`: keyboard + stick → camera-relative move vector | next |
-| 4–12 · camera, hero animation, player state, events, renderer bootstrap, map data, dev map editor, UI modules, ECS-style systems | planned (`ARCHITECTURE.md` §5) |
+| 3 · `src/input`: keyboard + stick → camera-relative move vector | done |
+| 4 · camera rig | next |
+| 5–12 · hero animation, player state, events, renderer bootstrap, map data, dev map editor, UI modules, ECS-style systems | planned (`ARCHITECTURE.md` §5) |
 
 ## Verification
 
@@ -30,9 +31,14 @@ Last updated: 2026-09-14 · branch `refactor/engine-architecture` · architectur
 - Browser, desktop: `/`, `/expedition`, `/metro` load with no console errors and look identical. Movement over the same key hold lands on the same minimap position as in step 1 (Base W: 71.76, 76.65 vs 71.71, 76.58; Expedition D: 14.33, 33.65 vs 14.33, 33.65), so simulation speed is unchanged. requestAnimationFrame calls per 2 s before/after a `visibilitychange` event: Base 329/331, Expedition 331/331 — no duplicate loop after resume. Cybersmith route, "Talk to" dialog and Esc work; E at the breach starts extraction.
 - Mobile emulation 375×812 (touch, cadence cap active): Base and Expedition load with the stick and touch HUD; stick drag moves the player exactly as in step 1; no errors.
 
+**Step 3:**
+- `npm test` 93/93 (new `input.test.mjs` proves the resolved direction is bit-identical to the legacy scene formula for every key combination × stick values × dead zones × editor bindings; architecture test asserts all scenes resolve movement through `src/input`), lint clean, tsc clean, `npm run build` succeeds.
+- Browser A/B on the same machine state: the Browser pane was throttled to 2–5 frames per 2 s (unfocused pane, GPU shared with other running apps), so absolute distances are not comparable with step 2. The same scripted key holds were run on step 3 and on step 2 (`git stash`): Base W → (79.65643629339714, 90.88132104136145) and Expedition D → (9.177398984555857, 35.90764416489171) in **both** — bit-identical. E at the breach starts extraction; no console errors.
+- Not re-run in this step because of the throttled pane: Cybersmith route → dialog (needs ~15 s of real frames) and mobile stick drag. The stick code path changed only by moving `stickVector` (re-exported, unit-tested). Re-check both in the next browser session.
+
 ## Partially implemented
 
-- New layers: `src/assets/registry.ts`, `src/renderer/three/*`, `src/core/loop/frame-loop.ts`. Everything else still lives in `components/`.
+- New layers: `src/assets/registry.ts`, `src/renderer/three/*`, `src/core/loop/frame-loop.ts`, `src/input/*`. Everything else still lives in `components/`.
 - The loop's `fixedUpdate` phase exists and is tested but no scene uses it yet (needs render interpolation of gameplay state, step 6).
 - Asset registry covers the Draco decoder, hero model and refuge buildings; other asset paths are still hardcoded.
 - Expedition enemies are disabled; combat damage resolves at activation; level stays 1; talents are locked.
@@ -54,4 +60,4 @@ See `ARCHITECTURE.md` §5 (steps 3–12) and `docs/` feature notes.
 
 ## Next recommended task
 
-Step 3: `src/input` — extract keyboard state (WASD/arrows, Shift) and the stick into an input module that produces a camera-relative move vector with each scene's current dead zone, speeds and editor keys as parameters; scenes consume it without behaviour change.
+Step 4: camera rig — extract the fixed-angle follow camera (azimuth, distance, smoothing, reset) shared by the three scenes into `src/renderer` / `src/gameplay` without behaviour change. In parallel (owner request): integrate the CyberBase Hub, in-game HUD and Dialogue UI kits.

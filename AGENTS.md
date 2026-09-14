@@ -62,6 +62,14 @@ feature notes in `docs/` for the area you touch.
 6. Mobile controls work (stick + portrait/landscape layout).
 7. Interactions work (E / Talk to NPC dialog in Base; E prompt, extraction in Expedition).
 
+Browser checks need a **visible** page. When the Claude app's Browser pane (or any
+tab) is hidden, `document.hidden` is true and `requestAnimationFrame` never fires, so
+the game renders nothing and the player cannot move — that is the shared frame loop's
+intended `stop` behaviour, not a regression. Check `document.hidden` first.
+A visible but unfocused pane (or a GPU shared with other heavy apps) can also drop to a few
+frames per second; count `requestAnimationFrame` calls over 2 s before judging distances, and
+if the rate is low compare against `HEAD` (`git stash -u`, same script, then `git stash pop`).
+
 If any item breaks, fix it before continuing. Each architecture step is one commit
 on branch `refactor/engine-architecture`; no push or merge without the owner.
 Finishing a step also means updating `PROJECT_STATE.md`, `CODEMAP.md`,

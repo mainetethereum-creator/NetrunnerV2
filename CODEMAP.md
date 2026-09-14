@@ -9,7 +9,7 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 |---|---|
 | `app/` | Next.js routes (see ARCHITECTURE §1.1) |
 | `components/` | Game code (legacy layout, being migrated into `src/`) |
-| `src/` | New layered engine code (`assets/`, `core/loop/`, `renderer/three/`) |
+| `src/` | New layered engine code (`assets/`, `core/loop/`, `input/`, `renderer/three/`) |
 | `lib/wagmi.ts` | Base wallet (wagmi) config |
 | `public/` | Runtime assets (models, textures, atlases, draco decoder, vegetation bin, UI images) |
 | `assets/fonts/Martius` | Display font (licensed, see LICENSE.txt) |
@@ -26,6 +26,9 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 |---|---|
 | `src/assets/registry.ts` | **[P]** Runtime asset URLs (Draco decoder, hero model, refuge buildings) + `registeredAssetFiles()` |
 | `src/core/loop/frame-loop.ts` | **[E]** `createFrameLoop` — rAF scheduling, hidden-tab `stop`/`skip`, mobile cadence cap, clamped delta, `fixedUpdate → update → render` with `alpha`; injectable platform |
+| `src/input/movement-input.ts` | **[P]** `createMovementInput` — held keys + stick → camera-relative direction (`resolve`), run key, stick clamping |
+| `src/input/keyboard/move-keys.ts` | **[P]** WASD/arrow bindings, expedition editor pan bindings (Q as back), `keyAxis` |
+| `src/input/touch/stick-vector.ts` | **[P]** `stickVector` dead zone + radial clamp (re-exported by `expedition/mobile-performance.ts`) |
 | `src/renderer/three/gltf-loader.ts` | **[3]** `createGltfLoader()` — GLTFLoader with shared Draco decoder |
 | `src/renderer/three/dispose.ts` | **[3]** `disposeObjectTree()` — dispose geometries, materials, textures once |
 
@@ -81,7 +84,7 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 | `fence-layout.ts` | **[P]** Fence ids, lengths, snapping, colliders |
 | `grass-system/` | **[3]** MIT grass (+ noise GLSL) |
 | `prop-editor.ts`, `tree-editor.ts` | **[3]** MASTER editor adapters (lazy) |
-| `mobile-performance.ts` | **[P]** Touch profile, mobile render budget, `stickVector` (also used by base) |
+| `mobile-performance.ts` | **[P]** Touch profile, mobile render budget (also used by base); re-exports `stickVector` from `src/input/touch` |
 | `frame-throttle.ts` | **[E]** Rate limiter / throttled scheduler |
 
 ## components/game — shared gameplay UI and character
@@ -135,7 +138,8 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 
 | File | Covers |
 |---|---|
-| `engine-architecture.test.mjs` | Asset registry files exist; scenes use shared loader/disposal and the shared frame loop; pure `src` layers import no three/react/components |
+| `engine-architecture.test.mjs` | Asset registry files exist; scenes use shared loader/disposal, the shared frame loop and `src/input` movement; pure `src` layers import no three/react/components |
+| `input.test.mjs` | Movement direction is bit-identical to the legacy scene formula (all key combos × stick values × dead zones × editor bindings), stick clamping, `stickVector` re-export |
 | `frame-loop.test.mjs` | Frame timing equals the legacy scene loops (incl. mobile cadence cap), hidden-tab modes, stop/dispose, fixed steps and alpha, exceptions |
 | `base-world`, `base-npc`, `base-quality` | Base navigation, NPC editing hooks, quality |
 | `expedition`, `vegetation`, `tree-editor`, `security-fences`, `cyber-buildings`, `legacy-building-concrete` | Expedition routes/session, vegetation budget & graph, editors, catalogue budgets |
