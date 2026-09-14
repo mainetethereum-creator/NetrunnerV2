@@ -16,7 +16,12 @@ export const ASSET_URLS = {
   refugeBuilding: (name: RefugeBuildingModel) => `/base/models/${name}.glb`,
   /** UI artwork imported from the CyberBase UI kits (`scripts/import-ui-kits.mjs`). Text is never baked in. */
   ui: {
-    hubBackdrop: "/ui/hub/backdrop.webp",
+    /** Hub background per layout; CSS loads only the one that matches the screen. */
+    hubBackdrop: {
+      desktop: "/ui/hub/backdrop-desktop.webp",
+      landscape: "/ui/hub/backdrop-landscape.webp",
+      portrait: "/ui/hub/backdrop-portrait.webp",
+    },
     hubCharacter: "/ui/hub/character.webp",
     runnerAvatar: "/ui/hub/avatar-runner.webp",
     hubCards: {
@@ -37,7 +42,7 @@ export function registeredAssetFiles(): string[] {
     `${ASSET_URLS.dracoDecoder}draco_decoder.js`,
     ASSET_URLS.heroModel,
     ...REFUGE_BUILDINGS.map(ASSET_URLS.refugeBuilding),
-    ASSET_URLS.ui.hubBackdrop,
+    ...Object.values(ASSET_URLS.ui.hubBackdrop),
     ASSET_URLS.ui.hubCharacter,
     ASSET_URLS.ui.runnerAvatar,
     ...Object.values(ASSET_URLS.ui.hubCards),

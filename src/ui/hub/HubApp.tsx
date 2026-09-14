@@ -132,7 +132,9 @@ function WalletControl() {
 
 export default function HubApp() {
   const layers = {
-    '--hub-backdrop': `url(${ASSET_URLS.ui.hubBackdrop})`,
+    '--hub-backdrop-desktop': `url(${ASSET_URLS.ui.hubBackdrop.desktop})`,
+    '--hub-backdrop-landscape': `url(${ASSET_URLS.ui.hubBackdrop.landscape})`,
+    '--hub-backdrop-portrait': `url(${ASSET_URLS.ui.hubBackdrop.portrait})`,
     '--hub-character': `url(${ASSET_URLS.ui.hubCharacter})`,
     '--hub-avatar': `url(${ASSET_URLS.ui.runnerAvatar})`,
   } as CSSProperties;

@@ -43,8 +43,8 @@
   inset: 0;
   z-index: -3;
   background:
-    linear-gradient(180deg, rgba(4, 10, 21, 0.2) 0%, rgba(4, 10, 21, 0.55) 34%, var(--navy) 62%),
-    var(--hub-backdrop) center top / cover no-repeat;
+    linear-gradient(180deg, rgba(4, 10, 21, 0.1) 0%, rgba(4, 10, 21, 0.35) 38%, rgba(4, 10, 21, 0.82) 72%, var(--navy) 100%),
+    var(--hub-backdrop-portrait) center top / cover no-repeat;
 }
 
 .backdrop::after {
@@ -367,6 +367,13 @@ a.navItem:hover { color: var(--text); }
   .tagline { display: none; }
   .profile > span:last-child { display: block; }
 
+  .backdrop {
+    background:
+      linear-gradient(90deg, rgba(4, 10, 21, 0.82) 0%, rgba(4, 10, 21, 0.2) 34%, rgba(4, 10, 21, 0.2) 62%, rgba(4, 10, 21, 0.62) 100%),
+      linear-gradient(180deg, transparent 50%, rgba(4, 10, 21, 0.88) 100%),
+      var(--hub-backdrop-landscape) center / cover no-repeat;
+  }
+
   .character {
     left: calc(max(14px, env(safe-area-inset-left)) + 21vw - 3vw);
     top: 40px;
@@ -495,7 +502,7 @@ a.navItem:hover { color: var(--text); }
     background:
       linear-gradient(90deg, rgba(4, 10, 21, 0.9) 0%, rgba(4, 10, 21, 0.25) 30%, rgba(4, 10, 21, 0.2) 55%, rgba(4, 10, 21, 0.85) 78%),
       linear-gradient(180deg, rgba(4, 10, 21, 0.1) 60%, var(--navy)),
-      var(--hub-backdrop) center / cover no-repeat;
+      var(--hub-backdrop-desktop) center / cover no-repeat;
   }
 
   .character {

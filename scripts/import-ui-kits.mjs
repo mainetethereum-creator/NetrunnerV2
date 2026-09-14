@@ -30,7 +30,6 @@ const ART = [
   {out: 'public/ui/hub/card-season.webp', src: `${HUB}/shared/png/season_card.png`, crop: [720, 240, 740, 462], width: 640},
   {out: 'public/ui/hub/card-skynet.webp', src: `${HUB}/shared/png/skynet_card.png`, crop: [810, 200, 630, 530], width: 600},
   {out: 'public/ui/hub/card-nft.webp', src: `${HUB}/shared/png/nft_card.png`, crop: [840, 234, 640, 464], width: 600},
-  {out: 'public/ui/hub/backdrop.webp', src: `${HUB}/shared/png/base_card.png`, crop: [112, 294, 1226, 440], width: 1226, quality: 72},
   {out: 'public/ui/hub/avatar-runner.webp', src: `${HUB}/shared/png/profile_panel.png`, crop: [378, 226, 244, 272], width: 160, quality: 82},
 ];
 

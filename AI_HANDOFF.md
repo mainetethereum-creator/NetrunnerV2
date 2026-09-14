@@ -10,7 +10,7 @@ Kit mapping, rules and sizes: `docs/ui-kits/README.md`. Decision: ADR-014.
 - **Assets:** `scripts/import-ui-kits.mjs` crops kit artwork to regions without baked text,
   converts it to WebP (`public/ui/hub`, ≈ 440 KB instead of ≈ 66 MB of zips) and writes small
   references + layout grids to `docs/ui-kits`. URLs are in `src/assets/registry.ts` (`ASSET_URLS.ui`).
-- **Hub** (`src/ui/hub`, route `/`): backdrop and character layers, logo, profile, wallet menu
+- **Hub** (`src/ui/hub`, route `/`): per-layout owner backdrops (ADR-017) and character layer, logo, profile, wallet menu
   (wagmi), navigation (side list on desktop / landscape, tab bar in portrait), PLAY → `/base`
   (the only link into the game: wallet → hub → PLAY → base → expedition or metro, ADR-015),
   cards Season, SkyNet, NFT ("coming soon"). Text is React,
@@ -42,8 +42,8 @@ Changed: `app/page.tsx`, `app/globals.css`, `src/assets/registry.ts`, `component
 ## 3. Key decisions
 
 - Kit PNGs for HUD and Dialogue are flat placeholders with baked text → rebuilt in CSS, no images shipped.
-- Hub cards and character use real kit artwork, cropped so no baked text remains; the Base card
-  artwork is the hub backdrop (`backdrop.webp`). Hub icons are inline SVG.
+- Hub cards and character use real kit artwork, cropped so no baked text remains; the hub
+  backdrops are separate owner images per layout, WebP q92 (`backdrop-{desktop,landscape,portrait}.webp`). Hub icons are inline SVG.
 - The skin is additive CSS; removing the "UI kit skin" blocks restores the previous look.
 
 ## 4. Commands

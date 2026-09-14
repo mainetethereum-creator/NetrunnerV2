@@ -141,6 +141,17 @@ on desktop and mobile. The Base card artwork stays as the hub backdrop (`backdro
 for expeditions and the metro.
 **Consequences:** `tests/hub.test.mjs` fails if a hub item links anywhere but `/` or `/base`.
 
+## ADR-017: Hub backdrops per layout
+**Status:** accepted (owner, 2026-09-14) · replaces the backdrop part of ADR-015
+**Decision:** The hub uses three owner-provided backgrounds — desktop, mobile landscape and mobile
+portrait — stored as `public/ui/hub/backdrop-{desktop,landscape,portrait}.webp` at the full source
+resolution (1672 × 941 / 941 × 1672), WebP quality 92. CSS assigns one per breakpoint, so a device
+downloads only the backdrop it shows. The Base card crop is no longer used.
+**Reason:** owner art for the hub; q92 is visually lossless (identical to the PNG at 2× zoom) at
+≈ 290 KB per image, while strictly lossless WebP would be ≈ 1.6 MB each.
+**Consequences:** URLs live in `ASSET_URLS.ui.hubBackdrop`; to change a background, overwrite the file
+with the same settings (see `docs/ui-kits/README.md`).
+
 ## ADR-016: Wallet-first access, EVM wallets, Base as the primary chain
 **Status:** accepted as a product rule (owner, 2026-09-14) · **not implemented yet**
 **Decision:**

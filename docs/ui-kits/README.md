@@ -33,12 +33,13 @@ Every kit has three layouts: **desktop**, **mobile landscape**, **mobile portrai
 |---|---|---|
 | `public/ui/hub/character.webp` | `character.png` (trimmed) | 2.1 MB → 139 KB |
 | `public/ui/hub/card-{season,skynet,nft}.webp` | card PNGs, cropped to artwork without baked text / buttons | 4.2 MB → 164 KB |
-| `public/ui/hub/backdrop.webp` | artwork of `base_card.png` (hub backdrop) | 1.6 MB → 115 KB |
+| `public/ui/hub/backdrop-{desktop,landscape,portrait}.webp` | owner backgrounds (not from the kits, see below), full resolution, WebP q92 | 6.6 MB → ≈ 880 KB (one loads per device) |
 | `public/ui/hub/avatar-runner.webp` | portrait from `profile_panel.png` | 706 KB → 7 KB |
 | `docs/ui-kits/references/*.webp` | 9 reference screens, 900 px wide | 11.9 MB → 383 KB |
 | `docs/ui-kits/layouts/*.json` | 9 `layout.json` grids | copied |
 
-Runtime total: **≈ 440 KB** (was ≈ 66 MB in the zips). The hub has no Base / Metro cards:
+Runtime total: **≈ 1.2 MB** of UI images, of which a device downloads **≈ 0.6 MB** (one backdrop);
+the kit zips were ≈ 66 MB. The hub has no Base / Metro cards:
 the player flow is wallet → hub → PLAY → base → expedition or metro (ADR-015), so the metro card
 artwork is not imported.
 Not imported: duplicate copies of the same PNGs per variant, hub icons (replaced by SVG in
@@ -48,6 +49,17 @@ Dialogue placeholder PNGs.
 Runtime URLs are registered in `src/assets/registry.ts` (`ASSET_URLS.ui`);
 `tests/engine-architecture.test.mjs` and `tests/hub.test.mjs` check the files exist and that
 no reference image is shipped from `public/`.
+
+## Hub backdrops (ADR-017)
+
+Three owner backgrounds, one per layout: desktop (1672 × 941), mobile landscape (1672 × 941) and
+mobile portrait (941 × 1672). They are compressed at full resolution with WebP quality 92, which is
+visually lossless (checked side by side at 2× zoom); strictly lossless WebP was ≈ 1.6 MB per image.
+To replace one, overwrite the file with the same settings:
+
+```bash
+node -e "require('sharp')('new.png').webp({quality:92,effort:6,smartSubsample:true}).toFile('public/ui/hub/backdrop-desktop.webp')"
+```
 
 ## Re-importing after a kit update
 
