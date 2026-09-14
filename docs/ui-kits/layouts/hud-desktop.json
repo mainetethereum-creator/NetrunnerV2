@@ -1,0 +1,97 @@
+{
+  "canvas": [
+    1536,
+    864
+  ],
+  "reference": "references/desktop.png",
+  "assets": {
+    "player_panel": {
+      "file": "assets/player_panel.png",
+      "x": 26,
+      "y": 25,
+      "w": 400,
+      "h": 88
+    },
+    "objective_panel": {
+      "file": "assets/objective_panel.png",
+      "x": 24,
+      "y": 150,
+      "w": 380,
+      "h": 165
+    },
+    "location_header": {
+      "file": "assets/location_header.png",
+      "x": 670,
+      "y": 18,
+      "w": 380,
+      "h": 52
+    },
+    "minimap": {
+      "file": "assets/minimap_panel_desktop.png",
+      "x": 1145,
+      "y": 24,
+      "w": 350,
+      "h": 250
+    },
+    "search_prompt": {
+      "file": "assets/search_prompt.png",
+      "x": 490,
+      "y": 335,
+      "w": 230,
+      "h": 78
+    },
+    "chat_bar": {
+      "file": "assets/chat_bar.png",
+      "x": 30,
+      "y": 760,
+      "w": 345,
+      "h": 48
+    },
+    "system_msg": {
+      "file": "assets/system_msg.png",
+      "x": 30,
+      "y": 732,
+      "w": 220,
+      "h": 28
+    },
+    "skills_grid_origin": {
+      "slot_file": "assets/skill_slot_empty.png",
+      "x": 608,
+      "y": 747,
+      "cols": 4,
+      "rows": 1,
+      "gap_x": 11,
+      "gap_y": 0,
+      "slot_w": 72,
+      "slot_h": 72
+    },
+    "button_run": {
+      "file": "assets/button_run.png",
+      "x": 1182,
+      "y": 745,
+      "w": 60,
+      "h": 60
+    },
+    "button_backpack": {
+      "file": "assets/button_backpack.png",
+      "x": 1270,
+      "y": 745,
+      "w": 60,
+      "h": 60
+    },
+    "button_map": {
+      "file": "assets/button_map.png",
+      "x": 1358,
+      "y": 745,
+      "w": 60,
+      "h": 60
+    },
+    "button_menu": {
+      "file": "assets/button_menu.png",
+      "x": 1446,
+      "y": 745,
+      "w": 60,
+      "h": 60
+    }
+  }
+}

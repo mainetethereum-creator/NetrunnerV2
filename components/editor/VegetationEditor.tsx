@@ -109,7 +109,7 @@ export default function VegetationEditor() {
       <button disabled={!ready} onClick={download}>Скачать готовые модели · JSON</button>
       <button onClick={() => {try {localStorage.removeItem(VEGETATION_KEY); setNotice('Восстановлен опубликованный вариант растительности.');} catch {setNotice('Хранилище недоступно.');}}}>Сбросить локальный вариант</button>
       <Link href="/expedition?debug=1&vegetation=1">Открыть лесной участок в игре →</Link>
-      <Link href="/">← На базу</Link>
+      <Link href="/base">← На базу</Link>
       <p role="status">{notice}</p>
       <footer><a href="https://github.com/achrefelouafi/VegetationGeneratorThreeJS" target="_blank" rel="noreferrer">VegetationGeneratorThreeJS</a> · MIT<br/>Деревья: mohamedachrefelouafi. Трава: CyberBase.<br/>Перетаскивание — обзор · колесо — масштаб.</footer>
     </aside>

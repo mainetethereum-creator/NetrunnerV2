@@ -187,6 +187,7 @@ export default function BaseApp() {
           <button onClick={() => { const next = quality === "auto" ? "high" : quality === "high" ? "lite" : "auto"; setQuality(next); engine.current?.setQuality(next); }}><span>Graphics quality</span><strong>{quality.toUpperCase()} · {snapshot.high ? "HIGH" : "LITE"}</strong></button>
           <button onClick={() => setShowStats(!showStats)} aria-pressed={showStats}><span>Live performance display</span><strong>{showStats ? "ON" : "OFF"}</strong></button>
           <button onClick={() => engine.current?.resetCamera()}><span>Reset camera</span><span>↺</span></button>
+          <button onClick={() => router.push("/")}><span>Return to hub</span><span>↩</span></button>
         </div><p className={styles.modalCopy}>Auto reduces reflections and render resolution if this device stays below the target frame rate. Lite keeps the scanned materials and environment lighting. High adds live puddle reflections and bloom.</p><p className={styles.modalCopy}>WASD / arrows to move, Shift to run. The fixed-angle camera follows your movement. On a phone, use the thumbstick and Talk button.</p><div className={styles.diagnostics}>THREE.JS <span>{snapshot.fps} FPS · {snapshot.p95} ms p95 · {snapshot.draws} draws</span></div><p className={styles.notice}>{snapshot.submitMs} ms CPU submission (not GPU time). {snapshot.timingLimited ? "Possible browser timer limit: measure in a foreground browser before judging performance." : "Measure on your target phone; desktop results are not a mobile guarantee."}</p></>}
       </div>
     </div>}

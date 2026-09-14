@@ -1,0 +1,63 @@
+{
+  "canvas": [
+    896,
+    1536
+  ],
+  "reference": "reference_mobile_portrait.png",
+  "assets": {
+    "character": [
+      15,
+      95,
+      520,
+      520
+    ],
+    "profile_panel": [
+      445,
+      18,
+      205,
+      65
+    ],
+    "wallet_panel": [
+      650,
+      18,
+      220,
+      65
+    ],
+    "play_button": [
+      40,
+      505,
+      815,
+      120
+    ],
+    "season_card": [
+      40,
+      640,
+      815,
+      190
+    ],
+    "skynet_card": [
+      40,
+      842,
+      815,
+      210
+    ],
+    "nft_card": [
+      40,
+      1068,
+      815,
+      170
+    ],
+    "base_card": [
+      40,
+      1250,
+      405,
+      150
+    ],
+    "metro_card": [
+      455,
+      1250,
+      400,
+      150
+    ]
+  }
+}

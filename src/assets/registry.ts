@@ -14,6 +14,19 @@ export const ASSET_URLS = {
   heroModel: "/game/models/mixamo/neon-sentinel-mixamo-test.glb",
   /** Refuge buildings placed by the base scene. */
   refugeBuilding: (name: RefugeBuildingModel) => `/base/models/${name}.glb`,
+  /** UI artwork imported from the CyberBase UI kits (`scripts/import-ui-kits.mjs`). Text is never baked in. */
+  ui: {
+    hubBackdrop: "/ui/hub/card-base.webp",
+    hubCharacter: "/ui/hub/character.webp",
+    runnerAvatar: "/ui/hub/avatar-runner.webp",
+    hubCards: {
+      season: "/ui/hub/card-season.webp",
+      skynet: "/ui/hub/card-skynet.webp",
+      nft: "/ui/hub/card-nft.webp",
+      base: "/ui/hub/card-base.webp",
+      metro: "/ui/hub/card-metro.webp",
+    },
+  },
 } as const;
 
 const REFUGE_BUILDINGS: readonly RefugeBuildingModel[] = ["workshop", "oracle", "city-gate"];
@@ -26,5 +39,8 @@ export function registeredAssetFiles(): string[] {
     `${ASSET_URLS.dracoDecoder}draco_decoder.js`,
     ASSET_URLS.heroModel,
     ...REFUGE_BUILDINGS.map(ASSET_URLS.refugeBuilding),
+    ASSET_URLS.ui.hubCharacter,
+    ASSET_URLS.ui.runnerAvatar,
+    ...Object.values(ASSET_URLS.ui.hubCards),
   ];
 }

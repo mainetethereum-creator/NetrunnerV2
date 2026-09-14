@@ -1,0 +1,83 @@
+{
+  "canvas": [
+    864,
+    1536
+  ],
+  "reference": "references/mobile_portrait.png",
+  "assets": {
+    "player_panel": {
+      "file": "assets/player_panel.png",
+      "x": 28,
+      "y": 26,
+      "w": 405,
+      "h": 90
+    },
+    "objective_panel": {
+      "file": "assets/objective_panel.png",
+      "x": 30,
+      "y": 155,
+      "w": 390,
+      "h": 170
+    },
+    "minimap": {
+      "file": "assets/minimap_panel_portrait.png",
+      "x": 541,
+      "y": 38,
+      "w": 280,
+      "h": 300
+    },
+    "search_prompt": {
+      "file": "assets/search_prompt.png",
+      "x": 459,
+      "y": 676,
+      "w": 230,
+      "h": 76
+    },
+    "joystick": {
+      "file": "assets/joystick.png",
+      "x": 24,
+      "y": 1160,
+      "w": 220,
+      "h": 220
+    },
+    "button_run": {
+      "file": "assets/button_run.png",
+      "x": 58,
+      "y": 1340,
+      "w": 74,
+      "h": 74
+    },
+    "skills_grid_origin": {
+      "slot_file": "assets/skill_slot_empty.png",
+      "x": 342,
+      "y": 1196,
+      "cols": 2,
+      "rows": 2,
+      "gap_x": 12,
+      "gap_y": 12,
+      "slot_w": 100,
+      "slot_h": 100
+    },
+    "attack_button": {
+      "file": "assets/attack_button_crossed.png",
+      "x": 612,
+      "y": 1186,
+      "w": 180,
+      "h": 180
+    },
+    "button_backpack": {
+      "file": "assets/button_backpack.png",
+      "x": 730,
+      "y": 1382,
+      "w": 88,
+      "h": 88
+    },
+    "button_menu": {
+      "file": "assets/button_menu.png",
+      "x": 740,
+      "y": 84,
+      "w": 72,
+      "h": 72
+    }
+  }
+}

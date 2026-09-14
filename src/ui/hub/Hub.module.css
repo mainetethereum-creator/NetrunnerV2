@@ -1,0 +1,595 @@
+/* CyberBase Hub. Mobile portrait first, then mobile landscape, then desktop
+   (breakpoints from docs/ui-kits/README.md). */
+
+.hub {
+  --navy: #040a15;
+  --panel: rgba(7, 15, 31, 0.84);
+  --panel-solid: #07122a;
+  --line: rgba(84, 150, 240, 0.6);
+  --line-soft: rgba(84, 150, 240, 0.26);
+  --cyan: #4ab8ff;
+  --yellow: #ffd62e;
+  --text: #eaf2ff;
+  --muted: #93a8c8;
+  --red: #ff4052;
+  --violet: #9a82ff;
+  --cut: 12px;
+  --font-tech: "Bahnschrift", "DIN Alternate", "Roboto Condensed", "Arial Narrow", system-ui, sans-serif;
+
+  position: relative;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "header" "hero" "content" "footer";
+  gap: 12px;
+  padding: max(12px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right))
+    calc(78px + env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+  background: var(--navy);
+  color: var(--text);
+  font-family: var(--font-tech);
+  letter-spacing: 0.02em;
+}
+
+.hub a { color: inherit; text-decoration: none; }
+.hub button { font: inherit; color: inherit; cursor: pointer; }
+.hub :focus-visible { outline: 2px solid var(--yellow); outline-offset: 3px; }
+
+/* Layers ------------------------------------------------------------------ */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  background:
+    linear-gradient(180deg, rgba(4, 10, 21, 0.2) 0%, rgba(4, 10, 21, 0.55) 34%, var(--navy) 62%),
+    var(--hub-backdrop) center top / cover no-repeat;
+}
+
+.backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 40% 20%, transparent 25%, rgba(3, 8, 18, 0.75) 100%);
+}
+
+.character {
+  position: absolute;
+  z-index: -2;
+  left: -6%;
+  top: 52px;
+  width: min(74%, 420px);
+  height: clamp(250px, 76vw, 460px);
+  background: var(--hub-character) left top / 100% auto no-repeat;
+  -webkit-mask-image: linear-gradient(180deg, #000 70%, transparent);
+  mask-image: linear-gradient(180deg, #000 70%, transparent);
+  pointer-events: none;
+}
+
+/* Framed panels: outer layer draws the border, ::before fills the inside. ---- */
+
+.profile, .wallet, .walletMenu, .play, .card, .cardArrow, .play i {
+  position: relative;
+  isolation: isolate;
+  clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
+  background: var(--frame, var(--line));
+}
+
+.profile::before, .wallet::before, .walletMenu::before, .play::before, .card::before, .cardArrow::before, .play i::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  z-index: -1;
+  clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
+  background: var(--fill, var(--panel));
+}
+
+/* Header ------------------------------------------------------------------ */
+
+.header {
+  grid-area: header;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.logo { margin: 0; min-width: 0; }
+.logo a { display: flex; flex-direction: column; gap: 3px; }
+.logo strong {
+  font-size: clamp(20px, 6.2vw, 30px);
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  line-height: 1;
+  text-shadow: 0 0 18px rgba(74, 184, 255, 0.55);
+}
+.logo small {
+  font-size: 8px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.tagline { display: none; }
+
+.account { display: flex; align-items: center; gap: 8px; min-width: 0; }
+
+.profile {
+  --cut: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 4px 4px;
+}
+.profile > span:last-child { display: none; }
+.profile strong { display: block; font-size: 13px; font-weight: 600; }
+.profile small { display: block; font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+.avatar {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  background: #0b1830 var(--hub-avatar) center / cover no-repeat;
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+}
+
+.walletWrap { position: relative; }
+
+.wallet {
+  --cut: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.wallet svg { width: 18px; height: 18px; color: var(--cyan); flex: none; }
+.wallet svg:last-child { width: 14px; height: 14px; }
+.wallet:hover { --frame: var(--cyan); }
+
+.walletMenu {
+  --cut: 10px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 20;
+  width: min(290px, calc(100vw - 28px));
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  font-size: 12px;
+  --fill: rgba(6, 13, 28, 0.97);
+}
+.walletMenu small { color: var(--muted); line-height: 1.5; }
+.walletMenu code { font-size: 11px; overflow-wrap: anywhere; }
+.walletMenu p { margin: 0; color: #ffcf7a; }
+.walletMenu button {
+  min-height: 44px;
+  border: 1px solid var(--line-soft);
+  background: rgba(20, 44, 84, 0.6);
+  text-align: left;
+  padding: 0 12px;
+}
+.walletMenu button:hover:not(:disabled) { border-color: var(--cyan); }
+.walletMenu button:disabled { opacity: 0.5; cursor: wait; }
+
+/* Navigation: tab bar in portrait ---------------------------------------- */
+
+.nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  padding: 4px max(6px, env(safe-area-inset-right)) calc(4px + env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
+  background: linear-gradient(180deg, rgba(5, 11, 23, 0.9), #040a15);
+  border-top: 1px solid var(--line-soft);
+}
+.nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+.wideOnly, .navSlogan { display: none; }
+
+.navItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 54px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.navItem svg { width: 22px; height: 22px; }
+.navItem em { display: none; }
+.navItem[aria-current="page"] { color: var(--yellow); }
+.navSoon { opacity: 0.5; cursor: default; }
+a.navItem:hover { color: var(--text); }
+
+/* Hero ---------------------------------------------------------------------- */
+
+.hero {
+  grid-area: hero;
+  min-height: clamp(170px, 50vw, 330px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+.slogan {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.35;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-align: right;
+  color: rgba(234, 242, 255, 0.72);
+}
+
+/* Content: play + cards, placed with grid areas ----------------------------- */
+
+.content {
+  grid-area: content;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-areas: "play play" "season season" "skynet skynet" "nft nft" "base metro";
+  gap: 12px;
+  min-width: 0;
+}
+.cards { display: contents; list-style: none; }
+.cards li { min-width: 0; filter: drop-shadow(0 0 8px var(--glow, rgba(74, 150, 255, 0.28))); }
+.area_season { grid-area: season; }
+.area_skynet { grid-area: skynet; }
+.area_nft { grid-area: nft; }
+.area_base { grid-area: base; }
+.area_metro { grid-area: metro; }
+
+.playWrap { grid-area: play; filter: drop-shadow(0 0 14px rgba(255, 214, 46, 0.45)); }
+.play {
+  --cut: 14px;
+  --frame: #fff1a0;
+  --fill: linear-gradient(180deg, #ffe45c 0%, #ffd21f 55%, #f0b900 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 92px;
+  padding: 0 64px;
+  color: #141005;
+}
+.play > svg { width: 34px; height: 34px; fill: currentColor; }
+.play strong {
+  display: block;
+  font-size: 42px;
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.play small {
+  display: block;
+  margin-top: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+}
+.play i {
+  --cut: 7px;
+  --frame: #1b1706;
+  --fill: #17130a;
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  color: var(--yellow);
+}
+.play i svg { width: 22px; height: 22px; }
+.play:hover { --fill: linear-gradient(180deg, #fff07a 0%, #ffdb3d 55%, #f5c41c 100%); }
+
+.card {
+  --fill: linear-gradient(90deg, var(--panel-solid) 30%, rgba(7, 18, 42, 0.35) 62%, rgba(7, 18, 42, 0.05)), var(--art) right center / cover no-repeat;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  height: 100%;
+  min-height: 148px;
+  padding: 16px 14px 14px 18px;
+}
+.blue { --frame: rgba(88, 160, 255, 0.85); --accent: #7fc4ff; }
+.red { --frame: rgba(255, 64, 82, 0.85); --accent: #ff6b78; }
+.violet { --frame: rgba(154, 130, 255, 0.85); --accent: #b6a6ff; }
+.area_skynet { --glow: rgba(255, 64, 82, 0.3); }
+.area_nft { --glow: rgba(154, 130, 255, 0.3); }
+.area_metro { --glow: rgba(255, 64, 82, 0.25); }
+a.card:hover { --frame: var(--yellow); }
+
+.cardText { display: flex; flex-direction: column; gap: 4px; max-width: 62%; align-self: center; }
+.cardText strong {
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 10px #000;
+}
+.subtitle { font-size: 13px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); }
+.note { margin-top: 6px; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.eyebrow { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--red); }
+
+.cardArrow {
+  --cut: 7px;
+  --frame: rgba(120, 150, 200, 0.45);
+  --fill: rgba(5, 10, 20, 0.92);
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  color: var(--yellow);
+}
+.cardArrow svg { width: 20px; height: 20px; }
+.status {
+  flex: none;
+  padding: 5px 8px;
+  border: 1px solid var(--line-soft);
+  background: rgba(5, 10, 20, 0.8);
+  font-size: 9px;
+  font-style: normal;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Base and Metro tiles: art fills the card, text at the bottom. */
+.area_base .card, .area_metro .card {
+  --fill: linear-gradient(0deg, var(--panel-solid) 12%, rgba(7, 18, 42, 0.2) 62%), var(--art) center / cover no-repeat;
+  min-height: 136px;
+}
+.area_base .cardText, .area_metro .cardText { max-width: none; align-self: flex-end; }
+.area_base .cardText strong, .area_metro .cardText strong { font-size: 20px; }
+.area_base .subtitle, .area_metro .subtitle { font-size: 11px; }
+.area_base .cardArrow, .area_metro .cardArrow { width: 34px; height: 34px; }
+
+.footer {
+  grid-area: footer;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px 16px;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.footer b { color: var(--cyan); font-weight: 400; }
+
+/* Mobile landscape ---------------------------------------------------------- */
+
+@media (min-width: 700px) and (orientation: landscape) {
+  .hub {
+    grid-template-columns: minmax(180px, 21vw) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    grid-template-areas: "header header" "nav hero" "nav content" "footer footer";
+    column-gap: 18px;
+    row-gap: 10px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+  }
+
+  .tagline { display: none; }
+  .profile > span:last-child { display: block; }
+
+  .character {
+    left: calc(max(14px, env(safe-area-inset-left)) + 21vw - 3vw);
+    top: 40px;
+    width: 34vw;
+    height: calc(100% - 40px);
+    background-size: contain;
+    background-position: left top;
+  }
+
+  .nav {
+    grid-area: nav;
+    position: relative;
+    inset: auto;
+    padding: 0;
+    background: none;
+    border: 0;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .nav ul {
+    grid-template-columns: 1fr;
+    gap: 2px;
+    padding: 6px;
+    background: var(--panel);
+    border: 1px solid var(--line-soft);
+  }
+  .wideOnly { display: block; }
+  .navItem {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 12px;
+    min-height: 40px;
+    padding: 0 10px;
+    font-size: 13px;
+    color: var(--text);
+  }
+  .navItem svg { width: 20px; height: 20px; color: #8fc3ff; }
+  .navItem em {
+    display: inline;
+    margin-left: auto;
+    font-size: 8px;
+    font-style: normal;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+  }
+  .navItem[aria-current="page"] {
+    color: var(--yellow);
+    background: linear-gradient(90deg, rgba(255, 214, 46, 0.16), transparent);
+    box-shadow: inset 3px 0 0 var(--yellow);
+  }
+  .navItem[aria-current="page"] svg { color: var(--yellow); }
+  .navSoon { opacity: 0.62; }
+
+  .hero { min-height: 60px; align-items: flex-start; }
+  .slogan { font-size: 11px; }
+
+  .content {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-areas: ". . play play play" "season skynet nft base metro";
+    gap: 10px;
+  }
+  .play { min-height: 84px; padding: 0 56px; }
+  .play strong { font-size: 36px; }
+
+  .card, .area_base .card, .area_metro .card {
+    --fill: linear-gradient(180deg, var(--panel-solid) 6%, rgba(7, 18, 42, 0.25) 52%, rgba(7, 18, 42, 0.8)), var(--art) center / cover no-repeat;
+    min-height: 150px;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px;
+  }
+  .cardText, .area_base .cardText, .area_metro .cardText { max-width: none; align-self: stretch; }
+  .cardText strong, .area_base .cardText strong, .area_metro .cardText strong { font-size: 17px; }
+  .subtitle, .area_base .subtitle, .area_metro .subtitle { font-size: 10px; letter-spacing: 0.08em; }
+  .note { display: none; }
+  .cardArrow, .area_base .cardArrow, .area_metro .cardArrow { align-self: flex-end; width: 32px; height: 32px; margin-top: auto; }
+  .status { align-self: flex-end; margin-top: auto; }
+}
+
+/* Short phone landscape: everything above the fold. */
+@media (min-width: 700px) and (orientation: landscape) and (max-height: 500px) {
+  .hub { row-gap: 8px; padding-top: max(8px, env(safe-area-inset-top)); }
+  .logo strong { font-size: 22px; }
+  .slogan { display: none; }
+  .character { top: 30px; }
+
+  .nav ul { gap: 0; padding: 4px; }
+  .wideOnly { display: none; }
+  .navItem { min-height: 31px; font-size: 12px; gap: 10px; }
+  .navItem svg { width: 17px; height: 17px; }
+  .navItem span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .navItem em { font-size: 7px; }
+
+  .play { min-height: 64px; padding: 0 50px; gap: 10px; }
+  .play > svg { width: 24px; height: 24px; }
+  .play strong { font-size: 28px; }
+  .play small { font-size: 9px; margin-top: 3px; }
+  .play i { width: 34px; height: 34px; right: 10px; }
+
+  .card, .area_base .card, .area_metro .card { min-height: 112px; padding: 9px 10px; }
+  .cardText, .area_base .cardText, .area_metro .cardText { gap: 2px; }
+  .cardText strong, .area_base .cardText strong, .area_metro .cardText strong { font-size: 14px; }
+  .eyebrow { font-size: 8px; letter-spacing: 0.1em; }
+  .subtitle, .area_base .subtitle, .area_metro .subtitle { font-size: 9px; letter-spacing: 0.06em; }
+  .cardArrow, .area_base .cardArrow, .area_metro .cardArrow { width: 26px; height: 26px; }
+  .status { padding: 3px 5px; font-size: 7px; }
+  .footer { font-size: 8px; }
+}
+
+/* Desktop ------------------------------------------------------------------- */
+
+@media (min-width: 1024px) and (min-height: 700px) {
+  .hub {
+    height: 100dvh;
+    min-height: 700px;
+    overflow: hidden;
+    grid-template-columns: 250px minmax(0, 1fr) minmax(380px, 31vw);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas: "header header header" "nav hero content" "footer footer footer";
+    column-gap: 28px;
+    row-gap: 14px;
+    padding: 22px 34px 16px;
+  }
+
+  .backdrop {
+    background:
+      linear-gradient(90deg, rgba(4, 10, 21, 0.9) 0%, rgba(4, 10, 21, 0.25) 30%, rgba(4, 10, 21, 0.2) 55%, rgba(4, 10, 21, 0.85) 78%),
+      linear-gradient(180deg, rgba(4, 10, 21, 0.1) 60%, var(--navy)),
+      var(--hub-backdrop) center / cover no-repeat;
+  }
+
+  .character {
+    left: 190px;
+    top: 90px;
+    bottom: 0;
+    width: 40vw;
+    height: auto;
+    background-size: auto 100%;
+    background-position: left bottom;
+    -webkit-mask-image: linear-gradient(180deg, #000 85%, transparent);
+    mask-image: linear-gradient(180deg, #000 85%, transparent);
+  }
+
+  .logo strong { font-size: 44px; }
+  .logo small { font-size: 12px; letter-spacing: 0.42em; padding-left: 2px; }
+
+  .tagline {
+    display: block;
+    margin: 0 auto 0 8vw;
+    font-size: 14px;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: #a9bde0;
+  }
+  .tagline b { color: var(--cyan); font-weight: 600; }
+
+  .account { gap: 12px; }
+  .profile { padding: 6px 18px 6px 6px; gap: 12px; }
+  .avatar { width: 46px; height: 46px; }
+  .wallet { min-height: 58px; padding: 0 16px; font-size: 15px; }
+
+  .nav ul { padding: 10px 8px; }
+  .navItem { min-height: 50px; font-size: 16px; padding: 0 14px; gap: 16px; }
+  .navItem svg { width: 24px; height: 24px; }
+  .navSlogan {
+    display: block;
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.45;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(210, 222, 245, 0.55);
+  }
+
+  .hero { min-height: 0; align-items: flex-end; justify-content: flex-end; padding-bottom: 12px; }
+  .slogan { font-size: 20px; letter-spacing: 0.08em; text-align: left; color: rgba(210, 222, 245, 0.7); }
+
+  .content {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: minmax(0, 1.1fr) minmax(0, 1.15fr) minmax(0, 0.72fr) auto minmax(0, 0.8fr);
+    grid-template-areas: "season season" "skynet skynet" "nft nft" "play play" "base metro";
+    gap: 10px;
+    min-height: 0;
+  }
+  .card { min-height: 0; }
+  .area_base .card, .area_metro .card { min-height: 0; }
+  .cardText strong { font-size: clamp(22px, 2vw, 32px); }
+  .play { min-height: 86px; }
+  .play strong { font-size: 46px; }
+
+  .footer { font-size: 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hub * { transition: none !important; }
+}

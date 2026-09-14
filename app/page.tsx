@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import BaseApp from "@/components/base/BaseApp";
+import HubApp from "@/src/ui/hub/HubApp";
 
 export const metadata: Metadata = {
-  title: "CyberBase — Runner's Refuge",
-  description: "A home above the lower lines. Explore the CyberBase starter refuge.",
+  title: "CyberBase — Hub",
+  description: "Explore, fight, own. Enter the CyberBase refuge.",
   robots: { index: false, follow: false },
 };
 
 export default function HomePage() {
-  return <BaseApp />;
+  return <HubApp />;
 }

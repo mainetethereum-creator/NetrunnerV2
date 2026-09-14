@@ -1,0 +1,88 @@
+{
+  "root_frame": {
+    "x": 0,
+    "y": 0,
+    "w": 2200,
+    "h": 660
+  },
+  "portrait_frame": {
+    "x": 36,
+    "y": 72,
+    "w": 680,
+    "h": 520
+  },
+  "title_bar": {
+    "x": 830,
+    "y": 54,
+    "w": 770,
+    "h": 50
+  },
+  "text_panel": {
+    "x": 820,
+    "y": 138,
+    "w": 1360,
+    "h": 190
+  },
+  "response_button_primary": {
+    "x": 824,
+    "y": 360,
+    "w": 1360,
+    "h": 78
+  },
+  "response_button_secondary_1": {
+    "x": 824,
+    "y": 456,
+    "w": 1360,
+    "h": 64
+  },
+  "response_button_secondary_2": {
+    "x": 824,
+    "y": 536,
+    "w": 1360,
+    "h": 64
+  },
+  "safe_areas": {
+    "npc_name": [
+      860,
+      72,
+      800,
+      28
+    ],
+    "npc_role": [
+      860,
+      104,
+      700,
+      24
+    ],
+    "dialogue_text": [
+      850,
+      162,
+      1260,
+      150
+    ],
+    "response_text_primary": [
+      860,
+      382,
+      1220,
+      26
+    ],
+    "response_text_secondary_1": [
+      860,
+      474,
+      1220,
+      24
+    ],
+    "response_text_secondary_2": [
+      860,
+      554,
+      1220,
+      24
+    ],
+    "portrait_image": [
+      58,
+      94,
+      636,
+      476
+    ]
+  }
+}
