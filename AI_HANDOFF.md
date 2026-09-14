@@ -8,11 +8,12 @@ Kit mapping, rules and sizes: `docs/ui-kits/README.md`. Decision: ADR-014.
 ## 1. What was done
 
 - **Assets:** `scripts/import-ui-kits.mjs` crops kit artwork to regions without baked text,
-  converts it to WebP (`public/ui/hub`, ≈ 480 KB instead of ≈ 66 MB of zips) and writes small
+  converts it to WebP (`public/ui/hub`, ≈ 440 KB instead of ≈ 66 MB of zips) and writes small
   references + layout grids to `docs/ui-kits`. URLs are in `src/assets/registry.ts` (`ASSET_URLS.ui`).
 - **Hub** (`src/ui/hub`, route `/`): backdrop and character layers, logo, profile, wallet menu
-  (wagmi), navigation (side list on desktop / landscape, tab bar in portrait), PLAY → `/base`,
-  cards (Season, SkyNet, NFT "coming soon"; Base → `/base`; Metro → `/metro`). Text is React,
+  (wagmi), navigation (side list on desktop / landscape, tab bar in portrait), PLAY → `/base`
+  (the only link into the game: wallet → hub → PLAY → base → expedition or metro, ADR-015),
+  cards Season, SkyNet, NFT ("coming soon"). Text is React,
   frames are CSS; three layouts by breakpoints.
 - **Routes:** Runner's Refuge moved to `/base` (`app/base/page.tsx`); expedition, metro and the
   vegetation editor return to `/base`; base settings gained "Return to hub".
@@ -41,8 +42,8 @@ Changed: `app/page.tsx`, `app/globals.css`, `src/assets/registry.ts`, `component
 ## 3. Key decisions
 
 - Kit PNGs for HUD and Dialogue are flat placeholders with baked text → rebuilt in CSS, no images shipped.
-- Hub cards and character use real kit artwork, cropped so no baked text remains; `card-base.webp`
-  doubles as the hub backdrop. Hub icons are inline SVG.
+- Hub cards and character use real kit artwork, cropped so no baked text remains; the Base card
+  artwork is the hub backdrop (`backdrop.webp`). Hub icons are inline SVG.
 - The skin is additive CSS; removing the "UI kit skin" blocks restores the previous look.
 
 ## 4. Commands
@@ -61,7 +62,7 @@ Stop the dev server when finished.
 
 ## 5. Manual checks
 
-1. `/` hub on desktop, phone portrait (tab bar) and phone landscape (fits one screen); PLAY and the Base card open `/base`; wallet menu opens and closes (Esc / click outside).
+1. `/` hub on desktop, phone portrait (tab bar) and phone landscape (fits one screen); PLAY opens `/base` and nothing in the hub links to metro or expedition; wallet menu opens and closes (Esc / click outside).
 2. `/base`: HUD skin, "Talk to" prompt, Cybersmith dialog → portrait / name / text / replies; settings → Return to hub.
 3. `/expedition`: HUD skin; E at the breach starts extraction; "Leave without loot" returns to `/base`.
 4. Phone: stick ring works, dialog fits in portrait and landscape.

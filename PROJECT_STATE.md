@@ -4,7 +4,7 @@ Last updated: 2026-09-14 · branch `refactor/engine-architecture` · architectur
 
 ## Implemented (the working game — must be preserved)
 
-- **Hub `/`:** landing page from the CyberBase Hub UI kit (`src/ui/hub`): backdrop and character layers, profile, wallet menu, navigation (side list / portrait tab bar), PLAY → `/base`, Season / SkyNet / NFT cards (coming soon), Base and Metro cards; desktop, mobile landscape and mobile portrait layouts.
+- **Hub `/`:** landing page from the CyberBase Hub UI kit (`src/ui/hub`): backdrop and character layers, profile, wallet menu, navigation (side list / portrait tab bar), PLAY → `/base` (the only way into the game; expedition and metro start from the base, ADR-015), Season / SkyNet / NFT cards (coming soon); desktop, mobile landscape and mobile portrait layouts.
 - **UI kits:** in-game HUD kit skin on Base and Expedition (player panel with runner avatar, HP/EN, objective, location header, minimap, interaction prompt, skills, menu, stick) and Dialogue kit layout for NPC dialogs; artwork imported by `scripts/import-ui-kits.mjs` (see `docs/ui-kits/README.md`).
 - **Base `/base` — Runner's Refuge:** procedural refuge (courtyard, zones, metro pit, perimeter fence, service street) + GLB buildings (workshop, oracle ×3 placements, city gate); PBR concrete/metal/stone, rain, wet-floor reflections (High), adaptive quality; NPC stations with dialogues (Cybersmith, Cryptomancer, Oracle, Green Exchange, Keeper, City airlock, locker, Quantum Charge, Outlands breach); orientation quest (localStorage); Base wallet connect; settings (rain, quality, perf stats, reset camera); minimap destinations with pathfinding; MASTER map editor for NPCs/props.
 - **Expedition `/expedition` — Outlands:** 144 × 72 m world in 24 m chunks; terrain, asphalt highway, hangars, cyber buildings, props, fences, microbus, fires, baked vegetation, grass; POIs, loot tables, events, extraction (4 s), death loss, local stash; enemies implemented but disabled (`EXPEDITION_ENEMIES_ENABLED=false`); MASTER props / trees / landscape editors; debug panel (`?debug=1`).
@@ -40,7 +40,7 @@ Last updated: 2026-09-14 · branch `refactor/engine-architecture` · architectur
 
 **UI kits (hub, HUD, dialogue):**
 - `npm test` 97/97 (new `hub.test.mjs`), lint clean, tsc clean, `npm run build` succeeds (routes `/`, `/base`, `/expedition`, `/metro`, …).
-- Assets: the three zips (≈ 66 MB) → runtime artwork `public/ui` ≈ 480 KB (WebP, cropped to art without baked text) + references and layout grids in `docs/ui-kits` ≈ 450 KB.
+- Assets: the three zips (≈ 66 MB) → runtime artwork `public/ui` ≈ 440 KB (WebP, cropped to art without baked text) + references and layout grids in `docs/ui-kits` ≈ 450 KB.
 - Browser: hub at 1536×864, 844×390 and 390×844 — layout grids match the kit (desktop: nav 250 px, card column 476 px; landscape fits without scrolling; portrait scrolls with a fixed tab bar); all hub artwork loads; no console errors. `/base` loads at the new route; settings contain "Return to hub"; expedition "Leave without loot" links to `/base`.
 - HUD skin checked on `/base` and `/expedition` at 618×910 (screenshots) and on `/expedition` at 1536×864 (element geometry: no overlaps); positions of all controls are unchanged. NPC dialog (Cryptomancer via Missions / Contracts) renders portrait, name bar, text, a yellow primary reply and the back reply in the portrait layout; at 1536×864 it is docked at the bottom (1120 × 419 px) with the portrait column (270 px) left of name, text and replies; Esc closes it.
 

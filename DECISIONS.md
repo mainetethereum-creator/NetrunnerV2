@@ -131,3 +131,12 @@ PNGs, the imported runtime artwork is ≈ 0.5 MB; the hub must open without load
 **Consequences:** old links to `/` now open the hub (PLAY and the Base card lead to `/base`).
 Updated kits are re-imported with the script; `tests/hub.test.mjs` guards routes, artwork and
 the absence of references in `public/`.
+
+## ADR-015: One entry into the game from the hub
+**Status:** accepted (owner, 2026-09-14) · supersedes the Base / Metro hub cards of ADR-014
+**Decision:** Player flow is wallet → hub → PLAY → base → expedition or metro (from the base).
+The hub links into the game only through PLAY (`/base`); the Base and Metro cards are removed
+on desktop and mobile. The Base card artwork stays as the hub backdrop (`backdrop.webp`).
+**Reason:** jumping from the hub straight into the metro skipped the base, which is the game's hub
+for expeditions and the metro.
+**Consequences:** `tests/hub.test.mjs` fails if a hub item links anywhere but `/` or `/base`.

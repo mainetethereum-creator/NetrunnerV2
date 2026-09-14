@@ -9,7 +9,7 @@ Only what the game needs is imported, compressed, by `scripts/import-ui-kits.mjs
 
 | Kit | Purpose | Where it lives in the game |
 |---|---|---|
-| Hub | Meta screen before play: logo, profile, wallet, navigation, PLAY, Season / SkyNet / NFT / Base / Metro cards | `/` → `src/ui/hub/HubApp.tsx` (Base moved to `/base`) |
+| Hub | Meta screen before play: logo, profile, wallet, navigation, PLAY (the only way into the game), Season / SkyNet / NFT cards | `/` → `src/ui/hub/HubApp.tsx` (Base moved to `/base`) |
 | In-game HUD | Player panel (avatar, HP, EN), objective, location header, minimap, interaction prompt, skill slots, run / backpack / map / menu buttons, joystick, attack button | Base `/base` and Expedition `/expedition` HUD (`components/game/GameHud.tsx`, `BaseApp.tsx`, `Expedition.tsx`, `MovementStick.tsx`) |
 | Dialogue | NPC conversation window: portrait frame, name / role bar, text panel, 1–3 dynamic responses | NPC dialogs in `components/base/BaseApp.tsx` |
 
@@ -32,12 +32,15 @@ Every kit has three layouts: **desktop**, **mobile landscape**, **mobile portrai
 | Output | Source | Size |
 |---|---|---|
 | `public/ui/hub/character.webp` | `character.png` (trimmed) | 2.1 MB → 139 KB |
-| `public/ui/hub/card-{season,skynet,nft,base,metro}.webp` | card PNGs, cropped to artwork without baked text / buttons | 6.8 MB → 318 KB |
+| `public/ui/hub/card-{season,skynet,nft}.webp` | card PNGs, cropped to artwork without baked text / buttons | 4.2 MB → 164 KB |
+| `public/ui/hub/backdrop.webp` | artwork of `base_card.png` (hub backdrop) | 1.6 MB → 115 KB |
 | `public/ui/hub/avatar-runner.webp` | portrait from `profile_panel.png` | 706 KB → 7 KB |
 | `docs/ui-kits/references/*.webp` | 9 reference screens, 900 px wide | 11.9 MB → 383 KB |
 | `docs/ui-kits/layouts/*.json` | 9 `layout.json` grids | copied |
 
-Runtime total: **≈ 480 KB** (was ≈ 66 MB in the zips). `card-base.webp` doubles as the hub backdrop.
+Runtime total: **≈ 440 KB** (was ≈ 66 MB in the zips). The hub has no Base / Metro cards:
+the player flow is wallet → hub → PLAY → base → expedition or metro (ADR-015), so the metro card
+artwork is not imported.
 Not imported: duplicate copies of the same PNGs per variant, hub icons (replaced by SVG in
 `src/ui/hub/HubIcon.tsx`), menu / profile / wallet / play PNGs with baked text, HUD and
 Dialogue placeholder PNGs.

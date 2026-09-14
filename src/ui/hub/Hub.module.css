@@ -69,14 +69,14 @@
 
 /* Framed panels: outer layer draws the border, ::before fills the inside. ---- */
 
-.profile, .wallet, .walletMenu, .play, .card, .cardArrow, .play i {
+.profile, .wallet, .walletMenu, .play, .card, .play i {
   position: relative;
   isolation: isolate;
   clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
   background: var(--frame, var(--line));
 }
 
-.profile::before, .wallet::before, .walletMenu::before, .play::before, .card::before, .cardArrow::before, .play i::before {
+.profile::before, .wallet::before, .walletMenu::before, .play::before, .card::before, .play i::before {
   content: "";
   position: absolute;
   inset: 1px;
@@ -242,18 +242,16 @@ a.navItem:hover { color: var(--text); }
 .content {
   grid-area: content;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-areas: "play play" "season season" "skynet skynet" "nft nft" "base metro";
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "play" "season" "skynet" "nft";
   gap: 12px;
   min-width: 0;
 }
 .cards { display: contents; list-style: none; }
 .cards li { min-width: 0; filter: drop-shadow(0 0 8px var(--glow, rgba(74, 150, 255, 0.28))); }
 .area_season { grid-area: season; }
-.area_skynet { grid-area: skynet; }
-.area_nft { grid-area: nft; }
-.area_base { grid-area: base; }
-.area_metro { grid-area: metro; }
+.area_skynet { grid-area: skynet; --glow: rgba(255, 64, 82, 0.3); }
+.area_nft { grid-area: nft; --glow: rgba(154, 130, 255, 0.3); }
 
 .playWrap { grid-area: play; filter: drop-shadow(0 0 14px rgba(255, 214, 46, 0.45)); }
 .play {
@@ -315,10 +313,6 @@ a.navItem:hover { color: var(--text); }
 .blue { --frame: rgba(88, 160, 255, 0.85); --accent: #7fc4ff; }
 .red { --frame: rgba(255, 64, 82, 0.85); --accent: #ff6b78; }
 .violet { --frame: rgba(154, 130, 255, 0.85); --accent: #b6a6ff; }
-.area_skynet { --glow: rgba(255, 64, 82, 0.3); }
-.area_nft { --glow: rgba(154, 130, 255, 0.3); }
-.area_metro { --glow: rgba(255, 64, 82, 0.25); }
-a.card:hover { --frame: var(--yellow); }
 
 .cardText { display: flex; flex-direction: column; gap: 4px; max-width: 62%; align-self: center; }
 .cardText strong {
@@ -333,18 +327,6 @@ a.card:hover { --frame: var(--yellow); }
 .note { margin-top: 6px; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
 .eyebrow { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--red); }
 
-.cardArrow {
-  --cut: 7px;
-  --frame: rgba(120, 150, 200, 0.45);
-  --fill: rgba(5, 10, 20, 0.92);
-  flex: none;
-  width: 40px;
-  height: 40px;
-  display: grid;
-  place-items: center;
-  color: var(--yellow);
-}
-.cardArrow svg { width: 20px; height: 20px; }
 .status {
   flex: none;
   padding: 5px 8px;
@@ -356,16 +338,6 @@ a.card:hover { --frame: var(--yellow); }
   text-transform: uppercase;
   color: var(--muted);
 }
-
-/* Base and Metro tiles: art fills the card, text at the bottom. */
-.area_base .card, .area_metro .card {
-  --fill: linear-gradient(0deg, var(--panel-solid) 12%, rgba(7, 18, 42, 0.2) 62%), var(--art) center / cover no-repeat;
-  min-height: 136px;
-}
-.area_base .cardText, .area_metro .cardText { max-width: none; align-self: flex-end; }
-.area_base .cardText strong, .area_metro .cardText strong { font-size: 20px; }
-.area_base .subtitle, .area_metro .subtitle { font-size: 11px; }
-.area_base .cardArrow, .area_metro .cardArrow { width: 34px; height: 34px; }
 
 .footer {
   grid-area: footer;
@@ -454,25 +426,24 @@ a.card:hover { --frame: var(--yellow); }
   .slogan { font-size: 11px; }
 
   .content {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    grid-template-areas: ". . play play play" "season skynet nft base metro";
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-areas: ". play play" "season skynet nft";
     gap: 10px;
   }
   .play { min-height: 84px; padding: 0 56px; }
   .play strong { font-size: 36px; }
 
-  .card, .area_base .card, .area_metro .card {
+  .card {
     --fill: linear-gradient(180deg, var(--panel-solid) 6%, rgba(7, 18, 42, 0.25) 52%, rgba(7, 18, 42, 0.8)), var(--art) center / cover no-repeat;
     min-height: 150px;
     flex-direction: column;
     align-items: stretch;
     padding: 12px;
   }
-  .cardText, .area_base .cardText, .area_metro .cardText { max-width: none; align-self: stretch; }
-  .cardText strong, .area_base .cardText strong, .area_metro .cardText strong { font-size: 17px; }
-  .subtitle, .area_base .subtitle, .area_metro .subtitle { font-size: 10px; letter-spacing: 0.08em; }
+  .cardText { max-width: none; align-self: stretch; }
+  .cardText strong { font-size: 19px; }
+  .subtitle { font-size: 10px; letter-spacing: 0.08em; }
   .note { display: none; }
-  .cardArrow, .area_base .cardArrow, .area_metro .cardArrow { align-self: flex-end; width: 32px; height: 32px; margin-top: auto; }
   .status { align-self: flex-end; margin-top: auto; }
 }
 
@@ -496,12 +467,11 @@ a.card:hover { --frame: var(--yellow); }
   .play small { font-size: 9px; margin-top: 3px; }
   .play i { width: 34px; height: 34px; right: 10px; }
 
-  .card, .area_base .card, .area_metro .card { min-height: 112px; padding: 9px 10px; }
-  .cardText, .area_base .cardText, .area_metro .cardText { gap: 2px; }
-  .cardText strong, .area_base .cardText strong, .area_metro .cardText strong { font-size: 14px; }
+  .card { min-height: 112px; padding: 9px 10px; }
+  .cardText { gap: 2px; }
+  .cardText strong { font-size: 15px; }
   .eyebrow { font-size: 8px; letter-spacing: 0.1em; }
-  .subtitle, .area_base .subtitle, .area_metro .subtitle { font-size: 9px; letter-spacing: 0.06em; }
-  .cardArrow, .area_base .cardArrow, .area_metro .cardArrow { width: 26px; height: 26px; }
+  .subtitle { font-size: 9px; letter-spacing: 0.06em; }
   .status { padding: 3px 5px; font-size: 7px; }
   .footer { font-size: 8px; }
 }
@@ -575,17 +545,16 @@ a.card:hover { --frame: var(--yellow); }
   .slogan { font-size: 20px; letter-spacing: 0.08em; text-align: left; color: rgba(210, 222, 245, 0.7); }
 
   .content {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-rows: minmax(0, 1.1fr) minmax(0, 1.15fr) minmax(0, 0.72fr) auto minmax(0, 0.8fr);
-    grid-template-areas: "season season" "skynet skynet" "nft nft" "play play" "base metro";
-    gap: 10px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1.1fr) minmax(0, 1.15fr) minmax(0, 0.85fr) auto;
+    grid-template-areas: "season" "skynet" "nft" "play";
+    gap: 12px;
     min-height: 0;
   }
   .card { min-height: 0; }
-  .area_base .card, .area_metro .card { min-height: 0; }
   .cardText strong { font-size: clamp(22px, 2vw, 32px); }
-  .play { min-height: 86px; }
-  .play strong { font-size: 46px; }
+  .play { min-height: 96px; }
+  .play strong { font-size: 48px; }
 
   .footer { font-size: 10px; }
 }

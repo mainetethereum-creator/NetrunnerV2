@@ -37,7 +37,9 @@ export const HUB_NAV: readonly HubNavItem[] = [
   {id: 'news', label: 'News', icon: 'news', tab: false},
 ];
 
-export type HubCardId = 'season' | 'skynet' | 'nft' | 'base' | 'metro';
+// The hub has one way into the game: PLAY → /base. Expedition and metro are reached
+// from the base (ADR-015), so no card links into the game.
+export type HubCardId = 'season' | 'skynet' | 'nft';
 
 export interface HubCard {
   id: HubCardId;
@@ -80,23 +82,6 @@ export const HUB_CARDS: readonly HubCard[] = [
     note: 'Own. Play. Belong.',
     status: 'Coming soon',
     art: ASSET_URLS.ui.hubCards.nft,
-  },
-  {
-    id: 'base',
-    tone: 'blue',
-    title: 'Base',
-    subtitle: 'Safe zone',
-    href: '/base',
-    art: ASSET_URLS.ui.hubCards.base,
-  },
-  {
-    id: 'metro',
-    tone: 'red',
-    eyebrow: 'Coming soon',
-    title: 'Metro',
-    subtitle: 'Prototype preview',
-    href: '/metro',
-    art: ASSET_URLS.ui.hubCards.metro,
   },
 ];
 

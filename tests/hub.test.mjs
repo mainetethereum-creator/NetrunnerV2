@@ -10,6 +10,9 @@ const walk=dir=>readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()
 test('hub navigation and cards link only to existing routes',()=>{
   for(const item of [...HUB_NAV,...HUB_CARDS])if(item.href)assert.ok(routeExists(item.href),item.href);
   assert.equal(HUB_NAV.find(item=>item.id==='play')?.href,'/base');
+  // One entry into the game: hub → PLAY → base; expedition and metro start from the base (ADR-015).
+  for(const item of [...HUB_NAV,...HUB_CARDS])if(item.href)assert.ok(['/','/base'].includes(item.href),`${item.label??item.title} → ${item.href}`);
+  assert.doesNotMatch(readFileSync('src/ui/hub/HubApp.tsx','utf8'),/href=["'{`]+\/(?:metro|expedition)/);
   assert.equal(HUB_NAV.filter(item=>item.tab).length,6,'portrait tab bar fits six items');
 });
 
