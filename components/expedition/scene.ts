@@ -1,8 +1,9 @@
 import type {EditorState} from './prop-editor';
 import {createLazyEditor} from '../world-editor/lazy-editor';
 import * as T from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
+import { createGltfLoader } from '../../src/renderer/three/gltf-loader';
+import { disposeObjectTree } from '../../src/renderer/three/dispose';
+import { ASSET_URLS } from '../../src/assets/registry';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
@@ -51,14 +52,9 @@ export function createExpedition(host:HTMLElement,onState:(s:Snapshot)=>void,onE
   const ring=new T.Mesh(new T.RingGeometry(.35,.39,36),new T.MeshBasicMaterial({color:'#b9d6c5',transparent:true,opacity:.65,depthWrite:false}));ring.rotation.x=-Math.PI/2;ring.position.y=.015;player.add(ring);
   const destination=new T.Mesh(new T.RingGeometry(.17,.21,32),new T.MeshBasicMaterial({color:'#e1d4b1',depthWrite:false}));destination.rotation.x=-Math.PI/2;destination.position.y=.08;destination.visible=false;scene.add(destination);
   let hero:T.Object3D|null=null,mixer:T.AnimationMixer|null=null,run:T.AnimationAction|null=null,pose:PoseController|null=null,blend=0,ready=false,disposed=false;
-  const draco=new DRACOLoader();draco.setDecoderPath('/game/draco/');const loader=new GLTFLoader();loader.setDRACOLoader(draco);
-  function disposeTree(root:T.Object3D) {
-    const gs=new Set<T.BufferGeometry>(),ms=new Set<T.Material>(),ts=new Set<T.Texture>();
-    root.traverse(o=>{const mesh=o as T.Mesh;if(mesh.geometry)gs.add(mesh.geometry);if(mesh.material)for(const mat of Array.isArray(mesh.material)?mesh.material:[mesh.material]){ms.add(mat);for(const value of Object.values(mat))if(value instanceof T.Texture)ts.add(value);}});
-    gs.forEach(g=>g.dispose());ms.forEach(m=>m.dispose());ts.forEach(t=>t.dispose());
-  }
-  loader.loadAsync('/game/models/mixamo/neon-sentinel-mixamo-test.glb').then(gltf=>{
-    if(disposed){disposeTree(gltf.scene);return;}
+  const {loader,draco}=createGltfLoader();
+  loader.loadAsync(ASSET_URLS.heroModel).then(gltf=>{
+    if(disposed){disposeObjectTree(gltf.scene);return;}
     const root=gltf.scene;root.updateMatrixWorld(true);const bounds=new T.Box3().setFromObject(root);
     root.scale.multiplyScalar(1.85/bounds.getSize(new T.Vector3()).y);root.updateMatrixWorld(true);root.position.y-=new T.Box3().setFromObject(root).min.y;
     root.traverse(o=>{const mesh=o as T.Mesh;if(!mesh.isMesh)return;mesh.castShadow=true;mesh.receiveShadow=false;mesh.frustumCulled=false;for(const mat of Array.isArray(mesh.material)?mesh.material:[mesh.material])if(mat instanceof T.MeshStandardMaterial){mat.normalScale.setScalar(.55);if(mat.map){mat.map.anisotropy=anisotropy;mat.map.needsUpdate=true;}}});
@@ -138,5 +134,5 @@ export function createExpedition(host:HTMLElement,onState:(s:Snapshot)=>void,onE
   }
   const visibility=()=>{reset();window.dispatchEvent(new Event('netrunner:input-reset'));cancelAnimationFrame(frame);last=lastPaint=windowStart=qualityWindow=performance.now();count=qualityFrames=qualityElapsed=0;if(!document.hidden&&!disposed)frame=requestAnimationFrame(animate);};document.addEventListener('visibilitychange',visibility);
   frame=requestAnimationFrame(animate);
-  return {editor,treeEditor,landscape:env.landscape.studio,setLandscapeMode(value:boolean){landscapeMode=value;treeMode=false;treeEditor.setActive(false);editor.cancel();env.landscape.studio.setActive(value&&editor.active);},setTreeMode(value:boolean){treeMode=value;landscapeMode=false;env.landscape.studio.setActive(false);editor.cancel();treeEditor.setActive(value&&masterActive);},setMaster(value:boolean){masterActive=value;reset();editor.setActive(value);treeEditor.setActive(value&&treeMode)},setAutoFire(value:boolean){autoFire=value;},interact(){session.interact(player.position);},attack(){fire();},setDebug(value:boolean){debug=value;},teleport(p:Point){if(world.canStand(p)){player.position.set(p.x,.09,p.z);reset();}},setStick(x:number,z:number){if(modalOpen||editor.active||session.status!=='active'){stick.x=stick.z=0;return;}stick.x=Number.isFinite(x)?T.MathUtils.clamp(x,-1,1):0;stick.z=Number.isFinite(z)?T.MathUtils.clamp(z,-1,1):0;},dispose(){disposed=true;cancelAnimationFrame(frame);observer.disconnect();window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',reset);document.removeEventListener('visibilitychange',visibility);window.removeEventListener('netrunner:input-reset',reset);modalObserver.disconnect();renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointerup',up);renderer.domElement.removeEventListener('webglcontextlost',lost);renderer.domElement.removeEventListener('pointermove',hover);renderer.domElement.removeEventListener('wheel',wheel);editor.dispose();treeEditor.dispose();combat.dispose();env.dispose();mixer?.stopAllAction();disposeTree(scene);env.surfaces.dispose();environment.dispose();draco.dispose();bloom?.dispose();output?.dispose();composer?.dispose();renderer.dispose();renderer.domElement.remove();}};
+  return {editor,treeEditor,landscape:env.landscape.studio,setLandscapeMode(value:boolean){landscapeMode=value;treeMode=false;treeEditor.setActive(false);editor.cancel();env.landscape.studio.setActive(value&&editor.active);},setTreeMode(value:boolean){treeMode=value;landscapeMode=false;env.landscape.studio.setActive(false);editor.cancel();treeEditor.setActive(value&&masterActive);},setMaster(value:boolean){masterActive=value;reset();editor.setActive(value);treeEditor.setActive(value&&treeMode)},setAutoFire(value:boolean){autoFire=value;},interact(){session.interact(player.position);},attack(){fire();},setDebug(value:boolean){debug=value;},teleport(p:Point){if(world.canStand(p)){player.position.set(p.x,.09,p.z);reset();}},setStick(x:number,z:number){if(modalOpen||editor.active||session.status!=='active'){stick.x=stick.z=0;return;}stick.x=Number.isFinite(x)?T.MathUtils.clamp(x,-1,1):0;stick.z=Number.isFinite(z)?T.MathUtils.clamp(z,-1,1):0;},dispose(){disposed=true;cancelAnimationFrame(frame);observer.disconnect();window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',reset);document.removeEventListener('visibilitychange',visibility);window.removeEventListener('netrunner:input-reset',reset);modalObserver.disconnect();renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointerup',up);renderer.domElement.removeEventListener('webglcontextlost',lost);renderer.domElement.removeEventListener('pointermove',hover);renderer.domElement.removeEventListener('wheel',wheel);editor.dispose();treeEditor.dispose();combat.dispose();env.dispose();mixer?.stopAllAction();disposeObjectTree(scene);env.surfaces.dispose();environment.dispose();draco.dispose();bloom?.dispose();output?.dispose();composer?.dispose();renderer.dispose();renderer.domElement.remove();}};
 }

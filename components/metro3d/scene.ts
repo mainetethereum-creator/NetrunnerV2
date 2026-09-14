@@ -1,6 +1,7 @@
 import * as T from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
+import { createGltfLoader } from '../../src/renderer/three/gltf-loader';
+import { disposeObjectTree } from '../../src/renderer/three/dispose';
+import { ASSET_URLS } from '../../src/assets/registry';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
@@ -35,14 +36,9 @@ export function createMetro(host:HTMLElement,level:number,onState:(s:Snapshot)=>
   const ring=new T.Mesh(new T.RingGeometry(.35,.39,36),new T.MeshBasicMaterial({color:'#b9d6c5',transparent:true,opacity:.65,depthWrite:false}));ring.rotation.x=-Math.PI/2;ring.position.y=.015;player.add(ring);
   const destination=new T.Mesh(new T.RingGeometry(.17,.21,32),new T.MeshBasicMaterial({color:'#e1d4b1',depthWrite:false}));destination.rotation.x=-Math.PI/2;destination.position.y=.08;destination.visible=false;scene.add(destination);
   let hero:T.Object3D|null=null,mixer:T.AnimationMixer|null=null,run:T.AnimationAction|null=null,pose:PoseController|null=null,blend=0,ready=false,disposed=false;
-  const draco=new DRACOLoader();draco.setDecoderPath('/game/draco/');const loader=new GLTFLoader();loader.setDRACOLoader(draco);
-  function disposeTree(root:T.Object3D) {
-    const gs=new Set<T.BufferGeometry>(),ms=new Set<T.Material>(),ts=new Set<T.Texture>();
-    root.traverse(o=>{const mesh=o as T.Mesh;if(mesh.geometry)gs.add(mesh.geometry);if(mesh.material)for(const mat of Array.isArray(mesh.material)?mesh.material:[mesh.material]){ms.add(mat);for(const value of Object.values(mat))if(value instanceof T.Texture)ts.add(value);}});
-    gs.forEach(g=>g.dispose());ms.forEach(m=>m.dispose());ts.forEach(t=>t.dispose());
-  }
-  loader.loadAsync('/game/models/mixamo/neon-sentinel-mixamo-test.glb').then(gltf=>{
-    if(disposed){disposeTree(gltf.scene);return;}
+  const {loader,draco}=createGltfLoader();
+  loader.loadAsync(ASSET_URLS.heroModel).then(gltf=>{
+    if(disposed){disposeObjectTree(gltf.scene);return;}
     const root=gltf.scene;root.updateMatrixWorld(true);const bounds=new T.Box3().setFromObject(root);
     root.scale.multiplyScalar(1.85/bounds.getSize(new T.Vector3()).y);root.updateMatrixWorld(true);root.position.y-=new T.Box3().setFromObject(root).min.y;
     root.traverse(o=>{const mesh=o as T.Mesh;if(!mesh.isMesh)return;mesh.castShadow=true;mesh.receiveShadow=false;mesh.frustumCulled=false;for(const mat of Array.isArray(mesh.material)?mesh.material:[mesh.material])if(mat instanceof T.MeshStandardMaterial){mat.normalScale.setScalar(.55);if(mat.map){mat.map.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());mat.map.needsUpdate=true;}}});
@@ -91,5 +87,5 @@ export function createMetro(host:HTMLElement,level:number,onState:(s:Snapshot)=>
     if(now-report>180){const exitDist=Math.hypot(player.position.x-world.exit.x,player.position.z-world.exit.z),entryDist=Math.hypot(player.position.x-world.spawn.x,player.position.z-world.spawn.z);onState({x:player.position.x,z:player.position.z,room:world.roomAt(player.position)?.name??'Connecting tunnel',fps,draws:renderer.info.render.calls,near:exitDist<2?'exit':entryDist<2?'entry':null,ready});report=now;}
   }
   frame=requestAnimationFrame(animate);
-  return {setStick(x:number,z:number){stick={x,z};},dispose(){disposed=true;cancelAnimationFrame(frame);observer.disconnect();window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',reset);document.removeEventListener('visibilitychange',reset);renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointerup',up);renderer.domElement.removeEventListener('webglcontextlost',lost);mixer?.stopAllAction();disposeTree(scene);env.surfaces.dispose();environment.dispose();draco.dispose();bloom.dispose();output.dispose();composer.dispose();renderer.dispose();renderer.domElement.remove();}};
+  return {setStick(x:number,z:number){stick={x,z};},dispose(){disposed=true;cancelAnimationFrame(frame);observer.disconnect();window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',reset);document.removeEventListener('visibilitychange',reset);renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointerup',up);renderer.domElement.removeEventListener('webglcontextlost',lost);mixer?.stopAllAction();disposeObjectTree(scene);env.surfaces.dispose();environment.dispose();draco.dispose();bloom.dispose();output.dispose();composer.dispose();renderer.dispose();renderer.domElement.remove();}};
 }

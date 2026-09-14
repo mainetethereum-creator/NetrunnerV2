@@ -3,8 +3,9 @@ import {createRefugeNpc,isEditableNpcBatch} from "./npc";
 import type {WorldEditor,EditorState} from "../world-editor/controller";
 import {createLazyEditor} from "../world-editor/lazy-editor";
 import {setBaseEditorColliders,setBaseStationOverride,clearBaseEditor,getBaseStations} from "./world";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
+import { createGltfLoader } from "../../src/renderer/three/gltf-loader";
+import { disposeObjectTree } from "../../src/renderer/three/dispose";
+import { ASSET_URLS } from "../../src/assets/registry";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
@@ -30,19 +31,6 @@ export type BaseEngine = {
   setRain(value: boolean): void; setQuality(value: QualityMode): void;
   resetCamera(): void; goTo(id: StationId): void;
 };
-
-function disposeTree(root: T.Object3D) {
-  const geometries = new Set<T.BufferGeometry>(), materials = new Set<T.Material>(), textures = new Set<T.Texture>();
-  root.traverse((o) => {
-    const mesh = o as T.Mesh;
-    if (mesh.geometry) geometries.add(mesh.geometry);
-    if (mesh.material) for (const mat of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
-      materials.add(mat);
-      for (const value of Object.values(mat)) if (value instanceof T.Texture) textures.add(value);
-    }
-  });
-  geometries.forEach((g) => g.dispose()); materials.forEach((m) => m.dispose()); textures.forEach((t) => t.dispose());
-}
 
 export function createBaseScene(
   host: HTMLElement,
@@ -344,11 +332,10 @@ export function createBaseScene(
   let locomotionBlend = 0;
   let pose: PoseController | null = null;
   let hero: T.Object3D = fallback, previousWalking = false;
-  const draco = new DRACOLoader(); draco.setDecoderPath("/game/draco/");
-  const loader = new GLTFLoader(); loader.setDRACOLoader(draco);
+  const { loader, draco } = createGltfLoader();
   for (const [file, x, z] of [["workshop", -8.4, -8.6], ["oracle", 0, -9], ["city-gate", -14.8, 0]] as const) {
-    loader.loadAsync(`/base/models/${file}.glb`).then(({ scene: model }) => {
-      if (disposed) { disposeTree(model); return; }
+    loader.loadAsync(ASSET_URLS.refugeBuilding(file)).then(({ scene: model }) => {
+      if (disposed) { disposeObjectTree(model); return; }
       const mapped = new Set<T.Material>();
       model.position.set(x, 0.08, z);
       if (file === "city-gate") model.rotation.y = Math.PI / 2;
@@ -380,9 +367,9 @@ export function createBaseScene(
   // Refuge character selection is independent of the legacy city.
   const character = "NEON SENTINEL";
   const loadTimeout = window.setTimeout(() => { if (!disposed) markReady("RUNNER"); }, 12000);
-  loader.loadAsync("/game/models/mixamo/neon-sentinel-mixamo-test.glb")
+  loader.loadAsync(ASSET_URLS.heroModel)
     .then((gltf) => {
-      if (disposed) { disposeTree(gltf.scene); return; }
+      if (disposed) { disposeObjectTree(gltf.scene); return; }
       const root = gltf.scene;
       root.updateMatrixWorld(true);
       const run = gltf.animations.find((a) => /run|walk/i.test(a.name));
@@ -637,7 +624,7 @@ export function createBaseScene(
       renderer.domElement.removeEventListener("pointercancel", clearInput); renderer.domElement.removeEventListener("wheel", wheel);
       renderer.domElement.removeEventListener("webglcontextlost", lostContext);
       combat.dispose(); mixer?.stopAllAction(); if (mixer) mixer.uncacheRoot(mixer.getRoot());
-      puddle.getRenderTarget().dispose(); disposeTree(scene); environment.dispose(); surfaces.dispose(); bloom?.dispose(); output?.dispose(); composer?.dispose(); renderer.dispose();
+      puddle.getRenderTarget().dispose(); disposeObjectTree(scene); environment.dispose(); surfaces.dispose(); bloom?.dispose(); output?.dispose(); composer?.dispose(); renderer.dispose();
       renderer.domElement.remove();
     },
   };
