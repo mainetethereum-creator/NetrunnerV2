@@ -43,8 +43,9 @@ Each scene factory currently creates and owns **everything** at once:
 WebGLRenderer + EffectComposer/bloom (desktop), PMREM environment, lights, level
 geometry, glTF/Draco loading, the player `Object3D`, keyboard/pointer listeners,
 the follow camera, AnimationMixer + PoseController + CombatDriver, adaptive
-quality / mobile DPR, the `requestAnimationFrame` loop with visibility and
-context-loss handling, a modal `MutationObserver`, the lazily loaded MASTER
+quality / mobile DPR, per-frame `updateFrame` / `renderFrame` phases (since step 2
+the scheduling, hidden-tab handling and mobile cadence cap come from
+`src/core/loop`), a modal `MutationObserver`, the lazily loaded MASTER
 editor, and the snapshot bridge to React.
 
 ### 1.3 Where each concern lives today
@@ -81,7 +82,7 @@ scene.ts ──► world.ts, session.ts, config.ts, quality.ts                  
          ──► environment / map builders                                      (three)
          ──► world-editor/lazy-editor.ts ──dynamic──► controller.ts          (MASTER, three, prop library)
          ──► expedition/mobile-performance.ts                                (pure + matchMedia input)
-         ──► src/renderer/three/*, src/assets/registry.ts                    (new layers, stage 1)
+         ──► src/renderer/three/*, src/assets/registry.ts, src/core/loop      (new layers)
 
 game/GameHud.tsx, CharacterPanel.tsx ◄── window CustomEvents ──► game/combat-driver.ts
 ```
@@ -107,9 +108,9 @@ directly through Node; some also read scene source text and assert exact lines.
 ## 3. Architecture problems (prioritized)
 
 1. **Monolithic scene factories.** `base/scene.ts` (≈41 KB) and `expedition/scene.ts` mix renderer, input, camera, gameplay update, animation, combat, quality, editor and UI bridge.
-2. **Triplicated engine code** across base / expedition / metro: renderer + composer setup, glTF/Draco loader and disposal (**removed in stage 1**), hero load/normalization and in-place run, camera follow, keyboard/stick movement vector, tap-to-move, rAF + visibility loop, light pool, snapshot reporting.
+2. **Triplicated engine code** across base / expedition / metro: renderer + composer setup, hero load/normalization and in-place run, camera follow, keyboard/stick movement vector, tap-to-move, light pool, snapshot reporting. (glTF/Draco loader and disposal were removed in step 1; the rAF + visibility loop in step 2.)
 3. **Object3D is the source of truth** for player position and heading (`player.position`, `hero.rotation.y`); gameplay (`session.tick(dt, player.position)`, `nearestStation(player.position)`) reads Three.js objects.
-4. **No fixed timestep.** Movement integrates with frame `dt` clamped to 0.05 s; the mobile frame limiter changes the simulation cadence.
+4. **No fixed timestep.** Movement integrates with frame `dt` clamped to 0.05 s; the mobile frame limiter changes the simulation cadence. The shared loop already provides `fixedUpdate` with an interpolation `alpha`; scenes adopt it once player state leaves Object3D (step 6).
 5. **Implicit global event bus.** Untyped `window` `CustomEvent`s with string names spread across files; `CombatDriver` listens to global keydown.
 6. **Map content lives in code.** Base layout coordinates are in builder calls; collision rectangles are maintained separately in `base/world.ts` and can drift from visuals. Editor changes exist only in one browser's localStorage.
 7. **Module-level mutable state** (`base/world.ts` editor overrides; `expedition/world.ts` reads localStorage at import time).
@@ -165,7 +166,7 @@ Where today's modules are headed:
 | renderer/composer/PMREM/light setup in scenes, `base/quality.ts`, DPR parts of `mobile-performance.ts` | `src/renderer/three`, `src/renderer/quality` |
 | `base/materials.ts`, `wetness.ts` | `src/renderer/materials` |
 | keyboard/pointer code in scenes, `stickVector` | `src/input/{keyboard,touch,mobile}` |
-| rAF/visibility loops in scenes | `src/core/loop` |
+| rAF/visibility loops in scenes | `src/core/loop` (done in step 2) |
 | `netrunner:*` events | `src/core/events` |
 | `game/GameHud.tsx`, `MovementStick.tsx`, `CharacterPanel.tsx`, dialogues in `BaseApp.tsx` | `src/ui/{hud,dialogue,inventory}` |
 | `world-editor/*` (MASTER), vegetation editor | dev map editor working on `content/maps` JSON |
@@ -182,12 +183,12 @@ controls and interactions must still work (checklist in `AGENTS.md`).
 | Step | What | Status |
 |---|---|---|
 | 0 | Baseline: branch, snapshot commit of pre-existing work, baseline checks (79 tests, lint, tsc), before-screenshots of `/` and `/expedition` | done |
-| 1 | `src/assets/registry.ts`, shared `createGltfLoader` and `disposeObjectTree` used by all three scenes; boundary lint rules + `tests/engine-architecture.test.mjs` | this stage |
-| 2 | `src/core/loop`: wrap the rAF / visibility / context-loss / mobile cadence code behaviour-identically; then add an `update / fixedUpdate / render` split | next |
-| 3 | `src/input`: keyboard + stick → camera-relative move vector (per-scene dead zone and speeds as parameters); scenes consume input state | |
+| 1 | `src/assets/registry.ts`, shared `createGltfLoader` and `disposeObjectTree` used by all three scenes; boundary lint rules + `tests/engine-architecture.test.mjs` | done |
+| 2 | `src/core/loop`: one frame loop for all scenes (rAF, hidden-tab `stop`/`skip` modes, mobile cadence cap, delta clamp) with `fixedUpdate → update → render` phases; scenes split into `updateFrame` / `renderFrame`; fixed steps stay unused until step 6 | done |
+| 3 | `src/input`: keyboard + stick → camera-relative move vector (per-scene dead zone and speeds as parameters); scenes consume input state | next |
 | 4 | `src/renderer/camera`: isometric follow (azimuth, distances, portrait, damping, editor zoom) | |
 | 5 | `src/renderer/animations/hero`: shared hero load, fit, in-place run, PoseController idle, locomotion blend, combat overlay | |
-| 6 | `src/gameplay/player`: position/heading/velocity owned by gameplay; renderer syncs Object3D; session and stations read gameplay state | |
+| 6 | `src/gameplay/player`: position/heading/velocity owned by gameplay; renderer syncs Object3D; session and stations read gameplay state; movement moves to `fixedUpdate` with render interpolation | |
 | 7 | `src/core/events`: typed event bus behind the existing `netrunner:*` bridge | |
 | 8 | Shared renderer bootstrap and quality controllers (desktop + mobile) | |
 | 9 | Map data: move Base stations/spawn/colliders, then building/NPC placements to `content/maps/base.json` with visual parity checks; then Expedition POIs/extractions/encounters | |

@@ -1,6 +1,6 @@
 # Project state — Netrunner / CyberBase
 
-Last updated: 2026-09-14 · branch `refactor/engine-architecture` · architecture refactor stage 1.
+Last updated: 2026-09-14 · branch `refactor/engine-architecture` · architecture refactor step 2.
 
 ## Implemented (the working game — must be preserved)
 
@@ -16,20 +16,24 @@ Last updated: 2026-09-14 · branch `refactor/engine-architecture` · architectur
 | Step | Status |
 |---|---|
 | 0 · Baseline (branch, snapshot commit, checks, screenshots) | done |
-| 1 · Asset registry + shared glTF loader/disposal + boundary rules + docs | done (this stage) |
-| 2 · `src/core/loop` wrapper, then update / fixedUpdate / render | next |
-| 3–12 · input, camera, hero animation, player state, events, renderer bootstrap, map data, dev map editor, UI modules, ECS-style systems | planned (`ARCHITECTURE.md` §5) |
+| 1 · Asset registry + shared glTF loader/disposal + boundary rules + docs | done |
+| 2 · `src/core/loop`: one frame loop for all scenes with `fixedUpdate → update → render` | done |
+| 3 · `src/input`: keyboard + stick → camera-relative move vector | next |
+| 4–12 · camera, hero animation, player state, events, renderer bootstrap, map data, dev map editor, UI modules, ECS-style systems | planned (`ARCHITECTURE.md` §5) |
 
-## Verification of stage 1
+## Verification
 
-- Before any change: `npm test` 79/79, `npm run lint` clean, `npx tsc --noEmit` clean; screenshots of `/` and `/expedition` at spawn.
-- After the change: `npm test` 82/82 (3 new architecture tests), lint clean, tsc clean, `npm run build` succeeds (Next.js 16.3.4, all routes: `/`, `/expedition`, `/metro`, `/editor/vegetation`, `/ui-kit-preview`).
-- Browser (dev server, desktop 618×910 pane): `/`, `/expedition` and `/metro` load with no console errors; `/` and `/expedition` look identical to the before-screenshots; W / D keys move the player; minimap destination walks to the Cybersmith, camera follows, "Talk to cybersmith" opens the dialog, Esc closes it; Expedition E at the breach starts extraction; one hero GLB and one Draco decoder request per page.
-- Mobile emulation 375×812 (touch): touch layout, stick visible, stick drag moves the player, no errors.
+**Step 1:** 82/82 tests, lint, tsc, `next build`; `/`, `/expedition`, `/metro` identical to baseline screenshots, movement, camera, NPC dialog, extraction prompt, mobile stick.
+
+**Step 2:**
+- `npm test` 88/88 (new `frame-loop.test.mjs` proves frame timing equals the legacy scene loops on identical timestamps, incl. the mobile cadence cap; architecture test asserts scenes no longer call requestAnimationFrame), lint clean, tsc clean, `npm run build` succeeds (all routes).
+- Browser, desktop: `/`, `/expedition`, `/metro` load with no console errors and look identical. Movement over the same key hold lands on the same minimap position as in step 1 (Base W: 71.76, 76.65 vs 71.71, 76.58; Expedition D: 14.33, 33.65 vs 14.33, 33.65), so simulation speed is unchanged. requestAnimationFrame calls per 2 s before/after a `visibilitychange` event: Base 329/331, Expedition 331/331 — no duplicate loop after resume. Cybersmith route, "Talk to" dialog and Esc work; E at the breach starts extraction.
+- Mobile emulation 375×812 (touch, cadence cap active): Base and Expedition load with the stick and touch HUD; stick drag moves the player exactly as in step 1; no errors.
 
 ## Partially implemented
 
-- New layers exist only for assets (`src/assets/registry.ts`) and renderer utilities (`src/renderer/three`). Everything else still lives in `components/`.
+- New layers: `src/assets/registry.ts`, `src/renderer/three/*`, `src/core/loop/frame-loop.ts`. Everything else still lives in `components/`.
+- The loop's `fixedUpdate` phase exists and is tested but no scene uses it yet (needs render interpolation of gameplay state, step 6).
 - Asset registry covers the Draco decoder, hero model and refuge buildings; other asset paths are still hardcoded.
 - Expedition enemies are disabled; combat damage resolves at activation; level stays 1; talents are locked.
 - Editors save only to browser localStorage.
@@ -37,16 +41,17 @@ Last updated: 2026-09-14 · branch `refactor/engine-architecture` · architectur
 
 ## Planned
 
-See `ARCHITECTURE.md` §5 (steps 2–12) and `docs/` feature notes.
+See `ARCHITECTURE.md` §5 (steps 3–12) and `docs/` feature notes.
 
 ## Known issues
 
-- Architecture problems listed in `ARCHITECTURE.md` §3 (monolithic scenes, duplicated engine code, Object3D as source of truth, no fixed timestep, window event bus, map layout in code, module-level state).
+- Architecture problems listed in `ARCHITECTURE.md` §3 (monolithic scenes, duplicated input/camera/hero code, Object3D as source of truth, no fixed timestep in use, window event bus, map layout in code, module-level state).
 - Dead asset references: `slash.glb`, `cast.glb` in `components/game/class-actions.ts` and `/game/weapons/sword/01-up.webp` in `components/game/sword-attack.ts` point to files that do not exist (not requested at runtime today). `public/base/models/outlaw-refuge.glb` is unused.
 - Landscape phone layout could not be tested with touch in browser emulation (custom sizes ≥ 768 px wide get no touch emulation); real-device portrait/landscape and FPS still need a phone test.
+- Real tab switching (document actually hidden) was simulated with a synthetic `visibilitychange` event in the browser and covered by unit tests; check once on a real device/browser.
 - The browser network log accumulates across reloads; count requests per document (Resource Timing) when checking duplicate loads.
 - `D:\V2 Cyber\CyberBase` is a paused, separate project created by mistake; do not build on it.
 
 ## Next recommended task
 
-Step 2: extract the `requestAnimationFrame` / visibility / context-loss / mobile cadence loop from the three scene factories into `src/core/loop` with identical behaviour, verified with the same checklist; then introduce `update / fixedUpdate / render` phases.
+Step 3: `src/input` — extract keyboard state (WASD/arrows, Shift) and the stick into an input module that produces a camera-relative move vector with each scene's current dead zone, speeds and editor keys as parameters; scenes consume it without behaviour change.

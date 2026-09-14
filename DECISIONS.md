@@ -83,3 +83,19 @@ No pushes or merges without the owner's request.
 **Decision:** Modules in `src/` (and any module imported by `node:test` suites) use
 relative imports with `.ts` extensions (`allowImportingTsExtensions` is enabled).
 **Reason:** tests run with Node's type stripping and no bundler, which cannot resolve extensionless imports.
+
+## ADR-012: One frame loop with fixedUpdate → update → render
+**Status:** accepted (step 2)
+**Decision:** `src/core/loop/frame-loop.ts` schedules frames for all scenes. It owns
+requestAnimationFrame, hidden-tab handling (`stop` for base and expedition, `skip`
+for metro — each scene's previous behaviour), the mobile cadence cap (`targetFps`),
+the 0.05 s delta clamp, and the phases `fixedUpdate × N → update → render` with an
+interpolation `alpha`. Scenes pass `updateFrame` (everything before the render call)
+and `renderFrame` (render, stats, snapshot). Base stops the loop on WebGL context loss;
+expedition keeps running as before.
+**Reason:** the same loop existed three times; one tested loop is the seam for a
+fixed-step simulation.
+**Consequences:** `tests/frame-loop.test.mjs` proves frame timing equals the old code on
+identical timestamps. Scenes do not use `fixedUpdate` yet: while Object3D is the source
+of truth there is no interpolation, so fixed steps would stutter on high-refresh
+displays. Movement adopts it in step 6.

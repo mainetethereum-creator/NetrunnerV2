@@ -9,7 +9,7 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 |---|---|
 | `app/` | Next.js routes (see ARCHITECTURE §1.1) |
 | `components/` | Game code (legacy layout, being migrated into `src/`) |
-| `src/` | New layered engine code (stage 1: `assets/`, `renderer/three/`) |
+| `src/` | New layered engine code (`assets/`, `core/loop/`, `renderer/three/`) |
 | `lib/wagmi.ts` | Base wallet (wagmi) config |
 | `public/` | Runtime assets (models, textures, atlases, draco decoder, vegetation bin, UI images) |
 | `assets/fonts/Martius` | Display font (licensed, see LICENSE.txt) |
@@ -25,6 +25,7 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 | File | Purpose |
 |---|---|
 | `src/assets/registry.ts` | **[P]** Runtime asset URLs (Draco decoder, hero model, refuge buildings) + `registeredAssetFiles()` |
+| `src/core/loop/frame-loop.ts` | **[E]** `createFrameLoop` — rAF scheduling, hidden-tab `stop`/`skip`, mobile cadence cap, clamped delta, `fixedUpdate → update → render` with `alpha`; injectable platform |
 | `src/renderer/three/gltf-loader.ts` | **[3]** `createGltfLoader()` — GLTFLoader with shared Draco decoder |
 | `src/renderer/three/dispose.ts` | **[3]** `disposeObjectTree()` — dispose geometries, materials, textures once |
 
@@ -134,7 +135,8 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 
 | File | Covers |
 |---|---|
-| `engine-architecture.test.mjs` | Asset registry files exist; scenes use shared loader/disposal; pure `src` layers import no three/react/components |
+| `engine-architecture.test.mjs` | Asset registry files exist; scenes use shared loader/disposal and the shared frame loop; pure `src` layers import no three/react/components |
+| `frame-loop.test.mjs` | Frame timing equals the legacy scene loops (incl. mobile cadence cap), hidden-tab modes, stop/dispose, fixed steps and alpha, exceptions |
 | `base-world`, `base-npc`, `base-quality` | Base navigation, NPC editing hooks, quality |
 | `expedition`, `vegetation`, `tree-editor`, `security-fences`, `cyber-buildings`, `legacy-building-concrete` | Expedition routes/session, vegetation budget & graph, editors, catalogue budgets |
 | `world-editor*` | Editor document, history, streaming, lazy loading, bundle graph exclusions |
