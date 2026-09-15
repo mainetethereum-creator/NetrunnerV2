@@ -1,6 +1,6 @@
 # AI handoff — 2026-09-14 · CyberBase UI kits (hub, in-game HUD, dialogue)
 
-Author: Claude (Opus 5). Read `AGENTS.md` first. Branch: `refactor/engine-architecture`.
+Author: Claude (Opus 5). Read `AGENTS.md` first. Repository: `github.com/mainetethereum-creator/NetrunnerV2`, branch `main` (ADR-020).
 Owner request: integrate `CyberBase_Hub_UI_Kit`, `CyberBase_Ingame_HUD_Kit` and
 `CyberBase_Dialogue_UI_Kit` (desktop + mobile variants) and keep them small in the repo.
 Kit mapping, rules and sizes: `docs/ui-kits/README.md`. Decision: ADR-014.

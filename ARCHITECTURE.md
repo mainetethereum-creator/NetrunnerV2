@@ -1,6 +1,6 @@
 # Netrunner / CyberBase — architecture
 
-Status: 2026-09-14, branch `refactor/engine-architecture`, refactor stage 1.
+Status: 2026-09-15, repository `mainetethereum-creator/NetrunnerV2`, branch `main` (ADR-020); refactor steps 1–3 done.
 
 **Owner decision:** Netrunner *is* the CyberBase game. There is no replacement
 project. The architecture is improved incrementally, in place, without losing
@@ -176,7 +176,7 @@ Where today's modules are headed:
 
 ## 5. Safe refactor plan
 
-Every step is one commit on `refactor/engine-architecture`. After every step the
+Every step is one commit on `main` of NetrunnerV2. After every step the
 game must start, the maps must look the same, and movement, camera, mobile
 controls and interactions must still work (checklist in `AGENTS.md`).
 

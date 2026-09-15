@@ -46,7 +46,7 @@ feature notes in `docs/` for the area you touch.
 ## Owner rules for the architecture refactor (do not violate)
 
 - **Do not create a replacement game or project**, a parallel skeleton, or a new
-  top-level app. The separate `D:\V2 Cyber\CyberBase` folder was a mistake and is paused.
+  top-level app. A separate `CyberBase` monorepo created by mistake was removed on 2026-09-15.
 - Refactor **in place, incrementally**. Preserve the current maps, 3D models,
   materials, textures, lighting, character, camera, controls, mobile controls, UI,
   interactions, Base, Expedition and every working mechanic. Do not rebuild
@@ -79,7 +79,8 @@ frames per second; count `requestAnimationFrame` calls over 2 s before judging d
 if the rate is low compare against `HEAD` (`git stash -u`, same script, then `git stash pop`).
 
 If any item breaks, fix it before continuing. Each architecture step is one commit
-on branch `refactor/engine-architecture`; no push or merge without the owner.
+on `main` of the game's own repository `github.com/mainetethereum-creator/NetrunnerV2` (ADR-020);
+no push or deploy without the owner.
 Finishing a step also means updating `PROJECT_STATE.md`, `CODEMAP.md`,
 `DECISIONS.md` (when a decision was made), `ARCHITECTURE.md` (when boundaries change)
 and overwriting `AI_HANDOFF.md`.

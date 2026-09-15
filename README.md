@@ -1,15 +1,24 @@
-# Netrunner
+# Netrunner — CyberBase 3D
 
-Standalone browser prototype for the new 3D CyberBase direction.
+Browser 3D action / extraction game: Next.js + React UI, Three.js scenes, Base wallet via wagmi.
 
-- `/` — Runner's Refuge base (active development)
-- `/metro` — frozen metro environment prototype
-- Three.js scene with adaptive quality and desktop/mobile controls
-- Base wallet connection preserved for future Web3 mechanics
+- `/` — hub (landing page)
+- `/base` — Runner's Refuge
+- `/expedition` — Outlands
+- `/metro` — frozen metro prototype
+- Development only (`npm run dev`): `/editor/vegetation`, `/ui-kit-preview`, MASTER map editor, debug panel
 
-The project is intentionally independent from the legacy 2D city and metro code.
+Start with `AGENTS.md`, then `PROJECT_STATE.md`, `ARCHITECTURE.md`, `CODEMAP.md`, `DECISIONS.md` and `AI_HANDOFF.md`.
 
-Location: `D:\V2 Cyber\Netrunner` (moved from `D:\Claude Dev\BitMap\Netrunner` on 2026-09-14).
+```bash
+npm ci
+npm run dev        # http://localhost:3000
+npm test
+npm run build
+```
 
-Production preview: https://netrunner-cyberbase.vercel.app
-Git backup branch: https://github.com/mainetethereum-creator/cyberbase/tree/netrunner-v1
+- Repository: https://github.com/mainetethereum-creator/NetrunnerV2 (branch `main`)
+- Live: https://netrunner-cyberbase.vercel.app
+- Location: `D:\V2 Cyber\Netrunner`
+
+The game is independent from the cyberbase.fun website, the whitelist and the legacy 2D city / metro code.

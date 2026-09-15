@@ -184,6 +184,19 @@ generator page and the UI kit preview page are development tools.
 **Consequences:** `tests/dev-tools.test.mjs`. New development pages use `page.dev.tsx`; new editor or
 debug UI checks `DEV_TOOLS`.
 
+## ADR-020: The game lives in its own repository, NetrunnerV2
+**Status:** accepted (owner, 2026-09-15) · supersedes the branch rule of ADR-010
+**Decision:** The game's git history moves to `github.com/mainetethereum-creator/NetrunnerV2`. Its
+`main` is the former `refactor/engine-architecture`, which contains the whole Netrunner history since
+2026-09-09. The repository `mainetethereum-creator/cyberbase` (the cyberbase.fun site, whitelist and
+the older 2D BitMap line, with an unrelated history) is no longer a remote of this folder. The mistaken
+`D:\V2 Cyber\CyberBase` monorepo and the agent scratch folders `.dream-loop` and `.cache` were moved to
+the Recycle Bin.
+**Reason:** the owner wants the new 3D game kept apart from the website, the whitelist and the old game.
+**Consequences:** `origin` is NetrunnerV2; commits go to `main`, pushed only on the owner's request.
+The Vercel project `netrunner-cyberbase` is connected to NetrunnerV2 by the owner in Vercel settings.
+Game branches left in the old `cyberbase` repository are deleted only on the owner's request.
+
 ## ADR-016: Wallet-first access, EVM wallets, Base as the primary chain
 **Status:** accepted as a product rule (owner, 2026-09-14) · **not implemented yet**
 **Decision:**

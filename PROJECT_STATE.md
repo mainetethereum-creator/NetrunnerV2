@@ -1,6 +1,6 @@
 # Project state — Netrunner / CyberBase
 
-Last updated: 2026-09-14 · branch `refactor/engine-architecture` · architecture refactor step 3 + UI kit integration (hub, HUD, dialogue).
+Last updated: 2026-09-15 · repository `mainetethereum-creator/NetrunnerV2`, branch `main` · architecture refactor steps 1–3, UI kits (hub, HUD, dialogue), development tools hidden from production.
 
 ## Implemented (the working game — must be preserved)
 
@@ -67,7 +67,8 @@ See `ARCHITECTURE.md` §5 (steps 3–12) and `docs/` feature notes.
 - Landscape phone layout could not be tested with touch in browser emulation (custom sizes ≥ 768 px wide get no touch emulation); real-device portrait/landscape and FPS still need a phone test.
 - Real tab switching (document actually hidden) was simulated with a synthetic `visibilitychange` event in the browser and covered by unit tests; check once on a real device/browser.
 - The browser network log accumulates across reloads; count requests per document (Resource Timing) when checking duplicate loads.
-- `D:\V2 Cyber\CyberBase` is a paused, separate project created by mistake; do not build on it.
+- The mistaken `D:\V2 Cyber\CyberBase` monorepo and the agent scratch folders `.dream-loop` / `.cache` were moved to the Recycle Bin on 2026-09-15.
+- The Vercel project `netrunner-cyberbase` is deployed from this folder with the Vercel CLI and is not connected to GitHub yet; connect it to NetrunnerV2 in Vercel → Settings → Git (owner action).
 - Pre-existing: on a narrow desktop window (< 650 px, mouse) the base MASTER toggle overlaps the HUD menu buttons.
 - The Claude Browser pane cannot take screenshots while the Claude window is minimized; use element geometry (`getBoundingClientRect`) or bring the window forward.
 
