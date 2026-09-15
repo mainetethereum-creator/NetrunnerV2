@@ -194,7 +194,8 @@ the older 2D BitMap line, with an unrelated history) is no longer a remote of th
 the Recycle Bin.
 **Reason:** the owner wants the new 3D game kept apart from the website, the whitelist and the old game.
 **Consequences:** `origin` is NetrunnerV2; commits go to `main`, pushed only on the owner's request.
-The Vercel project `netrunner-cyberbase` is connected to NetrunnerV2 by the owner in Vercel settings.
+The Vercel project `netrunner-cyberbase` is connected to NetrunnerV2 (`vercel git connect`, on the
+owner's request), so a push to `main` deploys production.
 Game branches left in the old `cyberbase` repository are deleted only on the owner's request.
 
 ## ADR-021: Scene loading screen — pixel helmet, red eyes, real progress

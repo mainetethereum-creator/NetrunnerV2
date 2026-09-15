@@ -69,7 +69,7 @@ See `ARCHITECTURE.md` §5 (steps 3–12) and `docs/` feature notes.
 - Real tab switching (document actually hidden) was simulated with a synthetic `visibilitychange` event in the browser and covered by unit tests; check once on a real device/browser.
 - The browser network log accumulates across reloads; count requests per document (Resource Timing) when checking duplicate loads.
 - The mistaken `D:\V2 Cyber\CyberBase` monorepo and the agent scratch folders `.dream-loop` / `.cache` were moved to the Recycle Bin on 2026-09-15.
-- The Vercel project `netrunner-cyberbase` is deployed from this folder with the Vercel CLI and is not connected to GitHub yet; connect it to NetrunnerV2 in Vercel → Settings → Git (owner action).
+- The Vercel project `netrunner-cyberbase` is connected to NetrunnerV2 (2026-09-15): every push to `main` deploys https://netrunner-cyberbase.vercel.app.
 - Pre-existing: on a narrow desktop window (< 650 px, mouse) the base MASTER toggle overlaps the HUD menu buttons.
 - The Claude Browser pane cannot take screenshots while the Claude window is minimized; use element geometry (`getBoundingClientRect`) or bring the window forward.
 

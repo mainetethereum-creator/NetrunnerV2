@@ -18,7 +18,7 @@ npm run build
 ```
 
 - Repository: https://github.com/mainetethereum-creator/NetrunnerV2 (branch `main`)
-- Live: https://netrunner-cyberbase.vercel.app
+- Live: https://netrunner-cyberbase.vercel.app (deployed automatically from `main`)
 - Location: `D:\V2 Cyber\Netrunner`
 
 The game is independent from the cyberbase.fun website, the whitelist and the legacy 2D city / metro code.

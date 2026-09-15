@@ -80,7 +80,8 @@ if the rate is low compare against `HEAD` (`git stash -u`, same script, then `gi
 
 If any item breaks, fix it before continuing. Each architecture step is one commit
 on `main` of the game's own repository `github.com/mainetethereum-creator/NetrunnerV2` (ADR-020);
-no push or deploy without the owner.
+no push or deploy without the owner. A push to `main` deploys production automatically
+(Vercel project `netrunner-cyberbase` → https://netrunner-cyberbase.vercel.app).
 Finishing a step also means updating `PROJECT_STATE.md`, `CODEMAP.md`,
 `DECISIONS.md` (when a decision was made), `ARCHITECTURE.md` (when boundaries change)
 and overwriting `AI_HANDOFF.md`.
