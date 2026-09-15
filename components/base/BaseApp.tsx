@@ -9,6 +9,7 @@ import { SPAWN, getBaseStations, type StationId } from "./world";
 import GameHud from "../game/GameHud";
 import MovementStick from "../game/MovementStick";
 import LoadingScreen from "../../src/ui/loading/LoadingScreen";
+import NpcDialogue, { type DialogueChoice } from "../../src/ui/dialogue/NpcDialogue";
 import styles from "./BaseApp.module.css";
 import type {WorldEditor} from "../world-editor/controller";
 import dynamic from "next/dynamic";
@@ -31,6 +32,18 @@ const DIALOGUE: Record<StationId, { name: string; role: string; initial: string;
   city: { name: "CITY AIRLOCK", role: "NEON SPRAWL CONNECTION", initial: "01", title: "A whole city on the other side.", text: "The refuge connects to Neon Sprawl: traders, the Oracle, rival runners, and routes into other districts. The city connection will open in a later stage." },
   stash: { name: "PERSONAL LOCKER", role: "RUNNER STORAGE", initial: "ST", title: "Leave something worth returning for.", text: "Loot from successful expeditions is stored here. Open the inventory to review your resource reserves." },
 };
+// CyberBase UI kit zone colours (src/ui/kit/kit.module.css) and channel status per station.
+const STATION_KIT: Record<StationId, { accent: string; status: string }> = {
+  expedition: { accent: "var(--cb-z-outlands)", status: "BREACH OPEN" },
+  oracle: { accent: "var(--cb-z-oracle)", status: "NEURAL LINK STABLE" },
+  market: { accent: "var(--cb-z-market)", status: "STALLS CLOSED" },
+  charge: { accent: "var(--cb-z-charge)", status: "DOCK IDLE" },
+  smith: { accent: "var(--cb-z-smith)", status: "BENCH ONLINE" },
+  contracts: { accent: "var(--cb-z-contracts)", status: "CHANNEL ENCRYPTED" },
+  metro: { accent: "var(--cb-z-metro)", status: "SHAFT LINK ONLINE" },
+  city: { accent: "var(--cb-z-city)", status: "AIRLOCK SEALED" },
+  stash: { accent: "var(--cb-z-stash)", status: "LOCKER SEALED" },
+};
 
 function Icon({ name, size = 18 }: { name: "map" | "arrow" | "settings" | "power" | "cross" | "rain" | "home"; size?: number }) {
   const paths = {
@@ -52,7 +65,7 @@ export default function BaseApp() {
   const [ready, setReady] = useState(false), [, setHero] = useState("RUNNER");
   const [snapshot, setSnapshot] = useState<BaseSnapshot>({ ...SPAWN, near: null, fps: 0, p95: 0, draws: 0, triangles: 0, ratio: 1, high: false, submitMs: 0, timingLimited: false, target: 60, scale: 1 });
   const [dialog, setDialog] = useState<StationId | "wallet" | "settings" | null>(null);
-  const [detail, setDetail] = useState(false), [mapOpen, setMapOpen] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
   const [rain, setRain] = useState(true), [quality, setQuality] = useState<QualityMode>("auto"), [quest, setQuest] = useState<Quest>(EMPTY_QUEST);
   const [showStats, setShowStats] = useState(false);
   const [master,setMaster]=useState(false),[worldEditor,setWorldEditor]=useState<WorldEditor|null>(null);
@@ -76,7 +89,7 @@ export default function BaseApp() {
     catch { setStorageNotice("Progress lasts for this visit only; browser storage is unavailable."); }
   }, []);
   const openDialog = useCallback((id: StationId) => {
-    setDetail(false); setDialog(id);
+    setDialog(id);
     const current = questRef.current;
     if (CHECKPOINTS.includes(id) && current.accepted && !current.visited.includes(id)) {
       saveQuest({ ...current, visited: [...current.visited, id] });
@@ -129,6 +142,21 @@ export default function BaseApp() {
   const moveStick = useCallback((x: number, z: number) => engine.current?.setStick(x, z), []);
   const nearest = getBaseStations().find((s) => s.id === snapshot.near);
   const npc = dialog && dialog !== "wallet" && dialog !== "settings" ? DIALOGUE[dialog] : null;
+  const openPanel = (panel: "Inventory" | "Talent Tree") => { setDialog(null); window.dispatchEvent(new CustomEvent("netrunner:panel", { detail: panel })); };
+  // Numbered choices per station; every choice states its consequence in the hint.
+  const npcChoices = (id: StationId): DialogueChoice[] => {
+    switch (id) {
+      case "contracts": return quest.accepted ? [] : [{ id: "orientation", label: "Get to know the refuge", hint: "VISIT THREE CONTACTS", primary: true, onSelect: () => { saveQuest({ accepted: true, visited: [] }); setDialog(null); } }];
+      case "charge": return [{ id: "claim", label: "Place quantum charge", hint: "DAILY CLAIM · 24 H", locked: "COMING IN A FUTURE UPDATE", onSelect: () => {} }];
+      case "metro": return [{ id: "metro", label: "Descend to Cyber Metro", hint: "FROZEN PROTOTYPE", primary: true, onSelect: () => router.push("/metro") }];
+      case "expedition": return [{ id: "expedition", label: "Start expedition", hint: "BACKPACK AT RISK", primary: true, onSelect: () => router.push("/expedition") }];
+      case "city": return [{ id: "city", label: "Enter Neon Sprawl", hint: "CITY CONNECTION", locked: "AIRLOCK UNDER CONSTRUCTION", onSelect: () => {} }];
+      case "stash": return [{ id: "inventory", label: "Open inventory", hint: "LOCKER · LOADOUT", primary: true, onSelect: () => openPanel("Inventory") }];
+      case "oracle": return [{ id: "talents", label: "Open the ability matrix", hint: "CLASS · TALENTS", primary: true, onSelect: () => openPanel("Talent Tree") }];
+      case "smith": return [{ id: "fabricate", label: "Fabricate gear", hint: "FABRICATION", locked: "NOT ACTIVE YET", onSelect: () => {} }, { id: "loadout", label: "Check my loadout", hint: "OPENS INVENTORY", onSelect: () => openPanel("Inventory") }];
+      case "market": return [{ id: "trade", label: "Browse the exchange", hint: "TRADING", locked: "NOT ACTIVE YET", onSelect: () => {} }];
+    }
+  };
 
   return <main className={`${styles.root} ${hideHud ? styles.hideHud : ""}`}>
     <button className={styles.hudToggle} onClick={() => setHideHud(!hideHud)} aria-label={hideHud ? "Show interface" : "Hide interface"}>{hideHud ? "H · Show interface" : "H · Hide interface"}</button>
@@ -165,22 +193,26 @@ export default function BaseApp() {
     {storageNotice && <div className={styles.error} role="status">{storageNotice}</div>}
     {ready && error && <div className={styles.error} role="status">{error}<button onClick={() => setError("")} aria-label="Dismiss notice">×</button></div>}
 
-    {dialog && <div className={`${styles.scrim} ${npc ? styles.npcScrim : ""}`} onPointerDown={(e) => { if (e.target === e.currentTarget) setDialog(null); }}>
-      <div ref={dialogRef} className={`${styles.dialog} ${npc ? styles.npcDialog : ""}`} role="dialog" aria-modal="true" aria-labelledby="base-dialog-title">
-        <div className={styles.dialogTop}><span className={styles.eyebrow}>{npc ? "LOCAL CHANNEL / CONNECTED" : "REFUGE SYSTEMS"}</span><button onClick={() => setDialog(null)} aria-label="Close dialog"><Icon name="cross" /></button></div>
-        {npc && <><div className={styles.portrait} aria-hidden="true"><span>{npc.initial}</span></div><div className={styles.speaker}><div><span className={styles.eyebrow}>{npc.role}</span><h2 id="base-dialog-title">{npc.name}</h2></div><i /></div>
-          <div className={styles.speech}><h3>{detail && dialog === "smith" ? "One cell. Twenty-four hours." : npc.title}</h3><p>{detail && dialog === "smith" ? "The daily routine will start here: bring a battery, place it in the charging dock, and return after a 24-hour cycle. The station is being commissioned. Charging, timers, and rewards are not active yet." : npc.text}</p></div>
-          <div className={styles.choices}>
-            {dialog === "contracts" && !quest.accepted && <button className={styles.primaryChoice} onClick={() => { saveQuest({ accepted: true, visited: [] }); setDialog(null); }}><span><strong>Get to know the refuge</strong><small>Visit three contacts · Local exploration quest</small></span><Icon name="arrow" /></button>}
-            {dialog === "contracts" && quest.accepted && <div className={styles.questChecklist}>{CHECKPOINTS.map((id) => <p key={id}><span>{quest.visited.includes(id) ? "✓" : "◇"}</span>{getBaseStations().find((s) => s.id === id)?.name}</p>)}<small>{complete ? "Orientation complete. No token reward is attached to this introduction." : "Speak to each contact to complete your introduction."}</small></div>}
-            {dialog === "charge" && <button className={styles.primaryChoice} disabled><span><strong>Place quantum charge · Daily Claim</strong><small>24-hour cycle · Coming in a future update</small></span></button>}
-            {dialog === "metro" && <button onClick={() => router.push("/metro")}><span><strong>Descend to Cyber Metro</strong><small>Explore the frozen environment prototype</small></span><span>↓</span></button>}
-            {dialog === "expedition" && <button onClick={() => router.push("/expedition")}><span><strong>Start expedition</strong><small>Outskirts → Industrial → Extraction</small></span><span>→</span></button>}
-            {dialog === "city" && <button disabled><span><strong>Enter Neon Sprawl</strong><small>Airlock connection under construction</small></span><span>⌁</span></button>}
-            {(dialog === "stash" || dialog === "oracle") && <button onClick={() => { const panel = dialog === "stash" ? "Inventory" : "Talent Tree"; setDialog(null); window.dispatchEvent(new CustomEvent("netrunner:panel", {detail: panel})); }}><span><strong>{dialog === "stash" ? "Open inventory" : "Choose class"}</strong></span><Icon name="arrow" /></button>}
-            <button onClick={() => setDialog(null)}><span>Back to the refuge</span><span>ESC ↵</span></button>
-          </div>
-        </>}
+    {npc && dialog && dialog !== "wallet" && dialog !== "settings" && <NpcDialogue
+      containerRef={dialogRef}
+      titleId="base-dialog-title"
+      name={npc.name}
+      role={npc.role}
+      initials={npc.initial}
+      status={STATION_KIT[dialog].status}
+      channel={`${dialog.toUpperCase()}-CHANNEL`}
+      accent={STATION_KIT[dialog].accent}
+      lines={[npc.title, npc.text]}
+      choices={npcChoices(dialog)}
+      checklist={dialog === "contracts" && quest.accepted ? CHECKPOINTS.map((id) => ({ label: getBaseStations().find((s) => s.id === id)?.name ?? id, done: quest.visited.includes(id) })) : undefined}
+      checklistNote={complete ? "Orientation complete. No token reward is attached to this introduction." : "Speak to each contact to complete your introduction."}
+      exit={{ label: "Back to the refuge", hint: "ESC", onSelect: () => setDialog(null) }}
+      onDismiss={() => setDialog(null)}
+    />}
+
+    {(dialog === "wallet" || dialog === "settings") && <div className={styles.scrim} onPointerDown={(e) => { if (e.target === e.currentTarget) setDialog(null); }}>
+      <div ref={dialogRef} className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="base-dialog-title">
+        <div className={styles.dialogTop}><span className={styles.eyebrow}>REFUGE SYSTEMS</span><button onClick={() => setDialog(null)} aria-label="Close dialog"><Icon name="cross" /></button></div>
         {dialog === "wallet" && <><h2 id="base-dialog-title">Your identity on Base.</h2><p className={styles.modalCopy}>Explore freely as a guest, or connect your existing wallet. Connecting does not charge a fee or sign a transaction. Refuge quests currently stay in this browser.</p>
           {isConnected && address ? <div className={styles.walletInfo}><span>CONNECTED WALLET</span><code>{address}</code><p>{chainId === 8453 ? "Base network" : "Wallet connected on another network. No transaction is required."}</p><button onClick={() => disconnect()}>Disconnect wallet</button></div> : <div className={styles.choices}>{connectors.map((connector) => <button key={connector.uid} disabled={isPending} onClick={async () => { setWalletError(""); try { await connectAsync({ connector }); } catch { setWalletError("Connection was cancelled or unavailable. You can try again or keep exploring as a guest."); } }}><span>{connector.name}</span><span>{isPending ? "…" : "↗"}</span></button>)}{!connectors.length && <p>No wallet connector is available. Continue as a guest.</p>}</div>}
           {walletError && <p className={styles.notice} role="alert">{walletError}</p>}

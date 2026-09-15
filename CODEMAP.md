@@ -38,6 +38,10 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 | `src/renderer/three/loading-progress.ts` | **[3]** `watchLoadingProgress` — real file counts from three.js' `DefaultLoadingManager` for the loading screen (keeps existing handlers) |
 | `src/ui/loading/LoadingScreen.tsx`, `LoadingScreen.module.css` | **[R]** Scene loading screen (base, expedition): pixel helmet, red eyes, real percent / files, error + reload, dissolves when ready (ADR-021) |
 | `src/ui/loading/loading-model.ts` | **[P]** Loading maths: `loadingTarget`, `pacedPercent` (wake-up pace), `loadingStage`, `assetLabel` |
+| `src/ui/kit/kit.module.css`, `Glyph.tsx` | **[R]** CyberBase 2D UI kit in the game world (branch `feature/ui-kit-3d`): tokens scoped to `.kit`, chamfer / button / chip / pips / bar primitives, button reset over legacy `.root button`; shared line icons (re-exported by `GameHud.tsx`) |
+| `src/ui/dialogue/NpcDialogue.tsx`, `NpcDialogue.module.css` | **[R]** NPC dialogue docked to the bottom of the 3D view: speaker in zone colour, numbered choices (keys 1–9), exit 0, locked choices with reason, quest checklist; desktop / portrait / landscape |
+| `src/ui/character/RunnerPanel.tsx`, `Loadout.tsx`, `AbilityMatrix.tsx`, `character.module.css` | **[R]** Character panel shell, loadout (wearing / carrying / adds up to, locker + unsecured backpack, filter, sort, equip), ability matrix (class switch, 4 skills × 3 modules × 5 ranks, effect lines, locked reasons); props only, no game imports |
+| `src/ui/character/talent-upgrades.ts` | **[P]** Proposed talent module names and percentages per class / skill slot, `talentEffect` outcome lines, `CLASS_ROLES` |
 | `src/renderer/three/gltf-loader.ts` | **[3]** `createGltfLoader()` — GLTFLoader with shared Draco decoder |
 | `src/renderer/three/dispose.ts` | **[3]** `disposeObjectTree()` — dispose geometries, materials, textures once |
 
@@ -102,7 +106,7 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 | File | Purpose |
 |---|---|
 | `GameHud.tsx` | **[R][S]** Vitals (runner avatar), skills 1–4, menu, panels; listens to `netrunner:stats|panel`, dispatches `netrunner:cast`; UI kit skin at the end of `GameHud.module.css` |
-| `CharacterPanel.tsx`, `character-draft.ts` | **[R][S]/[P]** Character/inventory/talents panel, draft attributes |
+| `CharacterPanel.tsx`, `character-draft.ts` | **[R][S]/[P]** Adapter from game data (class, draft, stash, backpack) to the UI kit panels in `src/ui/character`; draft rules: attributes, talents, `talentBlockReason` |
 | `MovementStick.tsx` | **[R]** Touch stick → `onMove`, resets on blur/visibility/modals |
 | `combat.ts` | **[P]** Classes, skills, `CombatState` |
 | `combat-driver.ts` | **[3][S]** Energy/cooldowns bridge, attack clip playback, sword/gun visuals, window events |
@@ -152,6 +156,7 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 | `loading-screen.test.mjs` | Loading percent (warm-up, real files, never backwards, ≤ 95% until ready, wake-up pace), stages, asset labels, screen wired into base and expedition |
 | `dev-tools.test.mjs` | `next.config` enables dev tools / development pages only in development; editor pages are `page.dev.tsx`; MASTER / debug / teleports are gated |
 | `hub.test.mjs` | Hub links point to existing routes, artwork exists as WebP, no kit references in `public/`, hub imports no game code, game routes return to `/base` |
+| `ui-kit-game.test.mjs` | Talent modules match real skill numbers for every class, effect lines, base uses the kit dialogue, character panel renders kit panels, kit tokens scoped to `.kit` |
 | `camera.test.mjs` | Follow camera pivot and position are bit-identical to the legacy base / expedition / metro camera code over random frame sequences (reduced motion, portrait, MASTER zoom / pan / tree editor moves, reset); preset distances and bounds |
 | `input.test.mjs` | Movement direction is bit-identical to the legacy scene formula (all key combos × stick values × dead zones × editor bindings), stick clamping, `stickVector` re-export |
 | `frame-loop.test.mjs` | Frame timing equals the legacy scene loops (incl. mobile cadence cap), hidden-tab modes, stop/dispose, fixed steps and alpha, exceptions |

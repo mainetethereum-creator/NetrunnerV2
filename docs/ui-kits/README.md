@@ -91,3 +91,28 @@ node scripts/import-ui-kits.mjs <folder-with-unzipped-kits> --sheet contact-shee
 
 Check `contact-sheet.png` for baked text at the crop edges and adjust the `crop`
 rectangles in the script. The script needs `sharp` (installed with Next.js).
+
+## CyberBase 2D kit in the game world (test, branch `feature/ui-kit-3d`)
+
+Owner request (2026-09-15): test the UI kit of the CyberBase 2D game — palette, style, dialogues,
+talent matrix, inventory — inside the 3D game on `/base`. The hub is not touched. Not merged into
+`main`; the owner decides after playing it. Standalone design reference with every screen and the
+open questions: `D:\V2 Cyber\UI-Kit-3D-Proposal` (outside the repository).
+
+| What | Where | Notes |
+|---|---|---|
+| Kit tokens and primitives | `src/ui/kit/kit.module.css` | Violet neutrals, amber = interactive, zone colours per station; scoped to `.kit` |
+| NPC dialogue | `src/ui/dialogue/NpcDialogue.tsx`, rendered by `components/base/BaseApp.tsx` | Docked to the bottom; keys 1–9 choose, 0 leaves; wallet and settings dialogs keep the previous look |
+| Loadout + ability matrix | `src/ui/character/*`, adapter `components/game/CharacterPanel.tsx`, opened by `GameHud.tsx` | Same panel on base and expedition (I, menu, Oracle, Locker) |
+| Talent modules | `src/ui/character/talent-upgrades.ts` | Proposed names and percentages; combat does not read them |
+
+Rules kept from the 2D kit: one amber fill per screen, colour carries meaning, one chamfer, locked
+content stays visible with its reason, numbers are mono. Adapted for 3D: the dialogue never hides
+the world, no levels (a module opens at rank 3 of the one above, 8 points), free class switch when
+cooldowns are ready, four rarity tiers.
+
+Checked 2026-09-15: `npm test` 115/115, lint, tsc. In the browser on `/base` (desktop 1024×768,
+phone 375×812 and 844×390, DOM checks — the pane was hidden, so no 3D screenshot): dialogue keys
+0 / 1 / Esc, quest checklist, loadout equip, matrix invest and locked reasons, Esc closes; no
+clipped text, panels inside the viewport, no console or server errors. Still to see with eyes: the
+look over the live 3D scene.

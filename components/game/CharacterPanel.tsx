@@ -1,42 +1,58 @@
 'use client';
-import Image from 'next/image';
-import {useState} from 'react';
+// Adapter between the game data (combat class, character draft, stash, expedition backpack) and the
+// CyberBase UI kit panels in src/ui/character. Draft rules stay in character-draft.ts.
+import {useState,type Ref} from 'react';
 import {CLASSES,type CombatClass} from './combat';
 import {ITEMS,type LootKind} from '../expedition/config';
-import {ATTRIBUTES,ATTRIBUTE_BUDGET,TALENT_BUDGET,DRAFT_KEY,GEAR,freshDraft,parseDraft,allocateAttribute,allocateTalent,spentTalents,type CharacterDraft} from './character-draft';
-import {Glyph} from './GameHud';
-import s from './CharacterPanel.module.css';
-type Entry={id:string;name:string;rarity:string;icon:string;count:number;gear:boolean};
-const rarityOrder=['COMMON','UNCOMMON','RARE','EPIC'];
-export default function CharacterPanel({classId,hp,energy,cooldowns,stash,bag,initialTab}:{classId:CombatClass;hp:number;energy:number;cooldowns:number[];stash:Partial<Record<LootKind,number>>;bag:Partial<Record<LootKind,number>>;initialTab:'inventory'|'talents'}) {
- const [tab,setTab]=useState(initialTab),[filter,setFilter]=useState('all'),[sort,setSort]=useState('type');
+import {ATTRIBUTES,ATTRIBUTE_BUDGET,TALENT_BUDGET,TALENT_MAX_RANK,TALENT_REQUIRED_RANK,DRAFT_KEY,GEAR,freshDraft,parseDraft,allocateAttribute,allocateTalent,spentTalents,talentBlockReason,type CharacterDraft} from './character-draft';
+import {ASSET_URLS} from '../../src/assets/registry';
+import RunnerPanel,{type RunnerTab} from '../../src/ui/character/RunnerPanel';
+import Loadout,{type LoadoutItem} from '../../src/ui/character/Loadout';
+import AbilityMatrix from '../../src/ui/character/AbilityMatrix';
+import {CLASS_ROLES,TALENT_UPGRADES} from '../../src/ui/character/talent-upgrades';
+
+const RUNNER='NEON SENTINEL';
+const LEVEL=1;
+const LOCKER_SLOTS=30;
+const ATTRIBUTE_HINTS=['Physical power','Accuracy and reaction','Neural potential','Resilience'];
+const LOOT_ICON:Record<LootKind,string>={scrap:'bag',electronics:'spark',batteries:'bolt',weapon_parts:'sword',upgrade_module:'burst',prototype:'target'};
+const CLASS_IDS=Object.keys(CLASSES) as CombatClass[];
+
+export default function CharacterPanel({classId,hp,energy,cooldowns,stash,bag,initialTab,onClose,panelRef}:{classId:CombatClass;hp:number;energy:number;cooldowns:number[];stash:Partial<Record<LootKind,number>>;bag:Partial<Record<LootKind,number>>;initialTab:RunnerTab;onClose:()=>void;panelRef?:Ref<HTMLDivElement>}) {
+ const [tab,setTab]=useState<RunnerTab>(initialTab);
  const [draft,setDraft]=useState<CharacterDraft>(()=>{try{return parseDraft(localStorage.getItem(DRAFT_KEY));}catch{return freshDraft();}});
- const [selected,setSelected]=useState('blade'),[notice,setNotice]=useState(''),[node,setNode]=useState([0,0]);
- const persist=(next:CharacterDraft)=>{setDraft(next);try{localStorage.setItem(DRAFT_KEY,JSON.stringify(next));setNotice('Draft saved in this browser');}catch{setNotice('Storage unavailable · changes last until this window closes');}};
- const entries:Entry[]=[...GEAR.map(g=>({...g,count:1,gear:true})),...(Object.keys(ITEMS) as LootKind[]).filter(k=>(stash[k]??0)>0).map(k=>({id:k,...ITEMS[k],count:stash[k]!,gear:false,icon:k==='batteries'?'bolt':k==='weapon_parts'?'sword':'bag'}))];
- const visible=entries.filter(e=>filter==='all'||(filter==='gear'?e.gear:!e.gear)).sort((a,b)=>sort==='rarity'?rarityOrder.indexOf(b.rarity)-rarityOrder.indexOf(a.rarity):sort==='name'?a.name.localeCompare(b.name,'en'):Number(b.gear)-Number(a.gear));
- const item=entries.find(e=>e.id===selected),points=ATTRIBUTE_BUDGET-draft.attributes.reduce((a,b)=>a+b,0),talentPoints=TALENT_BUDGET-spentTalents(draft);
- const skill=CLASSES[classId].skills[node[0]],nodeId=`${classId}.${node[0]}.${node[1]}`,rank=draft.talents[nodeId]??0;
- const talentNext=allocateTalent(draft,classId,node[0],node[1]);
- return <div className={s.shell}>
-  <nav className={s.tabs} aria-label="Character section"><button aria-pressed={tab==='inventory'} onClick={()=>setTab('inventory')}>01 / CHARACTER & INVENTORY</button><button aria-pressed={tab==='talents'} onClick={()=>setTab('talents')}>02 / TALENT MATRIX <b>{talentPoints}</b></button></nav>
-  <div className={s.notice}>TRAINING DRAFT <span>Equipment and point allocation are a local preview. Combat stats and loot remain live.</span></div>
-  <div className={s.layout}>
-   <section className={s.equipment}><div className={s.heading}><h3>Equipment</h3><span>{draft.equipped.length} / 4</span></div><div className={s.identity}><small>NR — 001 / ACTIVE OPERATIVE</small><h3>NEON SENTINEL</h3><span>{CLASSES[classId].name} · Level 1</span></div>
-    <div className={s.portrait}><Image src="/game/ui/keeper.png" alt="Operative portrait" fill sizes="280px" unoptimized/><div className={s.slots}>{GEAR.map(g=><button key={g.id} title={`${g.slot}: ${draft.equipped.includes(g.id)?g.name:'empty'}`} aria-label={`${g.slot}: ${draft.equipped.includes(g.id)?g.name:'empty'}`} aria-pressed={selected===g.id} onClick={()=>{setSelected(g.id);setTab('inventory');}}><Glyph name={draft.equipped.includes(g.id)?g.icon:'spark'}/><small>{g.slot}</small></button>)}</div><span className={s.portraitLabel}>NEURAL SIGNATURE / VERIFIED</span></div>
-    <div className={s.readout}><span>Health <b>{Math.ceil(hp)} / 100</b></span><meter min={0} max={100} value={hp} aria-label="Current health"/><span>Energy <b>{Math.floor(energy)} / 100</b></span><meter min={0} max={100} value={energy} aria-label="Current energy"/></div>
-    <div className={s.summary}><span>Attribute points <b>{points}</b></span><span>Talent points <b>{talentPoints}</b></span></div><button className={s.reset} onClick={()=>{persist(freshDraft());}}>Reset equipment and points</button>
-   </section>
-   {tab==='inventory'?<section className={s.inventory}><div className={s.heading}><h3>Inventory</h3><span>{entries.length} / 30 slots</span></div><div className={s.toolbar}><div>{[['all','All'],['gear','Gear'],['loot','Resources']].map(([id,label])=><button key={id} aria-pressed={filter===id} onClick={()=>setFilter(id)}>{label}</button>)}</div><label>Sort<select aria-label="Inventory sorting" value={sort} onChange={e=>setSort(e.target.value)}><option value="type">Type</option><option value="rarity">Rarity</option><option value="name">Name</option></select></label></div>
-    <div className={s.grid}>{visible.map(e=><button key={e.id} className={s.cell} data-rarity={e.rarity} aria-pressed={selected===e.id} aria-label={`${e.name}, ${e.count}${e.gear?', preview gear':''}`} title={`${e.name} · ${e.rarity}${e.gear?' · Preview gear':` · In stash: ${e.count}`}`} onClick={()=>setSelected(e.id)}><Glyph name={e.icon}/><small>{e.name}</small><b>{e.gear?(draft.equipped.includes(e.id)?'E':'◇'):`×${e.count}`}</b></button>)}{Array.from({length:Math.max(0,30-visible.length)},(_,i)=><div key={`empty${i}`} className={s.empty} aria-hidden="true">{String(visible.length+i+1).padStart(2,'0')}</div>)}</div>
-    {!visible.length&&<p>No items in this category yet.</p>}
-    <div className={s.inspector} aria-live="polite">{item?<><div><small>{item.rarity} / {item.gear?'PREVIEW GEAR':'BASE STASH'}</small><h3>{item.name}</h3><p>{item.gear?'Preview equipment slot. Combat bonuses are not applied yet.':`In stash: ${item.count}. Secured after extraction.`}</p></div>{item.gear&&<button onClick={()=>persist({...draft,equipped:draft.equipped.includes(item.id)?draft.equipped.filter(id=>id!==item.id):[...draft.equipped,item.id]})}>{draft.equipped.includes(item.id)?'Unequip':'Equip'}</button>}</>:<p>Select an item to inspect.</p>}</div>
-    <div className={s.heading}><h3>Expedition Backpack</h3><span>NOT EXTRACTED</span></div><div className={s.bag}>{(Object.keys(ITEMS) as LootKind[]).filter(k=>(bag[k]??0)>0).map(k=><div key={k}><Glyph name="bag"/><span>{ITEMS[k].name}</span><b>×{bag[k]}</b></div>)}{!Object.values(bag).some(v=>v&&v>0)&&<p>Empty · find resources in the sector</p>}</div><p className={s.hint}>Loot reaches your base stash only after a successful extraction.</p>
-   </section>:<section className={s.inventory}><div className={s.heading}><h3>Ability Matrix</h3><span>{talentPoints} SP</span></div><div className={s.classButtons}>{(Object.keys(CLASSES) as CombatClass[]).map(id=><button key={id} aria-pressed={classId===id} disabled={cooldowns.some(c=>c>0)} onClick={()=>window.dispatchEvent(new CustomEvent('netrunner:class',{detail:id}))}>{CLASSES[id].name}</button>)}</div><p className={s.hint}>Combat class can be changed after cooldowns finish. Every skill is already unlocked.</p>
-    <div className={s.branches}>{CLASSES[classId].skills.map((ability,slot)=><section key={ability.name}><Glyph name={ability.icon}/><strong>{ability.name}</strong><small>{ability.cost} EN · {ability.cooldown} SEC</small>{['Power','Optimization','Mastery'].map((label,tier)=>{const r=draft.talents[`${classId}.${slot}.${tier}`]??0;return <button key={tier} aria-pressed={node[0]===slot&&node[1]===tier} onClick={()=>setNode([slot,tier])}><small>TIER 0{tier+1}</small><b>{label}</b><span>{'●'.repeat(r)}{'○'.repeat(5-r)}</span><small>{tier?'Requires rank 3 above':'Base module'}</small></button>;})}</section>)}</div>
-    <div className={s.inspector}><div><small>MODULE 0{node[1]+1} / RANK {rank} OF 5</small><h3>{skill.name}</h3><p>{['Power','Optimization','Mastery'][node[1]]} · 1 SP per rank. Talent preview only; damage and cooldowns remain unchanged.</p></div><button disabled={talentNext===draft} onClick={()=>persist(talentNext)}>{rank===5?'Maximum rank':talentPoints===0?'No points':talentNext===draft?'Previous module required':'Invest 1 SP'}</button></div>
-   </section>}
-   <aside className={s.details}><div className={s.heading}><h3>Attributes</h3><span>{points} AP</span></div>{ATTRIBUTES.map((a,i)=><div className={s.attribute} key={a}><div><strong>{a}</strong><small>{['Physical power','Accuracy and reaction','Neural potential','Resilience'][i]}</small></div><b>{10+draft.attributes[i]}</b><button disabled={!points} aria-label={`Add: ${a}`} onClick={()=>persist(allocateAttribute(draft,i))}>+</button></div>)}<p className={s.hint}>Training allocation · base value 10.</p><div className={s.heading}><h3>Combat Stats</h3><span>LIVE</span></div><dl className={s.combat}><dt>Base damage</dt><dd>{CLASSES[classId].skills[0].damage}</dd><dt>Attack range</dt><dd>{CLASSES[classId].skills[0].range} m</dd><dt>Cooldown</dt><dd>{CLASSES[classId].skills[0].cooldown} sec</dd><dt>Energy regeneration</dt><dd>8 / sec</dd><dt>Maximum health</dt><dd>100</dd><dt>Maximum energy</dt><dd>100</dd></dl><p className={s.hint}>Live values for the current combat class.</p></aside>
-  </div><footer className={s.footer}><span role="status">{notice||'Local draft · rewards and progression remain unchanged'}</span><span>I / ESC — CLOSE</span></footer>
- </div>;
+ const [selected,setSelected]=useState<string|null>('blade'),[notice,setNotice]=useState('');
+ const persist=(next:CharacterDraft,message:string)=>{setDraft(next);try{localStorage.setItem(DRAFT_KEY,JSON.stringify(next));setNotice(message);}catch{setNotice('Storage unavailable · changes last until this window closes');}};
+
+ const combatClass=CLASSES[classId];
+ const upgrades=TALENT_UPGRADES[classId];
+ const lootItems=(source:Partial<Record<LootKind,number>>,prefix:string,unsecured:boolean):LoadoutItem[]=>(Object.keys(ITEMS) as LootKind[]).filter(kind=>(source[kind]??0)>0).map(kind=>({id:`${prefix}:${kind}`,name:ITEMS[kind].name,rarity:ITEMS[kind].rarity,icon:LOOT_ICON[kind],count:source[kind]!,kind:'loot',unsecured}));
+ const gear:LoadoutItem[]=GEAR.map(item=>({id:item.id,name:item.name,rarity:item.rarity,icon:item.icon,count:1,kind:'gear',slot:item.slot,equipped:draft.equipped.includes(item.id)}));
+ const backpack=lootItems(bag,'bag',true);
+ const attributePoints=ATTRIBUTE_BUDGET-draft.attributes.reduce((a,b)=>a+b,0);
+ const talentPoints=TALENT_BUDGET-spentTalents(draft);
+ const basic=combatClass.skills[0];
+ const blockReason=(slot:number,tier:number)=>{
+  const block=talentBlockReason(draft,classId,slot,tier);
+  if(block==='prerequisite')return `REQUIRES ${upgrades[slot][tier-1].label.toUpperCase()} ${TALENT_REQUIRED_RANK}/${TALENT_MAX_RANK}`;
+  if(block==='max-rank')return 'MAXIMUM RANK';
+  if(block==='no-points')return 'NO SKILL POINTS LEFT';
+  return block?'UNAVAILABLE':null;
+ };
+
+ return <RunnerPanel panelRef={panelRef} tab={tab} onTab={setTab} onClose={onClose} runnerName={RUNNER} className={combatClass.name} level={LEVEL} unsecured={backpack.reduce((sum,item)=>sum+item.count,0)} talentPoints={talentPoints} notice={notice} onReset={()=>persist(freshDraft(),'Draft reset · all points refunded')}>
+  {tab==='inventory'
+   ?<Loadout runnerName={RUNNER} className={combatClass.name} level={LEVEL} avatarUrl={ASSET_URLS.ui.runnerAvatar} frameUrl={ASSET_URLS.ui.kitPlayerFrame} hp={hp} energy={energy}
+     gear={gear} locker={lootItems(stash,'stash',false)} backpack={backpack} lockerSlots={LOCKER_SLOTS}
+     attributes={ATTRIBUTES.map((name,index)=>({name,hint:ATTRIBUTE_HINTS[index],value:10+draft.attributes[index]}))} attributePoints={attributePoints}
+     onAddAttribute={index=>persist(allocateAttribute(draft,index),`${ATTRIBUTES[index]} +1`)}
+     selectedId={selected} onSelect={setSelected}
+     onToggleEquip={id=>{const on=draft.equipped.includes(id);persist({...draft,equipped:on?draft.equipped.filter(item=>item!==id):[...draft.equipped,id]},on?'Unequipped':'Equipped');}}
+     stats={[['Basic skill',basic.name],['Base damage',String(basic.damage)],['Attack range',`${basic.range} m`],['Basic cooldown',`${basic.cooldown} s`],['Energy regeneration','8 / s'],['Maximum health','100'],['Maximum energy','100']]}/>
+   :<AbilityMatrix classId={classId} classes={CLASS_IDS.map(id=>({id,name:CLASSES[id].name,role:CLASS_ROLES[id]}))} skills={combatClass.skills} upgrades={upgrades}
+     maxRank={TALENT_MAX_RANK} requiredRank={TALENT_REQUIRED_RANK} budget={TALENT_BUDGET} pointsLeft={talentPoints}
+     rank={(slot,tier)=>draft.talents[`${classId}.${slot}.${tier}`]??0} blockReason={blockReason}
+     onInvest={(slot,tier)=>persist(allocateTalent(draft,classId,slot,tier),`${upgrades[slot][tier].label} · rank ${(draft.talents[`${classId}.${slot}.${tier}`]??0)+1}/${TALENT_MAX_RANK}`)}
+     classLocked={cooldowns.some(value=>value>0)} onSelectClass={id=>window.dispatchEvent(new CustomEvent('netrunner:class',{detail:id}))}/>}
+ </RunnerPanel>;
 }

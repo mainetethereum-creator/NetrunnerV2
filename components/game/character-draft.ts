@@ -16,11 +16,21 @@ export function allocateAttribute(draft:CharacterDraft,index:number):CharacterDr
  if(!Number.isInteger(index)||index<0||index>3||draft.attributes.reduce((a,b)=>a+b,0)>=ATTRIBUTE_BUDGET)return draft;
  return {...draft,attributes:draft.attributes.map((v,i)=>v+(i===index?1:0))};
 }
+export const TALENT_MAX_RANK = 5;
+export const TALENT_REQUIRED_RANK = 3;
+export type TalentBlock = 'invalid' | 'max-rank' | 'prerequisite' | 'no-points';
+/** Why allocateTalent would refuse this module, or null when one point can be invested. */
+export function talentBlockReason(draft:CharacterDraft,classId:string,slot:number,tier:number):TalentBlock|null {
+ if(!['warrior','mage','ranger'].includes(classId)||!Number.isInteger(slot)||slot<0||slot>3||!Number.isInteger(tier)||tier<0||tier>2)return 'invalid';
+ if((draft.talents[`${classId}.${slot}.${tier}`]??0)>=TALENT_MAX_RANK)return 'max-rank';
+ if(tier>0&&(draft.talents[`${classId}.${slot}.${tier-1}`]??0)<TALENT_REQUIRED_RANK)return 'prerequisite';
+ if(spentTalents(draft)>=TALENT_BUDGET)return 'no-points';
+ return null;
+}
 export function allocateTalent(draft:CharacterDraft,classId:string,slot:number,tier:number):CharacterDraft {
- if(!['warrior','mage','ranger'].includes(classId)||!Number.isInteger(slot)||slot<0||slot>3||!Number.isInteger(tier)||tier<0||tier>2)return draft;
- const id=`${classId}.${slot}.${tier}`,rank=draft.talents[id]??0;
- if(rank>=5||spentTalents(draft)>=TALENT_BUDGET||(tier>0&&(draft.talents[`${classId}.${slot}.${tier-1}`]??0)<3))return draft;
- return {...draft,talents:{...draft.talents,[id]:rank+1}};
+ if(talentBlockReason(draft,classId,slot,tier))return draft;
+ const id=`${classId}.${slot}.${tier}`;
+ return {...draft,talents:{...draft.talents,[id]:(draft.talents[id]??0)+1}};
 }
 export function parseDraft(raw:string|null):CharacterDraft {
  try {

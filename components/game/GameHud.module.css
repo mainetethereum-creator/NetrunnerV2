@@ -61,3 +61,6 @@
 @media(max-width:900px),(pointer:coarse),(any-pointer:coarse){.hud.ghost .menu{background:var(--cb-panel-strong);border-color:var(--cb-line-soft)}}
 @media(prefers-reduced-motion:reduce){.ghost button{transition:none}.ghost button:active:not(:disabled){transform:none}}
 @media(prefers-contrast:more),(prefers-reduced-transparency:reduce){.ghost .skills button,.ghost .menu button,.ghost .menuToggle{background:#081a21;border:1px solid #c6d6b2}}
+/* CyberBase 2D UI kit panels (loadout, ability matrix) — src/ui/character. */
+.kitScrim{position:absolute;inset:0;z-index:80;display:grid;place-items:center;padding:24px;background:rgba(7,6,15,.72)}
+@media(max-width:760px),(orientation:landscape) and (max-height:500px){.kitScrim{padding:8px}}

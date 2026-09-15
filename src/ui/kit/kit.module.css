@@ -1,0 +1,219 @@
+/* CyberBase UI kit — from the 2D game, adapted for the 3D world (branch feature/ui-kit-3d).
+
+   Tokens live on .kit, not on the document root, so the hub and the in-game HUD skin keep their
+   own --cb-* values.
+   Rules: amber is the interface · every other colour carries meaning · one chamfer
+   (top-left + bottom-right, 1 px) · numbers are mono · locked stays visible under the 135° hatch.
+
+   Legacy screens style every button (`.root button` in BaseApp.module.css, hover included), so the
+   kit resets buttons with a doubled class and components only set --bd / --bg / --fg. */
+
+.kit {
+  /* ground + structure — violet-biased neutrals */
+  --cb-void: #07060f;
+  --cb-plate: #0e0c1c;
+  --cb-plate-2: #141227;
+  --cb-plate-3: #1c1934;
+  --cb-edge: #2b2745;
+  --cb-edge-hi: #453f6d;
+  --cb-ink: #eae8f7;
+  --cb-ink-2: #9c97bd;
+  --cb-ink-3: #655f88;
+
+  /* signal colours — meaning, never decoration */
+  --cb-amber: #ffd54a;
+  --cb-ice: #57eaff;
+  --cb-blood: #ff4d6d;
+  --cb-tox: #7cff6b;
+  --cb-violet: #c46bff;
+
+  /* rarity (the 3D game has four tiers) */
+  --cb-rarity-common: #9aa5b1;
+  --cb-rarity-uncommon: #7cff6b;
+  --cb-rarity-rare: #4aa8ff;
+  --cb-rarity-epic: #b26bff;
+
+  /* stats */
+  --cb-s-hp: #7cff6b;
+  --cb-s-en: #00e5ff;
+  --cb-s-dmg: #ff4d6d;
+
+  /* classes — Mage takes the 2D hacker accent */
+  --cb-c-warrior: #ff5d52;
+  --cb-c-ranger: #f6df4b;
+  --cb-c-mage: #57eaff;
+
+  /* refuge station zones — prompt and dialogue accents */
+  --cb-z-outlands: #ff4d6d;
+  --cb-z-metro: #c46bff;
+  --cb-z-oracle: #57eaff;
+  --cb-z-charge: #7cff6b;
+  --cb-z-smith: #ffb347;
+  --cb-z-market: #4aa8ff;
+  --cb-z-contracts: #eae8f7;
+  --cb-z-stash: #9c97bd;
+  --cb-z-city: #9aa5b1;
+
+  --cb-cut: 10px;
+  --cb-f-ui: var(--font-display), "Bahnschrift", "Arial Narrow", system-ui, sans-serif;
+  --cb-f-data: "Cascadia Mono", "JetBrains Mono", Consolas, ui-monospace, monospace;
+
+  color: var(--cb-ink);
+  font-family: var(--cb-f-ui);
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+}
+
+.kit.kit button {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  transition: none;
+  text-transform: none;
+}
+.kit.kit button:hover:not(:disabled) {
+  border-color: transparent;
+  background: transparent;
+}
+.kit.kit button:disabled {
+  opacity: 1;
+}
+.kit.kit button:focus-visible {
+  outline: none;
+}
+
+/* ── chamfer primitive: border = ::before, fill = ::after ─────────────────── */
+.kit .cut {
+  position: relative;
+  isolation: isolate;
+}
+.kit .cut::before,
+.kit .cut::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  clip-path: polygon(
+    var(--cb-cut) 0,
+    100% 0,
+    100% calc(100% - var(--cb-cut)),
+    calc(100% - var(--cb-cut)) 100%,
+    0 100%,
+    0 var(--cb-cut)
+  );
+}
+.kit .cut::before {
+  inset: 0;
+  z-index: -2;
+  background: var(--bd, var(--cb-edge));
+}
+.kit .cut::after {
+  inset: 1px;
+  z-index: -1;
+  background: var(--bg, var(--cb-plate));
+}
+.kit .cut:focus-visible {
+  --bd: var(--cb-amber);
+}
+.kit .hatch::after {
+  background-image: repeating-linear-gradient(135deg, rgba(154, 165, 177, 0.14) 0 2px, transparent 2px 7px);
+}
+
+/* ── buttons ─────────────────────────────────────────────────────────────── */
+.kit .btn {
+  --bd: var(--cb-edge-hi);
+  --bg: var(--cb-plate-2);
+  --fg: var(--cb-ink);
+  --cb-cut: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 18px;
+  cursor: pointer;
+  font-family: var(--cb-f-ui);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--fg);
+}
+.kit .btn:hover:not(:disabled) {
+  --bd: var(--cb-amber);
+  --bg: var(--cb-plate-3);
+}
+.kit .btnPrimary {
+  --bd: var(--cb-amber);
+  --bg: var(--cb-amber);
+  --fg: #120e02;
+}
+.kit .btnPrimary:hover:not(:disabled) {
+  --bd: #ffe17a;
+  --bg: #ffe17a;
+}
+.kit .btnGhost {
+  --bd: var(--cb-edge);
+  --bg: var(--cb-plate);
+  --fg: var(--cb-ink-2);
+}
+.kit .btn:disabled {
+  cursor: not-allowed;
+  --bd: #26233c;
+  --bg: #121025;
+  --fg: #4d4869;
+}
+.kit .btn:disabled::after {
+  background-image: repeating-linear-gradient(135deg, rgba(154, 165, 177, 0.13) 0 2px, transparent 2px 7px);
+}
+.kit .btnSm {
+  --cb-cut: 7px;
+  min-height: 30px;
+  padding: 0 12px;
+  font-size: 10.5px;
+}
+
+/* ── chips, keycaps, numbers, rank pips, bars ────────────────────────────── */
+.kit .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  font-family: var(--cb-f-data);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+  border: 1px solid var(--c, var(--cb-edge-hi));
+  color: var(--c, var(--cb-ink-2));
+  background: color-mix(in srgb, var(--c, var(--cb-ink-3)) 11%, #0b0917);
+}
+.kit .num {
+  font-family: var(--cb-f-data);
+  font-variant-numeric: tabular-nums;
+}
+.kit .pips {
+  display: inline-flex;
+  gap: 3px;
+}
+.kit .pips i {
+  width: 12px;
+  height: 5px;
+  background: #221f38;
+}
+.kit .pips i[data-on] {
+  background: var(--class, var(--cb-amber));
+  box-shadow: 0 0 6px color-mix(in srgb, var(--class, var(--cb-amber)) 60%, transparent);
+}
+.kit .bar {
+  position: relative;
+  height: 8px;
+  overflow: hidden;
+  background: #0a0916;
+  border: 1px solid var(--cb-edge);
+}
+.kit .bar > i {
+  display: block;
+  height: 100%;
+  width: var(--v, 50%);
+  background: var(--c, var(--cb-amber));
+  box-shadow: 0 0 10px var(--c, var(--cb-amber));
+}

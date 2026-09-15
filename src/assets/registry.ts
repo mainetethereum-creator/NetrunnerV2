@@ -24,6 +24,7 @@ export const ASSET_URLS = {
     },
     hubCharacter: "/ui/hub/character.webp",
     runnerAvatar: "/ui/hub/avatar-runner.webp",
+    kitPlayerFrame: "/ui-kit/player-frame-yellow-v2.png",
     /** Hub feature cards: clean backgrounds, title artwork and "coming soon" badges (`scripts/import-hub-cards.mjs`). */
     hubCards: {
       season: "/ui/hub/feature-season.webp",
@@ -61,6 +62,7 @@ export function registeredAssetFiles(): string[] {
     ...Object.values(ASSET_URLS.ui.hubBackdrop),
     ASSET_URLS.ui.hubCharacter,
     ASSET_URLS.ui.runnerAvatar,
+    ASSET_URLS.ui.kitPlayerFrame,
     ...Object.values(ASSET_URLS.ui.hubCards),
     ...Object.values(ASSET_URLS.ui.hubCardTitles),
     ...Object.values(ASSET_URLS.ui.hubCardBadges),
