@@ -40,6 +40,15 @@ test('scenes resolve movement input through src/input',()=>{
   }
 });
 
+test('scenes place the follow camera through src/renderer/camera',()=>{
+  for(const file of SCENES){
+    const code=readFileSync(file,'utf8');
+    assert.match(code,/createFollowCamera\((?:BASE|EXPEDITION|METRO)_CAMERA,\s*pivot\)/,file);
+    assert.match(code,/cameraRig\.place\(camera\.position,\s*camera\.aspect,/,file);
+    assert.doesNotMatch(code,/Math\.sin\(azimuth\)\s*\*\s*distance|pivot\.lerp\(|editorZoom\s*=/,file);
+  }
+});
+
 test('pure src layers never import Three.js, UI frameworks or legacy components',()=>{
   const pure=['src/core','src/gameplay','src/world','src/input','src/shared'].filter(existsSync);
   const files=['src/assets/registry.ts'];

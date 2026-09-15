@@ -9,7 +9,8 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 |---|---|
 | `app/` | Next.js routes (see ARCHITECTURE §1.1) |
 | `components/` | Game code (legacy layout, being migrated into `src/`) |
-| `src/` | New layered engine code (`assets/`, `core/loop/`, `input/`, `renderer/three/`, `ui/hub/`) |
+| `src/` | New layered engine code (`assets/`, `core/loop/`, `input/`, `renderer/camera/`, `renderer/three/`, `ui/hub/`, `ui/loading/`) |
+| `ROADMAP.md` | Work queue: remaining architecture steps with instructions, technical debt register, verification protocol, log |
 | `next.config.ts` | Next config by phase: development pages (`page.dev.tsx`) and `CYBERBASE_DEV_TOOLS` only in `next dev` (ADR-019); image cache headers |
 | `lib/wagmi.ts` | Wallet (wagmi) config: Base mainnet only, `baseAccount` connector + EIP-6963 injected wallets, cookie storage, Builder Code attribution (target rules: ADR-016) |
 | `public/` | Runtime assets (models, textures, atlases, draco decoder, vegetation bin, UI images) |
@@ -33,6 +34,7 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 | `src/input/movement-input.ts` | **[P]** `createMovementInput` — held keys + stick → camera-relative direction (`resolve`), run key, stick clamping |
 | `src/input/keyboard/move-keys.ts` | **[P]** WASD/arrow bindings, expedition editor pan bindings (Q as back), `keyAxis` |
 | `src/input/touch/stick-vector.ts` | **[P]** `stickVector` dead zone + radial clamp (re-exported by `expedition/mobile-performance.ts`) |
+| `src/renderer/camera/follow-camera.ts` | **[P]** `createFollowCamera(preset, pivot)` — isometric follow: pivot damping + optional snap, portrait distance, `place` camera position, MASTER `zoomBy` / `pan` / `nudge` / `moveTo`, `snapToTarget`; presets `BASE_CAMERA`, `EXPEDITION_CAMERA`, `METRO_CAMERA` (no three import) |
 | `src/renderer/three/loading-progress.ts` | **[3]** `watchLoadingProgress` — real file counts from three.js' `DefaultLoadingManager` for the loading screen (keeps existing handlers) |
 | `src/ui/loading/LoadingScreen.tsx`, `LoadingScreen.module.css` | **[R]** Scene loading screen (base, expedition): pixel helmet, red eyes, real percent / files, error + reload, dissolves when ready (ADR-021) |
 | `src/ui/loading/loading-model.ts` | **[P]** Loading maths: `loadingTarget`, `pacedPercent` (wake-up pace), `loadingStage`, `assetLabel` |
@@ -146,10 +148,11 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 
 | File | Covers |
 |---|---|
-| `engine-architecture.test.mjs` | Asset registry files exist; scenes use shared loader/disposal, the shared frame loop and `src/input` movement; pure `src` layers import no three/react/components |
+| `engine-architecture.test.mjs` | Asset registry files exist; scenes use shared loader/disposal, the shared frame loop, `src/input` movement and the follow camera rig; pure `src` layers import no three/react/components |
 | `loading-screen.test.mjs` | Loading percent (warm-up, real files, never backwards, ≤ 95% until ready, wake-up pace), stages, asset labels, screen wired into base and expedition |
 | `dev-tools.test.mjs` | `next.config` enables dev tools / development pages only in development; editor pages are `page.dev.tsx`; MASTER / debug / teleports are gated |
 | `hub.test.mjs` | Hub links point to existing routes, artwork exists as WebP, no kit references in `public/`, hub imports no game code, game routes return to `/base` |
+| `camera.test.mjs` | Follow camera pivot and position are bit-identical to the legacy base / expedition / metro camera code over random frame sequences (reduced motion, portrait, MASTER zoom / pan / tree editor moves, reset); preset distances and bounds |
 | `input.test.mjs` | Movement direction is bit-identical to the legacy scene formula (all key combos × stick values × dead zones × editor bindings), stick clamping, `stickVector` re-export |
 | `frame-loop.test.mjs` | Frame timing equals the legacy scene loops (incl. mobile cadence cap), hidden-tab modes, stop/dispose, fixed steps and alpha, exceptions |
 | `base-world`, `base-npc`, `base-quality` | Base navigation, NPC editing hooks, quality |

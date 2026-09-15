@@ -236,3 +236,19 @@ wallet (a development-only path that production builds exclude); session persist
 storage is already on).
 **Consequences:** when implemented, guest texts and paths are removed, the connect screen becomes the
 entry to `/`, and tests assert that gated routes require a connected wallet on Base.
+
+## ADR-022: One follow camera for all scenes
+**Status:** accepted (step 4, 2026-09-15)
+**Decision:** `src/renderer/camera/follow-camera.ts` (`createFollowCamera(preset, pivot)`) owns the
+isometric follow camera: pivot damping (8/s, instant with reduced motion), the optional snap below
+1e-6 m² (base only), portrait distance below aspect 0.85, the camera position formula, MASTER wheel
+zoom, expedition MASTER pan and tree editor focus, and "Reset camera". Per-scene numbers are presets
+(`BASE_CAMERA` 25/32 with zoom 28 in [8, 65]; `EXPEDITION_CAMERA` 22/28 with zoom 22 in [5, 42] and
+pan 12 m/s in 0..144 × 0..72; `METRO_CAMERA` 22/28). The module has no three.js import: the scene's
+own `Vector3` is the pivot (editors and streaming keep reading `pivot`), the scene passes
+`camera.position` to `place` and still calls `camera.lookAt(pivot)`. Scenes keep the follow target
+(base `player.y + 0.93`, expedition `player.y + 1`, metro fixed `y = 1`) and when to follow.
+**Reason:** the same camera code existed three times; one tested owner is needed before hero
+animation and player state are extracted.
+**Consequences:** `tests/camera.test.mjs` proves pivot and camera position are bit-identical to the old
+code on random frame sequences. Browser checks for this step are owed (`ROADMAP.md` TD-02).

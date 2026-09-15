@@ -61,8 +61,8 @@ Status words: `done` · `next` · `planned` · `owner` (needs the owner's decisi
 | 1 | Asset registry, shared glTF loader and disposal, boundary rules | done |
 | 2 | One frame loop `src/core/loop` | done |
 | 3 | Movement input `src/input` | done |
-| 4 | Follow camera `src/renderer/camera` | next |
-| 5 | Hero model and animation `src/renderer/animations/hero` | planned |
+| 4 | Follow camera `src/renderer/camera` | done |
+| 5 | Hero model and animation `src/renderer/animations/hero` | next |
 | 6 | Player state `src/gameplay/player` + fixed-step movement | planned |
 | 7 | Typed event bus `src/core/events` | planned |
 | 8 | Renderer bootstrap and quality `src/renderer/three`, `src/renderer/quality` | planned |
@@ -72,6 +72,9 @@ Status words: `done` · `next` · `planned` · `owner` (needs the owner's decisi
 | 12 | Component/system structure where it helps | planned |
 
 ### Step 4 · Follow camera
+
+**Status: done (2026-09-15).** `src/renderer/camera/follow-camera.ts` with `BASE_CAMERA`,
+`EXPEDITION_CAMERA`, `METRO_CAMERA`; ADR-022; browser checks still owed (TD-02).
 
 - **Goal:** one isometric follow camera for base, expedition and metro, bit-identical.
 - **Today:** each `scene.ts` has `azimuth = 0.48`, a `pivot` Vector3 lerped towards the
@@ -203,7 +206,7 @@ Status words: `done` · `next` · `planned` · `owner` (needs the owner's decisi
 | Id | Debt | Where | Fix | Status |
 |---|---|---|---|---|
 | TD-01 | `ARCHITECTURE.md` §1.1 listed `/` → BaseApp and plain `page.tsx` for dev pages | docs | Routes table matches code | done |
-| TD-02 | Browser checks skipped after step 3: Cybersmith route → dialog, mobile stick drag | base, mobile | Re-run in a visible browser | planned |
+| TD-02 | Browser checks owed. Step 3: Cybersmith route → dialog, mobile stick drag. Step 4 (Browser pane was hidden, no frames ran): spawn screenshots on `/base`, `/expedition`, `/metro`; camera follows while walking; base settings "Reset camera"; MASTER wheel zoom (base, expedition) and WASD/Q pan (expedition); tree editor focus; mobile portrait distance | base, expedition, metro, mobile | Run §5 in a visible browser (A/B against `git stash` if numbers differ) | planned |
 | TD-03 | Dead animation references `slash.glb`, `cast.glb` (files absent, never loaded) | `components/game/class-actions.ts` | Remove the entries or register real files | planned |
 | TD-04 | Unused `createOneHandedSword` with missing `/game/weapons/sword/01-up.webp` | `components/game/sword-attack.ts` | Delete the unused function and constant | planned |
 | TD-05 | Unreferenced district builder | `components/base/district.ts` | Delete (nothing imports it) | planned |
@@ -247,4 +250,5 @@ Status words: `done` · `next` · `planned` · `owner` (needs the owner's decisi
 
 | Date | Item | Commit | Verification |
 |---|---|---|---|
-| 2026-09-15 | Roadmap created; TD-01 | (this commit) | docs only |
+| 2026-09-15 | Roadmap created; TD-01 | 5947b29 | docs only |
+| 2026-09-15 | Step 4 · follow camera | (this commit) | `npm test` 110/110 (`camera.test.mjs`: bit-identical to the legacy code for all three scenes), lint, tsc; `/base` compiles and loads with no server or console errors; visual and interaction checks owed (TD-02) |

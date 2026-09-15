@@ -8,6 +8,7 @@ import { disposeObjectTree } from "../../src/renderer/three/dispose";
 import { ASSET_URLS } from "../../src/assets/registry";
 import { createFrameLoop, type FrameTick } from "../../src/core/loop/frame-loop";
 import { createMovementInput } from "../../src/input/movement-input";
+import { BASE_CAMERA, createFollowCamera } from "../../src/renderer/camera/follow-camera";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
@@ -428,8 +429,8 @@ export function createBaseScene(
   const rain = new T.LineSegments(rainGeometry, new T.LineBasicMaterial({ color: 0xb9d8d8, transparent: true, opacity: 0.19, depthWrite: false }));
   rain.frustumCulled = false; scene.add(rain);
   const input = createMovementInput(), moveDirection = { x: 0, z: 0 };
-  const azimuth = 0.48;
-  const pivot = new T.Vector3(SPAWN.x, 1.05, SPAWN.z), desiredPivot = pivot.clone();
+  const pivot = new T.Vector3(SPAWN.x, 1.05, SPAWN.z);
+  const cameraRig = createFollowCamera(BASE_CAMERA, pivot), azimuth = cameraRig.azimuth;
   const loopStart = performance.now();
   let fpsTime = loopStart, frames = 0, fps = 0, reportTime = 0;
   let qualityWindow = loopStart, qualityFrames = 0, qualityElapsed = 0, lastResolution = 0;
@@ -477,8 +478,7 @@ export function createBaseScene(
     modalOpen = next;
   });
   modalObserver.observe(host.parentElement ?? host, { childList: true, subtree: true });
-  let editorZoom=28;
-  const wheel = (e: WheelEvent) => { e.preventDefault();if(editor.active)editorZoom=T.MathUtils.clamp(editorZoom+e.deltaY*.015,8,65); };
+  const wheel = (e: WheelEvent) => { e.preventDefault(); if (editor.active) cameraRig.zoomBy(e.deltaY); };
   const lostContext = (e: Event) => { e.preventDefault(); contextLost = true; resetInput(); loop.stop(); onError("Graphics connection lost. Reload the refuge to reconnect."); };
   renderer.domElement.addEventListener("pointermove",onHover);
   renderer.domElement.addEventListener("pointerdown", onDown);
@@ -539,15 +539,10 @@ export function createBaseScene(
     if (idleAction) idleAction.setEffectiveWeight((1 - locomotionBlend) * (1 - combat.weight));
     mixer?.update(dt);
     pose?.apply((1 - locomotionBlend) * (1 - combat.weight));
-    const portrait = camera.aspect < 0.85;
-    // Aim at the hero's body with no sideways or forward composition offset.
-    if(!editor.active)desiredPivot.set(player.position.x, player.position.y + 0.93, player.position.z);
-    else desiredPivot.copy(pivot);
-    pivot.lerp(desiredPivot, reducedMotion ? 1 : 1 - Math.exp(-dt * 8));
-    // End the exponential tail below a subpixel world-space distance.
-    if (pivot.distanceToSquared(desiredPivot) < 0.000001) pivot.copy(desiredPivot);
-    const distance = editor.active ? editorZoom : portrait ? 32 : 25;
-    camera.position.set(pivot.x + Math.sin(azimuth) * distance * 0.86, pivot.y + distance * 0.62, pivot.z + Math.cos(azimuth) * distance * 0.86);
+    // Aim at the hero's body with no sideways or forward composition offset; MASTER holds the pivot.
+    if (!editor.active) cameraRig.follow(player.position.x, player.position.y + 0.93, player.position.z, dt, reducedMotion);
+    else cameraRig.follow(pivot.x, pivot.y, pivot.z, dt, reducedMotion);
+    cameraRig.place(camera.position, camera.aspect, editor.active);
     camera.lookAt(pivot);
     rain.visible = rainOn;
     if (rainOn) {
@@ -611,7 +606,7 @@ export function createBaseScene(
     },
     setRain(value) { rainOn = value; },
     setQuality(value) { quality = initialQuality(mobile, value); if (quality.high) enablePostprocessing(); puddle.visible = quality.high; rainGeometry.setDrawRange(0, quality.high ? rainCount * 2 : Math.min(rainCount, 180) * 2); renderer.shadowMap.needsUpdate = true; resize(); },
-    resetCamera() { pivot.copy(desiredPivot); },
+    resetCamera() { cameraRig.snapToTarget(); },
     goTo(id) { const station = getBaseStations().find((s) => s.id === id); if (station && ready && !paused && !modalOpen && !editor.active) { path = findPath(player.position, { x: station.x, z: station.z + 1 }); targetMarker.position.set(station.x, 0.1, station.z + 1); targetMarker.visible = path.length > 0; } },
     dispose() {
       disposed = true; loop.dispose(); clearTimeout(loadTimeout); observer.disconnect(); draco.dispose();

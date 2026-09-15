@@ -4,6 +4,7 @@ import { disposeObjectTree } from '../../src/renderer/three/dispose';
 import { ASSET_URLS } from '../../src/assets/registry';
 import { createFrameLoop, type FrameTick } from '../../src/core/loop/frame-loop';
 import { createMovementInput } from '../../src/input/movement-input';
+import { METRO_CAMERA, createFollowCamera } from '../../src/renderer/camera/follow-camera';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
@@ -62,7 +63,7 @@ export function createMetro(host:HTMLElement,level:number,onState:(s:Snapshot)=>
   const up=(e:PointerEvent)=>{if(!pointerDown)return;const tap=Math.hypot(pointerDown.x-e.clientX,pointerDown.z-e.clientY)<12;pointerDown=null;if(!tap||!ready)return;const r=renderer.domElement.getBoundingClientRect();ray.setFromCamera(new T.Vector2((e.clientX-r.left)/r.width*2-1,1-(e.clientY-r.top)/r.height*2),camera);if(ray.ray.intersectPlane(plane,hit)){route=findRoute(world,player.position,hit);destination.visible=!!route.length;destination.position.set(hit.x,.09,hit.z);}};
   renderer.domElement.addEventListener('pointerdown',down);renderer.domElement.addEventListener('pointerup',up);
   const lost=(e:Event)=>{e.preventDefault();onError('Graphics connection lost. Reload this level.');};renderer.domElement.addEventListener('webglcontextlost',lost);
-  const pivot=new T.Vector3(world.spawn.x,1,world.spawn.z),azimuth=.48;
+  const pivot=new T.Vector3(world.spawn.x,1,world.spawn.z),cameraRig=createFollowCamera(METRO_CAMERA,pivot),azimuth=cameraRig.azimuth;
   const loopStart=performance.now();
   let report=loopStart,windowStart=loopStart,count=0,fps=0,lastShadow=0,lastLights=0;
   let selected:typeof env.lightSources=[];
@@ -76,9 +77,8 @@ export function createMetro(host:HTMLElement,level:number,onState:(s:Snapshot)=>
     const walking=Math.hypot(next.x-player.position.x,next.z-player.position.z)>.0001;player.position.x=next.x;player.position.z=next.z;
     if(hero&&walking){const angle=Math.atan2(dx,dz)-hero.rotation.y;hero.rotation.y+=Math.atan2(Math.sin(angle),Math.cos(angle))*Math.min(1,dt*14);}
     blend=T.MathUtils.damp(blend,walking?1:0,16,dt);run?.setEffectiveWeight(blend);mixer?.update(dt);pose?.apply(1-blend);if(!route.length)destination.visible=false;
-    pivot.lerp(new T.Vector3(player.position.x,1,player.position.z),reduced?1:1-Math.exp(-dt*8));
-    const distance=camera.aspect<.85?28:22;
-    camera.position.set(pivot.x+Math.sin(azimuth)*distance*.86,pivot.y+distance*.62,pivot.z+Math.cos(azimuth)*distance*.86);camera.lookAt(pivot);
+    cameraRig.follow(player.position.x,1,player.position.z,dt,reduced);
+    cameraRig.place(camera.position,camera.aspect,false);camera.lookAt(pivot);
     env.update(reduced?0:time);
     if(now-lastLights>200){selected=[...env.lightSources].sort((a,b)=>a.p.distanceToSquared(player.position)-b.p.distanceToSquared(player.position)).slice(0,lights.length);lastLights=now;}
     lights.forEach((l,i)=>{const source=selected[i];if(!source){l.intensity=0;return;}l.position.copy(source.p);l.color.copy(source.color);l.intensity=source.power*(source.flicker&&!reduced?.88+.08*Math.sin(time*7+i)+.04*Math.sin(time*17):1);});

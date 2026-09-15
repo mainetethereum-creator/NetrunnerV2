@@ -1,6 +1,6 @@
 # Project state — Netrunner / CyberBase
 
-Last updated: 2026-09-15 · repository `mainetethereum-creator/NetrunnerV2`, branch `main` · architecture refactor steps 1–3, UI kits (hub, HUD, dialogue), development tools hidden from production.
+Last updated: 2026-09-15 · repository `mainetethereum-creator/NetrunnerV2`, branch `main` · architecture refactor steps 1–4, UI kits (hub, HUD, dialogue), development tools hidden from production.
 
 ## Implemented (the working game — must be preserved)
 
@@ -22,8 +22,9 @@ Last updated: 2026-09-15 · repository `mainetethereum-creator/NetrunnerV2`, bra
 | 1 · Asset registry + shared glTF loader/disposal + boundary rules + docs | done |
 | 2 · `src/core/loop`: one frame loop for all scenes with `fixedUpdate → update → render` | done |
 | 3 · `src/input`: keyboard + stick → camera-relative move vector | done |
-| 4 · camera rig | next |
-| 5–12 · hero animation, player state, events, renderer bootstrap, map data, dev map editor, UI modules, ECS-style systems | planned (`ARCHITECTURE.md` §5) |
+| 4 · `src/renderer/camera`: one follow camera for all scenes | done |
+| 5 · hero model and animation | next |
+| 6–12 · player state, events, renderer bootstrap, map data, dev map editor, UI modules, ECS-style systems | planned (`ROADMAP.md`) |
 
 ## Verification
 
@@ -39,6 +40,10 @@ Last updated: 2026-09-15 · repository `mainetethereum-creator/NetrunnerV2`, bra
 - Browser A/B on the same machine state: the Browser pane was throttled to 2–5 frames per 2 s (unfocused pane, GPU shared with other running apps), so absolute distances are not comparable with step 2. The same scripted key holds were run on step 3 and on step 2 (`git stash`): Base W → (79.65643629339714, 90.88132104136145) and Expedition D → (9.177398984555857, 35.90764416489171) in **both** — bit-identical. E at the breach starts extraction; no console errors.
 - Not re-run in this step because of the throttled pane: Cybersmith route → dialog (needs ~15 s of real frames) and mobile stick drag. The stick code path changed only by moving `stickVector` (re-exported, unit-tested). Re-check both in the next browser session.
 
+**Step 4:**
+- `npm test` 110/110. New `camera.test.mjs` replays 6 000 random frames per scene (dt incl. 0 and the 0.05 clamp, teleports, reduced motion, aspects around the 0.85 portrait threshold, MASTER zoom, expedition pan and tree editor moves, base "Reset camera") and compares pivot and camera position with `Object.is` against the legacy three.js `Vector3` code — bit-identical for base, expedition and metro. The architecture test asserts every scene places the camera through the rig. Lint clean, tsc clean.
+- Browser: the dev server compiled `/base` and the page loaded (canvas present, no server or console errors), but the Browser pane was hidden (`document.hidden`, 0×0 viewport), so no frames ran. Spawn screenshots, walking camera, Reset camera, MASTER zoom / pan and mobile portrait distance were not checked in a browser — listed as TD-02 in `ROADMAP.md`. `npm run build` not run (no bootstrap or config change).
+
 **UI kits (hub, HUD, dialogue):**
 - `npm test` 97/97 (new `hub.test.mjs`), lint clean, tsc clean, `npm run build` succeeds (routes `/`, `/base`, `/expedition`, `/metro`, …).
 - Assets: the three zips (≈ 66 MB) → runtime artwork `public/ui` ≈ 1.8 MB (three hub backdrops ≈ 880 KB, of which one loads per device; card art, titles and badges ≈ 720 KB) (WebP, cropped to art without baked text) + references and layout grids in `docs/ui-kits` ≈ 450 KB.
@@ -49,7 +54,7 @@ Last updated: 2026-09-15 · repository `mainetethereum-creator/NetrunnerV2`, bra
 
 - Hub: Character, Inventory, Season, Events, Leaderboard, Marketplace and News are marked "Soon"; Season / SkyNet / NFT cards are static; the profile shows the local hero (Neon Sentinel, Lv. 1), not an account.
 - HUD kit elements without game logic yet: mobile attack button (the game has no touch basic-attack input), minimap target pill ("last fuel station"), chat bar. NPC portraits are initials in the portrait frame (no NPC artwork exists).
-- New layers: `src/assets/registry.ts`, `src/renderer/three/*`, `src/core/loop/frame-loop.ts`, `src/input/*`, `src/ui/hub/*`. Everything else still lives in `components/`.
+- New layers: `src/assets/registry.ts`, `src/renderer/three/*`, `src/core/loop/frame-loop.ts`, `src/input/*`, `src/renderer/camera/*`, `src/ui/hub/*`, `src/ui/loading/*`. Everything else still lives in `components/`.
 - The loop's `fixedUpdate` phase exists and is tested but no scene uses it yet (needs render interpolation of gameplay state, step 6).
 - Asset registry covers the Draco decoder, hero model and refuge buildings; other asset paths are still hardcoded.
 - Expedition enemies are disabled; combat damage resolves at activation; level stays 1; talents are locked.
@@ -75,4 +80,4 @@ See `ARCHITECTURE.md` §5 (steps 3–12) and `docs/` feature notes.
 
 ## Next recommended task
 
-Follow `ROADMAP.md` (work queue: architecture steps 4–12 with per-step instructions and the technical debt register). First `next` item: step 4, follow camera in `src/renderer/camera`, no behaviour change.
+Follow `ROADMAP.md` (work queue: architecture steps 4–12 with per-step instructions and the technical debt register). First `next` item: step 5, hero model and animation in `src/renderer/animations/hero`, no behaviour change. Before or alongside it, run the owed browser checks (TD-02).

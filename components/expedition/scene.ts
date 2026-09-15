@@ -7,6 +7,7 @@ import { ASSET_URLS } from '../../src/assets/registry';
 import { createFrameLoop, type FrameTick } from '../../src/core/loop/frame-loop';
 import { createMovementInput } from '../../src/input/movement-input';
 import { EDITOR_PAN_KEYS, MOVE_KEYS } from '../../src/input/keyboard/move-keys';
+import { EXPEDITION_CAMERA, createFollowCamera } from '../../src/renderer/camera/follow-camera';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
@@ -40,8 +41,8 @@ export function createExpedition(host:HTMLElement,onState:(s:Snapshot)=>void,onE
   const anisotropy=Math.min(mobile?4:8,renderer.capabilities.getMaxAnisotropy());
   const env=buildEnvironment(scene,world,1,anisotropy);
   // The normal gameplay path never creates the authoring library, drafts, ghosts or outline.
-  const editor=createLazyEditor(()=>import('./prop-editor').then(({createPropEditor})=>()=>createPropEditor(scene,onEditor,renderer.capabilities.getMaxAnisotropy(),elevationAt,pads=>{world.landscape.setEditorPads(pads);env.landscape.studio.refreshPads();},colliders=>world.setEditorColliders(colliders),env.editable,colliders=>world.setAuthoredColliders(colliders),(x,z)=>{pivot.x=T.MathUtils.clamp(pivot.x+x,0,144);pivot.z=T.MathUtils.clamp(pivot.z+z,0,72);},(x,z)=>{pivot.x=x;pivot.z=z;})),()=>onError('Не удалось загрузить MASTER. Повторите попытку.'),value=>env.landscape.studio.setActive(value&&landscapeMode));
-  const treeEditor=createLazyEditor(()=>import('./tree-editor').then(({prepareTreeEditor})=>prepareTreeEditor(scene,onTreeEditor,DEFAULT_VEGETATION_TREES,elevationAt,world.canStand,trees=>env.vegetation.replaceTrees(trees),colliders=>world.setTreeColliders(colliders),(x,z)=>{pivot.x=T.MathUtils.clamp(pivot.x+x,0,144);pivot.z=T.MathUtils.clamp(pivot.z+z,0,72);},(x,z)=>{pivot.x=x;pivot.z=z;})),()=>onError('Не удалось загрузить редактор деревьев.'),value=>env.vegetation.setEditorActive(value));
+  const editor=createLazyEditor(()=>import('./prop-editor').then(({createPropEditor})=>()=>createPropEditor(scene,onEditor,renderer.capabilities.getMaxAnisotropy(),elevationAt,pads=>{world.landscape.setEditorPads(pads);env.landscape.studio.refreshPads();},colliders=>world.setEditorColliders(colliders),env.editable,colliders=>world.setAuthoredColliders(colliders),(x,z)=>cameraRig.nudge(x,z),(x,z)=>cameraRig.moveTo(x,z))),()=>onError('Не удалось загрузить MASTER. Повторите попытку.'),value=>env.landscape.studio.setActive(value&&landscapeMode));
+  const treeEditor=createLazyEditor(()=>import('./tree-editor').then(({prepareTreeEditor})=>prepareTreeEditor(scene,onTreeEditor,DEFAULT_VEGETATION_TREES,elevationAt,world.canStand,trees=>env.vegetation.replaceTrees(trees),colliders=>world.setTreeColliders(colliders),(x,z)=>cameraRig.nudge(x,z),(x,z)=>cameraRig.moveTo(x,z))),()=>onError('Не удалось загрузить редактор деревьев.'),value=>env.vegetation.setEditorActive(value));
   const generator=new T.PMREMGenerator(renderer),environment=generator.fromEquirectangular(env.surfaces.skyTexture);generator.dispose();
   scene.environment=environment.texture;scene.environmentIntensity=.48;
   scene.add(new T.HemisphereLight('#a9c5ef','#272b30',.7));
@@ -90,11 +91,11 @@ export function createExpedition(host:HTMLElement,onState:(s:Snapshot)=>void,onE
   const ray=new T.Raycaster(),hit=new T.Vector3(),plane=new T.Plane(new T.Vector3(0,1,0),-.06);
   const up=(e:PointerEvent)=>{if(!pointerDown)return;const tap=Math.hypot(pointerDown.x-e.clientX,pointerDown.z-e.clientY)<12;pointerDown=null;if(!tap||(!ready&&!editor.active))return;const r=renderer.domElement.getBoundingClientRect();ray.setFromCamera(new T.Vector2((e.clientX-r.left)/r.width*2-1,1-(e.clientY-r.top)/r.height*2),camera);plane.constant=-.06;if(ray.ray.intersectPlane(plane,hit)){for(let i=0;i<4;i++){plane.constant=-elevationAt(hit)-.06;ray.ray.intersectPlane(plane,hit);}if(editor.active){if(landscapeMode)env.landscape.studio.click(hit);else if(treeMode)treeEditor.click(ray,hit);else editor.click(ray,hit);return;}route=findRoute(world,player.position,hit);destination.visible=!!route.length;destination.position.set(hit.x,elevationAt(hit)+.09,hit.z);}};
   const hover=(e:PointerEvent)=>{if(!editor.active||landscapeMode)return;const r=renderer.domElement.getBoundingClientRect();ray.setFromCamera(new T.Vector2((e.clientX-r.left)/r.width*2-1,1-(e.clientY-r.top)/r.height*2),camera);plane.constant=-.06;if(ray.ray.intersectPlane(plane,hit)){for(let i=0;i<4;i++){plane.constant=-elevationAt(hit);ray.ray.intersectPlane(plane,hit);}(treeMode?treeEditor:editor).hover(hit);}};
-  let editorZoom=22;const wheel=(e:WheelEvent)=>{if(editor.active){e.preventDefault();editorZoom=T.MathUtils.clamp(editorZoom+e.deltaY*.015,5,42);}};
+  const wheel=(e:WheelEvent)=>{if(editor.active){e.preventDefault();cameraRig.zoomBy(e.deltaY);}};
   renderer.domElement.addEventListener('pointermove',hover);renderer.domElement.addEventListener('wheel',wheel,{passive:false});
   renderer.domElement.addEventListener('pointerdown',down);renderer.domElement.addEventListener('pointerup',up);
   const lost=(e:Event)=>{e.preventDefault();onError('Graphics connection lost. Reload this level.');};renderer.domElement.addEventListener('webglcontextlost',lost);
-  const pivot=new T.Vector3(world.spawn.x,1,world.spawn.z),followTarget=new T.Vector3(),shadowAnchor=new T.Vector3(Infinity,0,0),azimuth=.48;
+  const pivot=new T.Vector3(world.spawn.x,1,world.spawn.z),cameraRig=createFollowCamera(EXPEDITION_CAMERA,pivot),shadowAnchor=new T.Vector3(Infinity,0,0),azimuth=cameraRig.azimuth;
   let modalOpen=false;const modalObserver=new MutationObserver(()=>{modalOpen=!!document.querySelector('[aria-modal="true"]');if(modalOpen)reset();});modalObserver.observe(host.parentElement??host,{childList:true,subtree:true});
   const loopStart=performance.now();
   let report=loopStart,windowStart=loopStart,count=0,fps=0,lastShadow=0,lastLights=0,lastStream=0;
@@ -110,14 +111,13 @@ export function createExpedition(host:HTMLElement,onState:(s:Snapshot)=>void,onE
     let dx=0,dz=0;
     if(input.resolve(moveDirection,azimuth,.1,editor.active?EDITOR_PAN_KEYS:MOVE_KEYS)){dx=moveDirection.x;dz=moveDirection.z;route.length=0;destination.visible=false;}
     else if(route.length){const p=route[0],distance=Math.hypot(p.x-player.position.x,p.z-player.position.z);if(distance<.14)route.shift();else{dx=(p.x-player.position.x)/distance;dz=(p.z-player.position.z)/distance;}}
-    if(editor.active){pivot.x=T.MathUtils.clamp(pivot.x+dx*dt*12,0,144);pivot.z=T.MathUtils.clamp(pivot.z+dz*dt*12,0,72);dx=0;dz=0;route=[];}
+    if(editor.active){cameraRig.pan(dx,dz,dt);dx=0;dz=0;route=[];}
     const speed=input.running?6:4,next=ready&&session.status==='active'?move(world,player.position,dx*speed*dt,dz*speed*dt):player.position;
     const walking=Math.hypot(next.x-player.position.x,next.z-player.position.z)>.0001;player.position.x=next.x;player.position.z=next.z;player.position.y=elevationAt(next)+.09;
     if(hero&&walking){const angle=Math.atan2(dx,dz)-hero.rotation.y;hero.rotation.y+=Math.atan2(Math.sin(angle),Math.cos(angle))*Math.min(1,dt*14);}
     combat.tick(dt,session.status!=='active');blend=T.MathUtils.damp(blend,walking?1:0,16,dt);run?.setEffectiveWeight(blend*(1-combat.weight));mixer?.update(dt);pose?.apply((1-blend)*(1-combat.weight));if(!route.length)destination.visible=false;
-    if(!editor.active)pivot.lerp(followTarget.set(player.position.x,player.position.y+1,player.position.z),reduced?1:1-Math.exp(-dt*8));
-    const distance=editor.active?editorZoom:camera.aspect<.85?28:22;
-    camera.position.set(pivot.x+Math.sin(azimuth)*distance*.86,pivot.y+distance*.62,pivot.z+Math.cos(azimuth)*distance*.86);camera.lookAt(pivot);
+    if(!editor.active)cameraRig.follow(player.position.x,player.position.y+1,player.position.z,dt,reduced);
+    cameraRig.place(camera.position,camera.aspect,editor.active);camera.lookAt(pivot);
     if(now>beamUntil)beam.visible=false;
     if(!editor.active){session.tick(dt,player.position);if(autoFire)fire();}
     editor.stream(editor.active?pivot:player.position);treeEditor.stream(editor.active?pivot:player.position);
