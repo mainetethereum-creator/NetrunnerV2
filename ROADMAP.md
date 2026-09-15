@@ -30,6 +30,16 @@ what the last session did. Read `AGENTS.md` first — its owner rules override t
    when a decision was made) and overwrite `AI_HANDOFF.md`.
 6. Stop every dev server, browser tab and background process you started.
 
+**Agents without a visible browser (e.g. Codex CLI):** do not block on browser checks.
+- Steps that must not change behaviour (4, 5, 7, 8, 11) may be committed when the unit tests
+  prove equality with the legacy code; add the browser checks you could not run to TD-02 and
+  say so in `AI_HANDOFF.md`.
+- Steps that change behaviour or visuals — **6** (fixed-step movement) and **9** (map data
+  parity) — start only after the owner (or an agent with a visible browser) has run the owed
+  TD-02 checks and marked them done in the log.
+- Claude-specific tool names in `AGENTS.md` (`preview_list`, `preview_stop`, `TaskStop`) mean:
+  reuse a running `npm run dev` instead of starting another, and stop what you started.
+
 Status words: `done` · `next` · `planned` · `owner` (needs the owner's decision first).
 
 ---

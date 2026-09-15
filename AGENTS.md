@@ -45,7 +45,8 @@ feature notes in `docs/` for the area you touch.
 
 **Continuing the refactor:** `ROADMAP.md` is the work queue (architecture steps 4–12 with
 per-step instructions, and the technical debt register). Take the first `next` item, finish it
-as one commit, and update its status and log there.
+as one commit, and update its status and log there. Agents without a visible browser follow the
+rule in `ROADMAP.md` §1 (record owed browser checks in TD-02; steps 6 and 9 wait for them).
 
 ## Owner rules for the architecture refactor (do not violate)
 
