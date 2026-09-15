@@ -35,6 +35,11 @@ export const ASSET_URLS = {
       skynet: "/ui/hub/title-skynet.webp",
       nft: "/ui/hub/title-nft.webp",
     },
+    /** Scene loading screen: the helmet with its eyes off and the red eye layer (`scripts/import-loading-helmet.mjs`). */
+    loading: {
+      helmet: "/ui/loading/helmet.webp",
+      eyes: "/ui/loading/eyes-red.webp",
+    },
     hubCardBadges: {
       season: "/ui/hub/badge-season.webp",
       skynet: "/ui/hub/badge-skynet.webp",
@@ -59,5 +64,6 @@ export function registeredAssetFiles(): string[] {
     ...Object.values(ASSET_URLS.ui.hubCards),
     ...Object.values(ASSET_URLS.ui.hubCardTitles),
     ...Object.values(ASSET_URLS.ui.hubCardBadges),
+    ...Object.values(ASSET_URLS.ui.loading),
   ];
 }

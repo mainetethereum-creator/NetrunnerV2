@@ -1,0 +1,206 @@
+/* Scene loading screen: pixel helmet with red eyes in the dark (ADR-021).
+   Variables are driven from LoadingScreen.tsx; sizes follow the viewport. */
+
+.root {
+  --lit: 0.08;
+  --scan: -20%;
+  --scan-on: 0;
+  --glow: 0;
+  --flare: 0;
+  --open: 1;
+  --float: 0vmin;
+  --scale: 0.94;
+  --p: 0;
+  --eye: rgba(255, 64, 72, 0.95);
+  --eye-soft: rgba(255, 20, 50, 0.55);
+  --eye-spill: rgba(255, 22, 48, 0.2);
+  --accent: #ff2a3c;
+  --accent-deep: #4d000e;
+  --accent-hot: #ffe2d4;
+
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  overflow: hidden;
+  isolation: isolate;
+  background: #000;
+  color: #e3ebf6;
+  font-family: var(--cb-font, "Bahnschrift", "Roboto Condensed", "Arial Narrow", system-ui, sans-serif);
+  opacity: 1;
+  transition: opacity 0.65s ease;
+}
+.exiting { opacity: 0; pointer-events: none; }
+
+.layer { position: absolute; inset: 0; pointer-events: none; }
+.fog {
+  inset: -20%;
+  background:
+    radial-gradient(40% 30% at 30% 64%, rgba(120, 138, 168, 0.07), transparent 70%),
+    radial-gradient(34% 24% at 72% 36%, rgba(96, 112, 142, 0.06), transparent 70%);
+  animation: fog 22s ease-in-out infinite alternate;
+}
+@keyframes fog { to { transform: translate3d(6%, -3%, 0) scale(1.08); } }
+.spill {
+  background: radial-gradient(ellipse 26% 16% at 50% 44%, var(--eye-spill), transparent 72%);
+  opacity: calc(var(--glow) + var(--flare) * 0.9);
+}
+.vignette { background: radial-gradient(ellipse at 50% 45%, transparent 38%, rgba(0, 0, 0, 0.9) 100%); }
+
+.helmet {
+  --size: min(52vmin, 460px);
+  position: absolute;
+  left: 50%;
+  top: 44%;
+  width: var(--size);
+  height: var(--size);
+  transform: translate(-50%, -50%) translateY(var(--float)) scale(var(--scale));
+}
+.helmet span {
+  position: absolute;
+  inset: 0;
+  background-position: center;
+  background-size: contain;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+}
+.base {
+  background-image: var(--helmet);
+  filter: brightness(var(--lit)) saturate(calc(0.5 + var(--lit) * 0.5));
+}
+.scan {
+  background-image: var(--helmet);
+  opacity: var(--scan-on);
+  mix-blend-mode: screen;
+  filter: brightness(1.9) saturate(1.4);
+  -webkit-mask-image: linear-gradient(180deg, transparent calc(var(--scan) - 9%), #000 var(--scan), transparent calc(var(--scan) + 9%));
+  mask-image: linear-gradient(180deg, transparent calc(var(--scan) - 9%), #000 var(--scan), transparent calc(var(--scan) + 9%));
+}
+.bloom {
+  background-image: var(--eyes);
+  opacity: calc(var(--glow) * 0.85 + var(--flare) * 0.4);
+  mix-blend-mode: screen;
+  transform-origin: 50% 48.5%;
+  transform: scaleY(var(--open)) scale(1.04);
+  filter: blur(calc(var(--size) * 0.045)) brightness(2.4);
+}
+.eyes {
+  background-image: var(--eyes);
+  opacity: var(--glow);
+  transform-origin: 50% 48.5%;
+  transform: scaleY(var(--open));
+  filter: brightness(calc(1 + var(--flare) * 0.7)) drop-shadow(0 0 calc(var(--size) * 0.012) var(--eye)) drop-shadow(0 0 calc(var(--size) * 0.045) var(--eye-soft));
+}
+
+.brand {
+  position: absolute;
+  top: max(22px, env(safe-area-inset-top));
+  left: max(24px, env(safe-area-inset-left));
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.3em;
+  color: rgba(223, 231, 242, 0.5);
+}
+.status {
+  position: absolute;
+  top: max(24px, env(safe-area-inset-top));
+  left: 50%;
+  margin: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: rgba(200, 210, 225, 0.55);
+}
+
+.hud {
+  position: absolute;
+  left: 50%;
+  bottom: max(40px, calc(env(safe-area-inset-bottom) + 28px));
+  transform: translateX(-50%);
+  width: min(720px, calc(100% - 48px));
+  display: grid;
+  gap: 10px;
+}
+.row { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; min-width: 0; }
+.label {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: #c9d3e2;
+}
+.dots {
+  display: inline-block;
+  letter-spacing: 0.2em;
+  clip-path: inset(0 100% 0 0);
+  animation: dots 1.2s steps(4, jump-none) infinite;
+}
+@keyframes dots { to { clip-path: inset(0 -20% 0 0); } }
+.percent {
+  font-size: clamp(36px, 7vmin, 64px);
+  font-weight: 600;
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+  color: #f3f6fb;
+}
+/* Room for "100" at all times: the number and % never shift while it grows. */
+.number { display: inline-block; min-width: 3ch; text-align: right; }
+.percent small { font-size: 0.42em; font-weight: 500; color: #8f9bb0; margin-left: 0.12em; }
+.bar { height: 3px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.bar i {
+  display: block;
+  height: 100%;
+  transform-origin: left center;
+  transform: scaleX(var(--p));
+  background: linear-gradient(90deg, var(--accent-deep), var(--accent) 70%, var(--accent-hot));
+  box-shadow: 0 0 14px var(--eye-soft);
+}
+.meta {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.35;
+  color: #7f8ba0;
+  font-variant-numeric: tabular-nums;
+}
+.asset { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.files { min-width: 12ch; text-align: right; white-space: nowrap; }
+
+.errorRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #ffd0cc;
+}
+.errorRow button {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid rgba(255, 42, 60, 0.7);
+  background: rgba(77, 0, 14, 0.5);
+  color: #fff;
+  font: inherit;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+.errorRow button:focus-visible { outline: 2px solid var(--accent-hot); outline-offset: 3px; }
+
+@media (orientation: portrait) {
+  .helmet { --size: min(88vw, 470px); top: 40%; }
+  .spill { background: radial-gradient(ellipse 55% 9% at 50% 40%, var(--eye-spill), transparent 72%); }
+  .status { top: calc(max(22px, env(safe-area-inset-top)) + 30px); }
+  .hud { bottom: max(64px, calc(env(safe-area-inset-bottom) + 48px)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root { transition: none; }
+  .fog { animation: none; }
+  .dots { animation: none; clip-path: none; }
+}

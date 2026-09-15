@@ -197,6 +197,23 @@ the Recycle Bin.
 The Vercel project `netrunner-cyberbase` is connected to NetrunnerV2 by the owner in Vercel settings.
 Game branches left in the old `cyberbase` repository are deleted only on the owner's request.
 
+## ADR-021: Scene loading screen — pixel helmet, red eyes, real progress
+**Status:** accepted (owner, 2026-09-15)
+**Decision:** Base and expedition show `src/ui/loading/LoadingScreen.tsx` while the scene loads,
+replacing the old "A light left on for you." screen (metro keeps its own).
+- Art: the owner's 400×400 pixel helmet, split by `scripts/import-loading-helmet.mjs` into the helmet
+  with its eyes off on a transparent background (`public/ui/loading/helmet.webp`) and a red eye layer
+  (`eyes-red.webp`); red was chosen by the owner.
+- Sequence: darkness → a light sweep over the helmet and flickering eye ignition → eyes breathe and
+  blink → eyes flare at 90–100% → eyes close and the screen dissolves into the scene.
+- Progress is real: files counted by three.js' `DefaultLoadingManager`
+  (`src/renderer/three/loading-progress.ts`, imported lazily so the screen itself does not pull
+  Three.js). `loading-model.ts` adds a short warm-up while code downloads, never moves backwards, stays
+  ≤ 95% until the scene is ready, and keeps the wake-up visible on fast cached loads.
+- Animation runs on CSS variables from one requestAnimationFrame loop that stops when the screen is
+  gone; reduced motion removes the sweep, flicker, blink and float.
+**Consequences:** `tests/loading-screen.test.mjs`. A cyan variant only needs a recoloured eye layer.
+
 ## ADR-016: Wallet-first access, EVM wallets, Base as the primary chain
 **Status:** accepted as a product rule (owner, 2026-09-14) · **not implemented yet**
 **Decision:**

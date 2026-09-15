@@ -8,6 +8,7 @@ import type { QualityMode } from "./quality";
 import { SPAWN, getBaseStations, type StationId } from "./world";
 import GameHud from "../game/GameHud";
 import MovementStick from "../game/MovementStick";
+import LoadingScreen from "../../src/ui/loading/LoadingScreen";
 import styles from "./BaseApp.module.css";
 import type {WorldEditor} from "../world-editor/controller";
 import dynamic from "next/dynamic";
@@ -160,7 +161,7 @@ export default function BaseApp() {
     <GameHud hidden={hideHud || !ready} onSettings={() => setDialog("settings")} onQuest={() => openDialog("contracts")} />
     {showStats && <div className={styles.performance} aria-label="Live graphics performance"><strong>{snapshot.fps} FPS{snapshot.timingLimited ? "*" : ""}</strong><span>{snapshot.p95} ms p95 · {snapshot.high ? "HIGH" : "LITE"}</span><span>{snapshot.submitMs} ms CPU submit</span><span>{snapshot.draws} draws · {Math.round(snapshot.triangles / 1000)}k triangles</span><span>DPR {snapshot.ratio.toFixed(2)} · scale {snapshot.scale.toFixed(2)}</span><span>Target {snapshot.target} FPS · {quality.toUpperCase()}</span>{snapshot.timingLimited && <span>* Possible browser timer limit</span>}</div>}
 
-    {!ready && <div className={styles.loading}><div className={styles.loadingMark}>C ◈ B</div><span className={styles.eyebrow}>ESTABLISHING REFUGE LINK</span><h2>A light left on for you.</h2><div className={styles.loadLine} /><p>{error || "Preparing the district…"}</p>{error && <button onClick={() => location.reload()}>Reload refuge</button>}</div>}
+    <LoadingScreen ready={ready} status="Establishing refuge link" error={ready ? "" : error} retryLabel="Reload refuge" />
     {storageNotice && <div className={styles.error} role="status">{storageNotice}</div>}
     {ready && error && <div className={styles.error} role="status">{error}<button onClick={() => setError("")} aria-label="Dismiss notice">×</button></div>}
 

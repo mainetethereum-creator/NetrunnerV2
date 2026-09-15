@@ -15,6 +15,9 @@ Kit mapping, rules and sizes: `docs/ui-kits/README.md`. Decision: ADR-014.
   (the only link into the game: wallet → hub → PLAY → base → expedition or metro, ADR-015),
   cards Season, SkyNet, NFT ("coming soon"). Text is React,
   frames are CSS; three layouts by breakpoints.
+- **Loading screen (ADR-021):** `src/ui/loading/LoadingScreen.tsx` on base and expedition — pixel helmet with
+  red eyes (`scripts/import-loading-helmet.mjs`), real progress via `src/renderer/three/loading-progress.ts`,
+  maths in `loading-model.ts` (`tests/loading-screen.test.mjs`).
 - **Routes:** Runner's Refuge moved to `/base` (`app/base/page.tsx`); expedition, metro and the
   vegetation editor return to `/base`; base settings gained "Return to hub".
 - **In-game HUD kit skin** (CSS appended at the end of `GameHud.module.css`,

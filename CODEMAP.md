@@ -15,7 +15,7 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 | `public/` | Runtime assets (models, textures, atlases, draco decoder, vegetation bin, UI images) |
 | `assets/fonts/Martius` | Display font (licensed, see LICENSE.txt) |
 | `vendor/vegetation` | MIT tree generator used only by the vegetation editor |
-| `scripts/` | Bakes (landscape, vegetation), asset audit, agent process cleanup, `import-ui-kits.mjs` (UI kit artwork → WebP), `import-hub-cards.mjs` (owner HUBB card art, titles, badges → WebP) |
+| `scripts/` | Bakes (landscape, vegetation), asset audit, agent process cleanup, `import-ui-kits.mjs` (UI kit artwork → WebP), `import-hub-cards.mjs` (owner HUBB card art, titles, badges → WebP), `import-loading-helmet.mjs` (loading helmet → helmet + red eye layers) |
 | `tests/` | `node:test` suites (`npm test`) |
 | `docs/` | Feature notes (expeditions, combat HUD, buildings, mobile performance, fences, vegetation, budgets); `ui-kits/` (kit mapping, references, layout grids) |
 | `eslint.config.mjs` | Next lint config + **src/ boundary rules** |
@@ -33,6 +33,9 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 | `src/input/movement-input.ts` | **[P]** `createMovementInput` — held keys + stick → camera-relative direction (`resolve`), run key, stick clamping |
 | `src/input/keyboard/move-keys.ts` | **[P]** WASD/arrow bindings, expedition editor pan bindings (Q as back), `keyAxis` |
 | `src/input/touch/stick-vector.ts` | **[P]** `stickVector` dead zone + radial clamp (re-exported by `expedition/mobile-performance.ts`) |
+| `src/renderer/three/loading-progress.ts` | **[3]** `watchLoadingProgress` — real file counts from three.js' `DefaultLoadingManager` for the loading screen (keeps existing handlers) |
+| `src/ui/loading/LoadingScreen.tsx`, `LoadingScreen.module.css` | **[R]** Scene loading screen (base, expedition): pixel helmet, red eyes, real percent / files, error + reload, dissolves when ready (ADR-021) |
+| `src/ui/loading/loading-model.ts` | **[P]** Loading maths: `loadingTarget`, `pacedPercent` (wake-up pace), `loadingStage`, `assetLabel` |
 | `src/renderer/three/gltf-loader.ts` | **[3]** `createGltfLoader()` — GLTFLoader with shared Draco decoder |
 | `src/renderer/three/dispose.ts` | **[3]** `disposeObjectTree()` — dispose geometries, materials, textures once |
 
@@ -144,6 +147,7 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 | File | Covers |
 |---|---|
 | `engine-architecture.test.mjs` | Asset registry files exist; scenes use shared loader/disposal, the shared frame loop and `src/input` movement; pure `src` layers import no three/react/components |
+| `loading-screen.test.mjs` | Loading percent (warm-up, real files, never backwards, ≤ 95% until ready, wake-up pace), stages, asset labels, screen wired into base and expedition |
 | `dev-tools.test.mjs` | `next.config` enables dev tools / development pages only in development; editor pages are `page.dev.tsx`; MASTER / debug / teleports are gated |
 | `hub.test.mjs` | Hub links point to existing routes, artwork exists as WebP, no kit references in `public/`, hub imports no game code, game routes return to `/base` |
 | `input.test.mjs` | Movement direction is bit-identical to the legacy scene formula (all key combos × stick values × dead zones × editor bindings), stick clamping, `stickVector` re-export |
