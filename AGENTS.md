@@ -40,8 +40,12 @@ others) with **Base** as the primary chain (ADR-016 — recorded, not implemente
 guest-only flows).
 
 Before changing code read, in order: this file, `PROJECT_STATE.md`,
-`ARCHITECTURE.md`, `CODEMAP.md`, `DECISIONS.md`, the latest `AI_HANDOFF.md`, and the
+`ARCHITECTURE.md`, `CODEMAP.md`, `DECISIONS.md`, the latest `AI_HANDOFF.md`, `ROADMAP.md`, and the
 feature notes in `docs/` for the area you touch.
+
+**Continuing the refactor:** `ROADMAP.md` is the work queue (architecture steps 4–12 with
+per-step instructions, and the technical debt register). Take the first `next` item, finish it
+as one commit, and update its status and log there.
 
 ## Owner rules for the architecture refactor (do not violate)
 

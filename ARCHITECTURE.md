@@ -20,11 +20,12 @@ Stack: Next.js 16.3 (App Router, Turbopack), React 19.2, three 0.185, wagmi/viem
 
 | Route | Page | Client root (React) | Engine factory (Three.js) |
 |---|---|---|---|
-| `/` | `app/page.tsx` | `components/base/BaseApp.tsx` | `components/base/scene.ts` → `createBaseScene` |
+| `/` | `app/page.tsx` | `src/ui/hub/HubApp.tsx` (hub, no Three.js) | — |
+| `/base` | `app/base/page.tsx` | `components/base/BaseApp.tsx` | `components/base/scene.ts` → `createBaseScene` |
 | `/expedition` | `app/expedition/page.tsx` | `components/expedition/Expedition.tsx` | `components/expedition/scene.ts` → `createExpedition` |
 | `/metro` | `app/metro/page.tsx` | `components/metro3d/Metro3D.tsx` | `components/metro3d/scene.ts` → `createMetro` (frozen prototype) |
-| `/editor/vegetation` | `app/editor/vegetation/page.tsx` | `components/editor/VegetationEditor.tsx` | `components/editor/preview.ts` (dev tool) |
-| `/ui-kit-preview` | `app/ui-kit-preview/page.tsx` | `app/ui-kit-preview/preview.tsx` | — (UI sandbox) |
+| `/editor/vegetation` | `app/editor/vegetation/page.dev.tsx` | `components/editor/VegetationEditor.tsx` | `components/editor/preview.ts` (development only, ADR-019) |
+| `/ui-kit-preview` | `app/ui-kit-preview/page.dev.tsx` | `app/ui-kit-preview/preview.tsx` | — (UI sandbox, development only) |
 
 `app/layout.tsx` loads the Martius font and wraps everything in
 `components/providers/Web3Provider.tsx` (wagmi + react-query, config in `lib/wagmi.ts`).
@@ -50,7 +51,7 @@ editor, and the snapshot bridge to React.
 
 ### 1.3 Where each concern lives today
 
-| Concern | Base (`/`) | Expedition (`/expedition`) | Shared / notes |
+| Concern | Base (`/base`) | Expedition (`/expedition`) | Shared / notes |
 |---|---|---|---|
 | Three.js scene setup | `base/scene.ts` (renderer, composer, lights, PMREM) | `expedition/scene.ts` | duplicated; `metro3d/scene.ts` too |
 | Renderer quality | `base/quality.ts` (desktop auto High/Lite) | inline | `expedition/mobile-performance.ts` (mobile DPR budget, 30 fps fallback) used by both |

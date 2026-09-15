@@ -75,4 +75,4 @@ See `ARCHITECTURE.md` §5 (steps 3–12) and `docs/` feature notes.
 
 ## Next recommended task
 
-Step 4: camera rig — extract the fixed-angle follow camera (azimuth, distance, smoothing, reset) shared by the three scenes into `src/renderer` / `src/gameplay` without behaviour change. In parallel (owner request): integrate the CyberBase Hub, in-game HUD and Dialogue UI kits.
+Follow `ROADMAP.md` (work queue: architecture steps 4–12 with per-step instructions and the technical debt register). First `next` item: step 4, follow camera in `src/renderer/camera`, no behaviour change.
