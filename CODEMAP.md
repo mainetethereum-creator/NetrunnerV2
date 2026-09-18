@@ -5,6 +5,33 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 
 ## Root
 
+Approved CYBERBASE / parts / office trio: `scripts/build-city-trio.py` →
+`public/game/buildings/{cyberbase-tower,japanese-parts-shop,urban-office}-v1/`.
+Shared catalogue IDs use the same slugs prefixed `building-`.
+Geometry/artwork/resource contracts: `tests/city-trio.test.mjs`; notes: `docs/city-trio.md`.
+
+Approved Coinbase wallet tower: `scripts/build-wallet-tower.py` →
+`public/game/buildings/wallet-tower-v1/wallet-tower.glb`; shared catalogue ID
+`building-wallet-tower`. Actual asset contracts: `tests/wallet-tower.test.mjs`.
+Static separate ticker and integration: `docs/wallet-tower.md`.
+
+Approved Japanese café: `scripts/build-japanese-cafe.py` →
+`public/game/buildings/japanese-cafe-v1/japanese-cafe.glb`; shared catalogue ID
+`building-japanese-cafe`. Asset contracts: `tests/japanese-cafe.test.mjs`.
+Model notes and saved armory replacement: `docs/japanese-cafe.md`.
+
+Approved second glass corner: `scripts/build-glass-corner.py` →
+`public/game/buildings/glass-corner-v1/glass-corner.glb`; the existing registry and
+reference-building library expose `building-glass-corner` in both editors.
+`tests/glass-corner.test.mjs` checks artwork, actual mesh/bounds and resource sharing.
+Feature notes and saved Base placement: `docs/glass-corner.md`.
+
+Approved media tower: `scripts/build-media-tower.py` → `public/game/buildings/media-tower-v1/media-tower.glb`;
+`src/assets/media-tower.ts` [P] holds Base placement/bounds; `src/renderer/environment/media-tower.ts` [3]
+owns its async instance/library. Shared `reference-buildings.ts`/`reference-building-library.ts`
+register/load it for both catalogues. `tests/media-tower.test.mjs` verifies source portrait bytes,
+real mesh budgets, navigation and lifecycle. Feature notes: `docs/media-tower.md`.
+
 | Path | Purpose |
 |---|---|
 | `app/` | Next.js routes (see ARCHITECTURE §1.1) |
@@ -35,6 +62,7 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 | `src/input/keyboard/move-keys.ts` | **[P]** WASD/arrow bindings, expedition editor pan bindings (Q as back), `keyAxis` |
 | `src/input/touch/stick-vector.ts` | **[P]** `stickVector` dead zone + radial clamp (re-exported by `expedition/mobile-performance.ts`) |
 | `src/renderer/camera/follow-camera.ts` | **[P]** `createFollowCamera(preset, pivot)` — isometric follow: pivot damping + optional snap, portrait distance, `place` camera position, MASTER `zoomBy` / `pan` / `nudge` / `moveTo`, `snapToTarget`; presets `BASE_CAMERA`, `EXPEDITION_CAMERA`, `METRO_CAMERA` (no three import) |
+| `src/input/keyboard/physical-movement-key.ts` | **[P]** Physical WASD/arrows/Shift normalization used by Base keydown/keyup, including non-Latin layouts; scene retains focus/modal gating. `tests/physical-movement-key.test.mjs` covers normalization, release, direction, run and diagonal speed. Tactical is the only Base camera (ADR-026); experimental camera modules were removed. |
 | `src/renderer/three/loading-progress.ts` | **[3]** `watchLoadingProgress` — real file counts from three.js' `DefaultLoadingManager` for the loading screen (keeps existing handlers) |
 | `src/ui/loading/LoadingScreen.tsx`, `LoadingScreen.module.css` | **[R]** Scene loading screen (base, expedition): pixel helmet, red eyes, real percent / files, error + reload, dissolves when ready (ADR-021) |
 | `src/ui/loading/loading-model.ts` | **[P]** Loading maths: `loadingTarget`, `pacedPercent` (wake-up pace), `loadingStage`, `assetLabel` |
@@ -44,6 +72,9 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 | `src/ui/character/talent-upgrades.ts` | **[P]** Proposed talent module names and percentages per class / skill slot, `talentEffect` outcome lines, `CLASS_ROLES` |
 | `src/renderer/three/gltf-loader.ts` | **[3]** `createGltfLoader()` — GLTFLoader with shared Draco decoder |
 | `src/renderer/three/dispose.ts` | **[3]** `disposeObjectTree()` — dispose geometries, materials, textures once |
+| `src/renderer/environment/implants-building.ts` | **[3]** The sole retained IMPLANTS facade, two signs and one unshadowed light; scene-owned async loading/disposal, no gameplay/update loop |
+| `scripts/build-night-market.py`, `scripts/extract-implants.mjs` | Original Blender kit builder and lossless Implants-only GLB extraction; original kit retained for recovery, not loaded by the game |
+| `tests/base-city-assets.test.mjs` | Retained Implants hierarchy, standalone geometry/material/byte budgets, no character rigs |
 
 ## app/
 
@@ -65,17 +96,20 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 | `BaseApp.tsx` | **[R][S]** Base UI: loading, NPC dialogues (`DIALOGUE`; portrait / name bar / text / replies per the Dialogue kit), orientation quest (localStorage), wallet dialog, settings (incl. return to hub), minimap/destinations, interact button, MASTER toggle, HUD |
 | `BaseApp.module.css` | Base UI styles incl. touch layout; UI kit skin and NPC dialog layouts (desktop / portrait / landscape) at the end |
 | `BaseEditorPanel.tsx` | **[R]** MASTER panel for the base (lazy) |
+| `base-map-editor.ts` | **[3]** Lazy Base editor integration: pristine scenery catalogue, authored callbacks and gameplay/editor render switching |
+| `editable-render.ts` | **[3]** Reconstruct labelled logical objects from retained batched sources; preserve instance colors/shaders; rebatch when MASTER closes |
+| `editor-colliders.ts` | **[3]** Stable ownership of authored Base collider indices; transformed/deleted overrides without mutating original constants |
 | `scene.ts` | **[3][E]** `createBaseScene`: renderer/composer/lights, refuge geometry, NPCs, GLB buildings, hero + animation + combat, input, camera, rain, quality, loop, MASTER, snapshots |
 | `world.ts` | **[P]** Spawn, bounds, colliders, stations, `canStand`, `moveWithCollision`, `findPath`, `nearestStation`, editor overrides (module state) |
 | `quality.ts` | **[P]** Desktop quality modes and render ratio |
 | `materials.ts` | **[3]** PBR refuge surfaces (concrete/metal/stone), sky texture; shared by expedition/metro |
 | `wetness.ts` | **[P]** Wetness GLSL chunk |
-| `wet-floor.ts` | **[3]** Reflective puddle floor (High quality) |
+| `wet-floor.ts` | **[3]** Reflective puddle receiver over the full open city construction pad (High quality) |
 | `zones.ts` | **[3]** Service street, kiosks, signs, market, lights |
-| `metro.ts` | **[3]** Metro entrance pit and courtyard opening |
+| `metro.ts` | **[3]** Movable metro entrance plus the solid, expanded courtyard floor geometry |
 | `buildings.ts` | **[3]** `ArchitectureTools` type + city architecture builder |
 | `district.ts` | **[3]** District builder (currently unreferenced) |
-| `fence.ts` | **[3]** Concrete perimeter fence |
+| `fence.ts` | **[3]** Retained front concrete fence line; other perimeter runs removed for city expansion |
 | `details.ts` | **[3][S]** Animated surface details |
 | `npc.ts` | **[3]** Stylised refuge NPC meshes |
 
@@ -127,8 +161,8 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 
 | File | Purpose |
 |---|---|
-| `lazy-editor.ts` | **[P]** Facade that loads the editor only on activation |
-| `controller.ts` | **[3][S]** Selection, transforms, duplicate, delete, place, undo/redo, save/load (localStorage), JSON import/export |
+| `lazy-editor.ts` | **[P]** Dynamic facade; activation or inactive `initialize()` awaits saved-map `ready` |
+| `controller.ts` | **[3][S]** Selection, transforms, duplicate, delete, place, undo/redo, async save restoration/import with independent ghost cancellation and pending/failed save guards |
 | `document.ts` | **[P]** Versioned editor document, validation, history |
 | `streaming.ts` | **[3]** Placement culling |
 | `WorldEditorPanel.tsx` | **[R]** Editor panel |
@@ -150,6 +184,32 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 
 ## tests
 
+Elevated Base railway: `src/renderer/environment/elevated-rail.ts` owns the Blender
+V2 GLB, instanced supports, articulated train, headlight and lifecycle;
+`elevated-rail-layout.ts` supplies metre-based curved routing and navigation footprints.
+`curved-rail-geometry.ts` bends/merges the deck; `rail-city-details.ts` adds merged cable,
+utility and light fixtures. Blender source: `scripts/build-elevated-rail-v2.py`;
+details and budgets in `docs/base-elevated-rail.md`.
+
+Shared framing: `src/renderer/camera/frame-camera.ts` owns OrbitControls, saved
+frame validation/persistence and player-relative composition offsets. Base and
+Expedition apply them to their existing damped follow pivots; BaseApp provides
+framing controls. See `docs/base-camera.md` and `tests/frame-camera.test.mjs`.
+
+`components/base/layout.ts` defines the 64 × 54 m open construction pad used by
+Base geometry, navigation and minimap. `tests/base-perimeter.test.mjs` verifies
+solid paving across the former metro hole and the single retained front fence;
+route/boundary checks live in `tests/base-world.test.mjs`.
+
+Reference-building assets: `src/assets/reference-buildings.ts` (catalogue),
+`src/renderer/three/cold-concrete.ts` (shared legacy/imported concrete shader and
+metric UVs; re-exported by `components/expedition/cyber-concrete.ts`),
+`src/renderer/three/reference-building-library.ts` (lazy GLB loading, clones,
+disposal), `scripts/build-reference-buildings.py` (Blender authoring/export),
+`scripts/render-reference-buildings.py` (offline review). Runtime GLBs are under
+`public/game/buildings/reference-v1/`; source/metrics under `output/building-models/v1/`.
+See `docs/reference-buildings.md` and `tests/reference-buildings.test.mjs`.
+
 | File | Covers |
 |---|---|
 | `engine-architecture.test.mjs` | Asset registry files exist; scenes use shared loader/disposal, the shared frame loop, `src/input` movement and the follow camera rig; pure `src` layers import no three/react/components |
@@ -163,4 +223,10 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 | `base-world`, `base-npc`, `base-quality` | Base navigation, NPC editing hooks, quality |
 | `expedition`, `vegetation`, `tree-editor`, `security-fences`, `cyber-buildings`, `legacy-building-concrete` | Expedition routes/session, vegetation budget & graph, editors, catalogue budgets |
 | `world-editor*` | Editor document, history, streaming, lazy loading, bundle graph exclusions |
+| `world-editor-performance.test.mjs` | Changed-object reconciliation, idle bounds traversal budget, cached collisions, same-ID source replacement, fence length undo/redo |
 | `combat`, `character-draft`, `mobile-performance`, `frame-throttle`, `ui-kit-preview`, `metro3d-world` | Units for the matching modules |
+
+Offline performance tools: `scripts/benchmark-editor-nudge.mjs` measures controller
+CPU work without a GPU/server; `scripts/audit-runtime-models.mjs` inventories all
+public GLB/GLTF geometry, image dimensions, bytes and runtime usage. Results are
+under `output/performance/`; source-model counts are distinct from repeated scene draws.

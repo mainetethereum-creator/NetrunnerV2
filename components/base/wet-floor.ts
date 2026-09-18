@@ -1,11 +1,12 @@
 import * as T from "three";
 import { Reflector } from "three/examples/jsm/objects/Reflector.js";
 import { WETNESS_GLSL } from "./wetness";
-import { courtyardWithMetroOpening } from "./metro";
+import { courtyardFloorGeometry } from "./metro";
+import { FLOOR_EAST, FLOOR_NORTH, FLOOR_SOUTH } from './layout.ts';
 
 /** One bounded planar reflection for the courtyard; patch mask preserves stone. */
 export function createWetFloor(mobile: boolean) {
-  const floor = new Reflector(courtyardWithMetroOpening(), {
+  const floor = new Reflector(courtyardFloorGeometry(), {
     color: 0x88969b, textureWidth: mobile ? 384 : 768, textureHeight: mobile ? 384 : 768,
     clipBias: 0.001, multisample: 0,
   });
@@ -28,7 +29,9 @@ export function createWetFloor(mobile: boolean) {
     base+=texture2D(tDiffuse,uv+ripple-vec2(0,.0014))*.15;
   `).replace("gl_FragColor = vec4( blendOverlay( base.rgb, color ), 1.0 );", `
     float patches=refugeWetness(vec2(floorPoint.x,-floorPoint.y));
-    float edge=(1.-smoothstep(14.0,15.0,abs(floorPoint.x)))*(1.-smoothstep(11.,12.,abs(floorPoint.y)));
+    float edge=(1.-smoothstep(${(FLOOR_EAST-1).toFixed(2)},${FLOOR_EAST.toFixed(2)},abs(floorPoint.x)))
+      *(1.-smoothstep(${(FLOOR_SOUTH-1).toFixed(2)},${FLOOR_SOUTH.toFixed(2)},-floorPoint.y))
+      *(1.-smoothstep(${(-FLOOR_NORTH-1).toFixed(2)},${(-FLOOR_NORTH).toFixed(2)},floorPoint.y));
     gl_FragColor=vec4(base.rgb*.82,edge*(.01+patches*.3));
   `);
   return floor;

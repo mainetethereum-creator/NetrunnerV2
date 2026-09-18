@@ -1,0 +1,27 @@
+{
+  "node": "v24.16.0",
+  "timestamp": "2026-09-18T11:35:51.347Z",
+  "controllerSha256": "6cb50f5ba159479471addfc32f534c6cbea442b4dc87d644b1ed0626192ba8a6",
+  "fixture": {
+    "authoredGroups": 120,
+    "meshesPerGroup": 80,
+    "dynamicProps": 40,
+    "nudges": 60,
+    "idleFrames": 120
+  },
+  "nudge": {
+    "medianMs": 4.240799999999979,
+    "p95Ms": 6.311300000000017,
+    "meanMs": 4.516944999999998,
+    "transformCalls": 7200,
+    "unrelatedTransformCalls": 7140,
+    "unrelatedRootUpdates": 14280
+  },
+  "idle": {
+    "medianMs": 0.04040000000003374,
+    "p95Ms": 0.08539999999999281,
+    "meanMs": 0.05056916666666401,
+    "selectedMeshBoundsVisits": 9600
+  },
+  "scope": "CPU controller/transform/collider/selection work only; excludes browser rendering and shadow GPU cost"
+}

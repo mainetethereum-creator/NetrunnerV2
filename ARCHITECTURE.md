@@ -13,6 +13,16 @@ it is going and how we get there safely (§4–6).
 
 ## 1. What runs today
 
+Base and Expedition share saved camera composition through renderer module
+`frame-camera.ts`; each scene retains its existing follow-pivot damping and
+applies the saved position/look-target offsets. Base owns manual framing UI.
+
+Shared building concrete lives in `src/renderer/three/cold-concrete.ts`. Both the
+legacy procedural buildings (via the old re-export path) and the lazy reference
+GLB adapter use the same shader and metric UV helper. Asset loading remains in
+the renderer; `src/assets` only supplies URLs/metadata. This small extraction
+does not change the appearance or ownership of existing procedural buildings.
+
 Stack: Next.js 16.3 (App Router, Turbopack), React 19.2, three 0.185, wagmi/viem
 (Base wallet), `node:test` with `--experimental-strip-types` for tests.
 
@@ -200,6 +210,30 @@ controls and interactions must still work (checklist in `AGENTS.md`).
 ---
 
 ## 6. Conventions for code in `src/`
+
+### Retained Base building (ADR-027, supersedes ADR-023 district)
+
+Base dynamically loads `base-map-editor.ts` (ADR-028) when MASTER opens or when a saved
+development map must be restored before gameplay becomes visible. In development the scene
+records logical labels and retains pre-merge source geometry. `editable-render.ts`
+reconstructs entity groups during initialization and rebatches
+compatible instances for gameplay after closing MASTER. Instance colors/materials/shader
+hooks are preserved; shared assets remain scene-owned. `editor-colliders.ts` maps the existing
+17 collision rectangles to authored owners and replaces their footprints on transform/delete.
+Editor copies use pristine templates; floor/decal/NPC copies are non-solid. None of this moves
+gameplay state into Three objects beyond the existing editor metadata, expands walking bounds,
+or signs off architecture step 10. Production still excludes the editor via DEV_TOOLS.
+
+`components/base/scene.ts` owns `src/renderer/environment/implants-building.ts`: one static
+Blender-authored facade with two signs and an unshadowed point light, loaded after the original
+static merge. Its standalone GLB contains no other district assets. Async completion and late
+loads honor disposal. There is no district update loop, train, skyline or audio graph, and no
+new collision/station state. Original Base walking bounds and west perimeter are restored.
+The owner selected Tactical only (ADR-026). Base uses the original `BASE_CAMERA` shared follow
+rig directly; City framing, third-person/ARPG rigs and camera-mode facade/UI were removed.
+Expedition, Metro and MASTER cameras are unchanged. Physical-key normalization is a pure
+`src/input/keyboard` helper consumed only by Base for now; the scene owns text/modal/modifier/
+editor gating and reclaims canvas focus for movement keys after ordinary HUD button use.
 
 - TypeScript; relative imports inside `src/` use explicit `.ts` extensions so `node:test` can import modules directly (the tests run without a bundler).
 - Readable multi-line formatting; comments explain *why*.

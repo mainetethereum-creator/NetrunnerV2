@@ -1,0 +1,11 @@
+{
+  "triangles": 7688,
+  "drawCalls": 10,
+  "width": 8.2,
+  "depth": 7.64,
+  "height": 32.74,
+  "bytes": 3108136,
+  "sourceArtworkSha256": "a55d96f0aaa2eea519733c5054b9f72fd24662cf18a56df4ee2348139c187b7a",
+  "source": "D:\\V2 Cyber\\Netrunner\\output\\building-models\\wallet-tower-v1\\wallet-tower.blend",
+  "ticker": "Separate static mesh, UV0 artwork / UV1 perimeter; no animation"
+}

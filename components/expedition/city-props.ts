@@ -54,7 +54,15 @@ export function createCityLibrary(anisotropy:number,ready?:()=>void){
   const signBack=new T.CylinderGeometry(.56,.56,.036,8);signBack.rotateY(Math.PI/8);add(signBack,cream,0,2.13,0,Math.PI/2);
   const signFace=new T.CylinderGeometry(.511,.511,.041,8);signFace.rotateY(Math.PI/8);add(signFace,red,0,2.13,.012,Math.PI/2);panel(.88,1.12,stop,0,2.13,.038);bolt(0,2.53,.045);bolt(0,1.73,.045);box(.23,.055,.23,iron,0,.025);
  }
- function tire(x:number,y:number,z:number,tilt=0,turn=0){const profile=[new T.Vector2(.23,-.13),new T.Vector2(.28,-.16),new T.Vector2(.4,-.15),new T.Vector2(.47,-.09),new T.Vector2(.475,.09),new T.Vector2(.4,.15),new T.Vector2(.28,.16),new T.Vector2(.23,.13),new T.Vector2(.23,-.13)];const transform=new T.Matrix4().makeRotationZ(tilt).premultiply(new T.Matrix4().makeRotationY(turn));transform.setPosition(x,y,z);const part=(geo:T.BufferGeometry)=>{geo.applyMatrix4(transform);add(geo,rubber);};part(new T.LatheGeometry(profile,24));for(const s of [-1,1]){const ring=new T.TorusGeometry(.29,.012,5,24);ring.rotateX(Math.PI/2);ring.translate(0,s*.146,0);part(ring);}for(let i=0;i<36;i++)for(const side of [-1,1]){const a=i*Math.PI/18;const t=new T.BoxGeometry(.034,.13,.014);t.rotateZ(side*.45);t.translate(0,side*.068,.476);t.rotateY(a);part(t);}}
+ function tire(x:number,y:number,z:number,tilt=0,turn=0){
+  const profile=[new T.Vector2(.23,-.13),new T.Vector2(.28,-.16),new T.Vector2(.4,-.15),new T.Vector2(.47,-.09),new T.Vector2(.475,.09),new T.Vector2(.4,.15),new T.Vector2(.28,.16),new T.Vector2(.23,.13),new T.Vector2(.23,-.13)];
+  const transform=new T.Matrix4().makeRotationZ(tilt).premultiply(new T.Matrix4().makeRotationY(turn));transform.setPosition(x,y,z);
+  const part=(geo:T.BufferGeometry)=>{geo.applyMatrix4(transform);add(geo,rubber);};
+  // Smooth lathed sidewalls keep the silhouette; tiny tread repeats need fewer faces.
+  part(new T.LatheGeometry(profile,20));
+  for(const s of [-1,1]){const ring=new T.TorusGeometry(.29,.012,5,20);ring.rotateX(Math.PI/2);ring.translate(0,s*.146,0);part(ring);}
+  for(let i=0;i<24;i++)for(const side of [-1,1]){const a=i*Math.PI/12;const t=new T.BoxGeometry(.034,.13,.014);t.rotateZ(side*.45);t.translate(0,side*.068,.476);t.rotateY(a);part(t);}
+ }
  if(id==='tires'){for(let i=0;i<4;i++)tire(-.22,.17+i*.29,0,.025*(i%2),i*.3);tire(.58,.51,.45,1.12,.35);tire(-.45,.17,.65,.08);}
  if(id==='utility-building'){
  for(const x of [-1.65,1.65]){box(.13,.15,.15,5,x,3.05,1.86);cyl(.07,.06,cream,x,3,1.94,Math.PI/2);}

@@ -1,14 +1,15 @@
 import * as T from "three";
 import type { ArchitectureTools } from "./buildings";
+import { FLOOR_EAST, FLOOR_NORTH, FLOOR_SOUTH, FLOOR_WEST } from './layout.ts';
 
-// One shared opening for the pavement, reflection surface and structural slab.
-export const METRO_PIT = { left: 5, right: 12, back: -10.8, front: -5.6 };
-export function courtyardWithMetroOpening() {
+/** Solid city paving. The old metro entrance has moved, so its former pit is sealed. */
+export function courtyardFloorGeometry() {
   const shape = new T.Shape();
-  shape.moveTo(-15, -12); shape.lineTo(15, -12); shape.lineTo(15, 12); shape.lineTo(-15, 12); shape.closePath();
-  const hole = new T.Path();
-  hole.moveTo(5, 5.6); hole.lineTo(5, 10.8); hole.lineTo(12, 10.8); hole.lineTo(12, 5.6); hole.closePath();
-  shape.holes.push(hole);
+  shape.moveTo(FLOOR_WEST, -FLOOR_SOUTH);
+  shape.lineTo(FLOOR_EAST, -FLOOR_SOUTH);
+  shape.lineTo(FLOOR_EAST, -FLOOR_NORTH);
+  shape.lineTo(FLOOR_WEST, -FLOOR_NORTH);
+  shape.closePath();
   return new T.ShapeGeometry(shape);
 }
 

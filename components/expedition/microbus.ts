@@ -25,7 +25,7 @@ export function createMicrobus(scene:T.Scene,height:number,anisotropy:number){
   function add(g:T.BufferGeometry,m:T.Material,x=0,y=0,z=0,rx=0,ry=0,rz=0){const o=new T.Mesh(g,m);o.position.set(x,y,z);o.rotation.set(rx,ry,rz);o.castShadow=m!==glass&&m!==crack;o.receiveShadow=true;root.add(o);return o;}
   function box(m:T.Material,x:number,y:number,z:number,w:number,h:number,d:number,r=.025){const geometry=r<=.015||Math.min(w,h,d)<.06?new T.BoxGeometry(w,h,d):new RoundedBoxGeometry(w,h,d,1,Math.min(r,w/3,h/3,d/3));return add(geometry,m,x,y,z);}
   function rod(m:T.Material,a:number[],b:number[],r:number){const av=new T.Vector3(...a as [number,number,number]),bv=new T.Vector3(...b as [number,number,number]),v=bv.clone().sub(av);const o=add(new T.CylinderGeometry(r,r,v.length(),7),m);o.position.copy(av.add(bv).multiplyScalar(.5));o.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),v.normalize());return o;}
-  function ring(m:T.Material,x:number,y:number,z:number,r:number,t:number,ry=0){return add(new T.TorusGeometry(r,t,6,24),m,x,y,z,0,ry);}
+  function ring(m:T.Material,x:number,y:number,z:number,r:number,t:number,ry=0,segments=24){return add(new T.TorusGeometry(r,t,6,segments),m,x,y,z,0,ry);}
   function rounded(w:number,h:number,r:number){const s=new T.Shape();s.moveTo(-w/2+r,-h/2);s.lineTo(w/2-r,-h/2);s.quadraticCurveTo(w/2,-h/2,w/2,-h/2+r);s.lineTo(w/2,h/2-r);s.quadraticCurveTo(w/2,h/2,w/2-r,h/2);s.lineTo(-w/2+r,h/2);s.quadraticCurveTo(-w/2,h/2,-w/2,h/2-r);s.lineTo(-w/2,-h/2+r);s.quadraticCurveTo(-w/2,-h/2,-w/2+r,-h/2);return s;}
   function panel(s:T.Shape,m:T.Material,depth:number,x:number,y:number,z:number,ry=0){const g=new T.ExtrudeGeometry(s,{depth,bevelEnabled:false,curveSegments:10});g.computeBoundingBox();const bounds=g.boundingBox!,size=bounds.getSize(new T.Vector3()),p=g.getAttribute('position'),uv=g.getAttribute('uv');for(let i=0;i<p.count;i++)uv.setXY(i,(p.getX(i)-bounds.min.x)/Math.max(size.x,.01),(p.getY(i)-bounds.min.y)/Math.max(size.y,.01));return add(g,m,x,y,z,0,ry);}
   // Side panels have actual wheel arches cut into the lower outline.
@@ -79,12 +79,12 @@ export function createMicrobus(scene:T.Scene,height:number,anisotropy:number){
     box(lens,-2.725,1.17,side*.87,.035,.27,.13,.025);
     // Tires are compressed slightly into the ground and have individual tread blocks.
     for(const cx of [-1.65,1.65]){
-      const wheel=add(new T.CylinderGeometry(.49,.49,.26,24),rubber,cx,.46,side*1.055,Math.PI/2);wheel.scale.z=.95;
-      ring(rubber,cx,.46,side*1.198,.365,.095);ring(rust,cx,.46,side*1.217,.295,.036);
-      add(new T.CylinderGeometry(.292,.292,.036,24),rust,cx,.46,side*1.23,Math.PI/2);
-      add(new T.SphereGeometry(.235,16,8),silver,cx,.46,side*1.264).scale.set(1,1,.22);
+      const wheel=add(new T.CylinderGeometry(.49,.49,.26,20),rubber,cx,.46,side*1.055,Math.PI/2);wheel.scale.z=.95;
+      ring(rubber,cx,.46,side*1.198,.365,.095,0,20);ring(rust,cx,.46,side*1.217,.295,.036,0,20);
+      add(new T.CylinderGeometry(.292,.292,.036,20),rust,cx,.46,side*1.23,Math.PI/2);
+      add(new T.SphereGeometry(.235,12,6),silver,cx,.46,side*1.264).scale.set(1,1,.22);
       for(let i=0;i<5;i++){const a=i*Math.PI*2/5;add(new T.CylinderGeometry(.022,.022,.025,6),rust,cx+Math.cos(a)*.16,.46+Math.sin(a)*.16,side*1.285,Math.PI/2);}
-      for(let i=0;i<40;i++){const a=i*Math.PI*2/40;for(const dz of [-.072,.072]){const tread=box(rubber,cx+Math.sin(a)*.489,.46+Math.cos(a)*.467,side*1.055+dz,.037,.022,.105,.003);tread.rotation.z=-a;tread.rotation.y=dz>0?.23:-.23;}}
+      for(let i=0;i<28;i++){const a=i*Math.PI*2/28;for(const dz of [-.072,.072]){const tread=box(rubber,cx+Math.sin(a)*.489,.46+Math.cos(a)*.467,side*1.055+dz,.037,.022,.105,.003);tread.rotation.z=-a;tread.rotation.y=dz>0?.23:-.23;}}
     }
   }
   for(const x of [-2.75,2.79]){box(paint,x,.48,0,.22,.21,2.24,.09);box(silver,x+(x>0?.07:-.07),.56,0,.14,.045,2.2,.02);for(const z of [-.71,.71])box(rust,x,.46,z,.24,.17,.11,.035);}

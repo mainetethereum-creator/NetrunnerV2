@@ -2,6 +2,7 @@ import * as T from "three";
 
 type Palette = Record<"dark" | "wall" | "concrete" | "edge" | "brass" | "rust" | "black" | "green" | "leaf" | "teal" | "amber" | "red", T.Material>;
 export type ArchitectureTools = {
+  section?(id: string, name: string, build: () => void): void;
   box(x: number, y: number, z: number, w: number, h: number, d: number, mat: T.Material, ry?: number): void;
   cylinder(x: number, y: number, z: number, r: number, h: number, mat: T.Material, rotation?: T.Euler): T.Mesh;
   pipe(points: number[][], radius: number, mat?: T.Material): T.Mesh;

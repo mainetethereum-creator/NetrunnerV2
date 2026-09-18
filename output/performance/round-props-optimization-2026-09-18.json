@@ -1,0 +1,58 @@
+{
+  "date": "2026-09-18",
+  "scope": "Only tire-stack round detail, hydrant small round details/chain, and microbus wheels. No hero/building/portrait/material/texture changes.",
+  "validation": {
+    "test": "tests/round-props-budget.test.mjs",
+    "materials": "exact baseline match",
+    "draws": "unchanged",
+    "dimensions": "each axis within 0.015 m of measured baseline",
+    "geometry": "indexed, finite UV/normal/position arrays; unit normals"
+  },
+  "models": [
+    {
+      "id": "tires",
+      "before": {
+        "triangles": 10368,
+        "geometryBytes": 494784,
+        "draws": 1
+      },
+      "after": {
+        "triangles": 7776,
+        "geometryBytes": 352512,
+        "draws": 1
+      },
+      "triangleReductionPercent": 25,
+      "geometryReductionPercent": 28.75
+    },
+    {
+      "id": "hydrant",
+      "before": {
+        "triangles": 7180,
+        "geometryBytes": 212424,
+        "draws": 2
+      },
+      "after": {
+        "triangles": 5280,
+        "geometryBytes": 164000,
+        "draws": 2
+      },
+      "triangleReductionPercent": 26.46,
+      "geometryReductionPercent": 22.8
+    },
+    {
+      "id": "microbus",
+      "before": {
+        "triangles": 29264,
+        "geometryBytes": 1390272,
+        "draws": 9
+      },
+      "after": {
+        "triangles": 27184,
+        "geometryBytes": 1284864,
+        "draws": 9
+      },
+      "triangleReductionPercent": 7.11,
+      "geometryReductionPercent": 7.58
+    }
+  ]
+}

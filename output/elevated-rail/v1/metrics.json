@@ -1,0 +1,39 @@
+{
+  "RailDeck": {
+    "dimensions": [
+      8.0,
+      4.486,
+      1.93
+    ],
+    "triangles": 708,
+    "draws": 6
+  },
+  "RailPier": {
+    "dimensions": [
+      2.85,
+      7.5,
+      13.8
+    ],
+    "triangles": 828,
+    "draws": 4
+  },
+  "TrainCar": {
+    "dimensions": [
+      9.37,
+      2.794,
+      3.0838
+    ],
+    "triangles": 2280,
+    "draws": 7
+  },
+  "TrainMiddle": {
+    "dimensions": [
+      9.6501,
+      2.794,
+      3.0838
+    ],
+    "triangles": 2310,
+    "draws": 6
+  },
+  "bytes": 948092
+}

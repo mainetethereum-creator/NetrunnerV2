@@ -9,7 +9,7 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
-import { PoseController } from '../game/pose-controller';
+import { createHeroAnimator, loadHero, type HeroAnimator } from '../../src/renderer/animations/hero/hero.ts';
 import { buildEnvironment } from './environment';
 import { findRoute, move, makeWorld, type Point } from './world';
 
@@ -38,15 +38,11 @@ export function createMetro(host:HTMLElement,level:number,onState:(s:Snapshot)=>
   const fill=new T.PointLight('#b7d4c7',3.2,4.5,2);fill.position.set(.4,2.8,1.1);player.add(fill);
   const ring=new T.Mesh(new T.RingGeometry(.35,.39,36),new T.MeshBasicMaterial({color:'#b9d6c5',transparent:true,opacity:.65,depthWrite:false}));ring.rotation.x=-Math.PI/2;ring.position.y=.015;player.add(ring);
   const destination=new T.Mesh(new T.RingGeometry(.17,.21,32),new T.MeshBasicMaterial({color:'#e1d4b1',depthWrite:false}));destination.rotation.x=-Math.PI/2;destination.position.y=.08;destination.visible=false;scene.add(destination);
-  let hero:T.Object3D|null=null,mixer:T.AnimationMixer|null=null,run:T.AnimationAction|null=null,pose:PoseController|null=null,blend=0,ready=false,disposed=false;
+  let hero:T.Object3D|null=null,heroAnimator:HeroAnimator|null=null,ready=false,disposed=false;
   const {loader,draco}=createGltfLoader();
-  loader.loadAsync(ASSET_URLS.heroModel).then(gltf=>{
+  loadHero(loader,ASSET_URLS.heroModel,mesh=>{for(const mat of Array.isArray(mesh.material)?mesh.material:[mesh.material])if(mat instanceof T.MeshStandardMaterial){mat.normalScale.setScalar(.55);if(mat.map){mat.map.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());mat.map.needsUpdate=true;}}}).then(gltf=>{
     if(disposed){disposeObjectTree(gltf.scene);return;}
-    const root=gltf.scene;root.updateMatrixWorld(true);const bounds=new T.Box3().setFromObject(root);
-    root.scale.multiplyScalar(1.85/bounds.getSize(new T.Vector3()).y);root.updateMatrixWorld(true);root.position.y-=new T.Box3().setFromObject(root).min.y;
-    root.traverse(o=>{const mesh=o as T.Mesh;if(!mesh.isMesh)return;mesh.castShadow=true;mesh.receiveShadow=false;mesh.frustumCulled=false;for(const mat of Array.isArray(mesh.material)?mesh.material:[mesh.material])if(mat instanceof T.MeshStandardMaterial){mat.normalScale.setScalar(.55);if(mat.map){mat.map.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());mat.map.needsUpdate=true;}}});
-    hero=new T.Group();hero.add(root);player.add(hero);pose=new PoseController(root);pose.buildIdle(root);mixer=new T.AnimationMixer(root);
-    const clip=gltf.animations.find(a=>/run/i.test(a.name));if(clip){const inPlace=clip.clone();for(const track of inPlace.tracks)if(/hips\.position$/i.test(track.name))for(let i=0;i<track.values.length;i+=3){track.values[i]=track.values[0];track.values[i+2]=track.values[2];}run=mixer.clipAction(inPlace).setEffectiveWeight(0).play();}
+    const root=gltf.scene;hero=new T.Group();hero.add(root);player.add(hero);heroAnimator=createHeroAnimator(root,gltf.animations,{idle:'pose',run:/run/i});
     ready=true;renderer.shadowMap.needsUpdate=true;
   }).catch(()=>{if(!disposed)onError('Character could not load. Return to the refuge and try again.');});
   const resize=()=>{const w=host.clientWidth,h=host.clientHeight,ratio=Math.min(devicePixelRatio,mobile?1:1.35,Math.sqrt((mobile?850000:1500000)/Math.max(1,w*h)));renderer.setPixelRatio(ratio);composer.setPixelRatio(ratio);renderer.setSize(w,h);composer.setSize(w,h);camera.aspect=w/Math.max(1,h);camera.updateProjectionMatrix();};
@@ -76,7 +72,7 @@ export function createMetro(host:HTMLElement,level:number,onState:(s:Snapshot)=>
     const speed=input.running?5:3.1,next=ready?move(world,player.position,dx*speed*dt,dz*speed*dt):player.position;
     const walking=Math.hypot(next.x-player.position.x,next.z-player.position.z)>.0001;player.position.x=next.x;player.position.z=next.z;
     if(hero&&walking){const angle=Math.atan2(dx,dz)-hero.rotation.y;hero.rotation.y+=Math.atan2(Math.sin(angle),Math.cos(angle))*Math.min(1,dt*14);}
-    blend=T.MathUtils.damp(blend,walking?1:0,16,dt);run?.setEffectiveWeight(blend);mixer?.update(dt);pose?.apply(1-blend);if(!route.length)destination.visible=false;
+    heroAnimator?.update(dt,walking,0);if(!route.length)destination.visible=false;
     cameraRig.follow(player.position.x,1,player.position.z,dt,reduced);
     cameraRig.place(camera.position,camera.aspect,false);camera.lookAt(pivot);
     env.update(reduced?0:time);
@@ -91,5 +87,5 @@ export function createMetro(host:HTMLElement,level:number,onState:(s:Snapshot)=>
   }
   const loop=createFrameLoop({startTime:loopStart,hidden:'skip',update:updateFrame,render:renderFrame});
   loop.start();
-  return {setStick(x:number,z:number){input.setStick(x,z);},dispose(){disposed=true;loop.dispose();observer.disconnect();window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',reset);document.removeEventListener('visibilitychange',reset);renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointerup',up);renderer.domElement.removeEventListener('webglcontextlost',lost);mixer?.stopAllAction();disposeObjectTree(scene);env.surfaces.dispose();environment.dispose();draco.dispose();bloom.dispose();output.dispose();composer.dispose();renderer.dispose();renderer.domElement.remove();}};
+  return {setStick(x:number,z:number){input.setStick(x,z);},dispose(){disposed=true;loop.dispose();observer.disconnect();window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',reset);document.removeEventListener('visibilitychange',reset);renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointerup',up);renderer.domElement.removeEventListener('webglcontextlost',lost);heroAnimator?.mixer.stopAllAction();disposeObjectTree(scene);env.surfaces.dispose();environment.dispose();draco.dispose();bloom.dispose();output.dispose();composer.dispose();renderer.dispose();renderer.domElement.remove();}};
 }

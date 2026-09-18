@@ -1,0 +1,146 @@
+{
+  "tires": {
+    "triangles": 10368,
+    "geometryBytes": 494784,
+    "draws": 1,
+    "size": [
+      1.8932760953903198,
+      1.2188136177137494,
+      1.619475930929184
+    ],
+    "materials": [
+      {
+        "type": "MeshStandardMaterial",
+        "color": 16777215,
+        "roughness": 0.96,
+        "metalness": 0,
+        "transparent": false,
+        "opacity": 1,
+        "map": true
+      }
+    ]
+  },
+  "hydrant": {
+    "triangles": 7180,
+    "geometryBytes": 212424,
+    "draws": 2,
+    "size": [
+      0.7591499984264374,
+      1.1493750242516398,
+      0.6000000089406967
+    ],
+    "materials": [
+      {
+        "type": "MeshStandardMaterial",
+        "color": 16777215,
+        "roughness": 0.73,
+        "metalness": 0.6,
+        "transparent": false,
+        "opacity": 1,
+        "map": true
+      },
+      {
+        "type": "MeshStandardMaterial",
+        "color": 16777215,
+        "roughness": 0.84,
+        "metalness": 0.7,
+        "transparent": false,
+        "opacity": 1,
+        "map": true
+      }
+    ]
+  },
+  "microbus": {
+    "triangles": 29264,
+    "geometryBytes": 1390272,
+    "draws": 9,
+    "size": [
+      5.8421008586883545,
+      2.8980001136660576,
+      2.7780001163482666
+    ],
+    "materials": [
+      {
+        "type": "MeshStandardMaterial",
+        "color": 16777215,
+        "roughness": 0.91,
+        "metalness": 0.18,
+        "transparent": false,
+        "opacity": 1,
+        "map": true
+      },
+      {
+        "type": "MeshStandardMaterial",
+        "color": 16777215,
+        "roughness": 0.96,
+        "metalness": 0.3,
+        "transparent": false,
+        "opacity": 1,
+        "map": true
+      },
+      {
+        "type": "MeshStandardMaterial",
+        "color": 16777215,
+        "roughness": 1,
+        "metalness": 0,
+        "transparent": false,
+        "opacity": 1,
+        "map": true
+      },
+      {
+        "type": "MeshStandardMaterial",
+        "color": 9741736,
+        "roughness": 0.48,
+        "metalness": 0.12,
+        "transparent": true,
+        "opacity": 0.72,
+        "map": true
+      },
+      {
+        "type": "MeshStandardMaterial",
+        "color": 2237472,
+        "roughness": 1,
+        "metalness": 0,
+        "transparent": false,
+        "opacity": 1,
+        "map": false
+      },
+      {
+        "type": "MeshStandardMaterial",
+        "color": 8418401,
+        "roughness": 1,
+        "metalness": 0,
+        "transparent": false,
+        "opacity": 1,
+        "map": true
+      },
+      {
+        "type": "MeshStandardMaterial",
+        "color": 11425835,
+        "roughness": 0.48,
+        "metalness": 0.08,
+        "transparent": false,
+        "opacity": 1,
+        "map": false
+      },
+      {
+        "type": "MeshStandardMaterial",
+        "color": 10855312,
+        "roughness": 0.57,
+        "metalness": 0.58,
+        "transparent": false,
+        "opacity": 1,
+        "map": true
+      },
+      {
+        "type": "MeshStandardMaterial",
+        "color": 10924461,
+        "roughness": 0.8,
+        "metalness": 0,
+        "transparent": true,
+        "opacity": 0.34,
+        "map": false
+      }
+    ]
+  }
+}

@@ -28,6 +28,7 @@
 
 .hudToggle{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:8;padding:5px 9px!important;font:8px monospace!important;opacity:.6}.hideHud .header,.hideHud .location,.hideHud .quest,.hideHud .mapWrap,.hideHud .footer,.hideHud .stage,.hideHud .vignette,.hideHud .interact{display:none}.hideHud .hudToggle{opacity:.25}.hideHud .hudToggle:hover{opacity:1}
 .mapWrap{z-index:6}.destinations{max-height:min(360px,calc(100dvh - 200px));overflow-y:auto;overscroll-behavior:contain}
+.cameraHint{margin-top:6px;color:#b6c3b8;text-align:center;font:7px/1.5 monospace;pointer-events:none}
 .header{justify-content:flex-end!important}
 .mapWrap{width:120px!important;top:92px!important}
 .minimap{padding:9px!important}
@@ -57,7 +58,8 @@
 
 .editorToggle{position:absolute;bottom:90px;right:20px;z-index:45;padding:12px;background:#172b30;color:#e5d2a9;border:1px solid #8b8b71;border-radius:5px}.editorPanel{position:absolute;top:80px;right:16px;bottom:145px;z-index:44;width:min(390px,calc(100vw - 32px));overflow:auto;padding:16px;background:#0e2028f5;border:1px solid #567477;box-sizing:border-box;color:#d9e5df}.editorPanel h2{font:16px monospace}.editorPanel>label{display:grid;margin-top:18px}.editorPanel select,.editorPanel>button{padding:10px;background:#183237;color:#dae4df;max-width:100%;border:1px solid #567477}
 
-/* CyberBase in-game HUD + Dialogue kit skin (docs/ui-kits/README.md). Positions above stay. */
+  .editorPanel>label{min-width:0}.editorPanel select{width:100%;min-width:0;box-sizing:border-box}
+  /* CyberBase in-game HUD + Dialogue kit skin (docs/ui-kits/README.md). Positions above stay. */
 .root{font-family:var(--cb-font);--line:var(--cb-line-soft);--muted:var(--cb-muted)}
 .root button{border-color:var(--cb-line-soft);background:rgba(6,13,28,.86)}
 .root button:hover:not(:disabled){background:rgba(18,42,80,.92);border-color:var(--cb-cyan)}
@@ -122,3 +124,6 @@
  .npcDialog .speaker{margin-bottom:8px;padding:5px 10px}.npcDialog .speaker h2{font-size:16px}
  .npcDialog .speech{padding:8px 12px;margin-bottom:8px}.npcDialog .speech h3{font-size:16px;margin-bottom:4px}
 }
+.cameraPanel{position:absolute;left:24px;bottom:112px;z-index:40;display:grid;gap:8px;max-width:270px;padding:12px;background:rgba(6,13,28,.92);border:1px solid #456176;color:#dce9f3;font:12px/1.5 monospace}.cameraPanel p{margin:0;color:#9eb4c5;font-size:11px}.cameraPanel button{padding:9px 12px;border:1px solid #456176;background:#142735;color:#e4edf3;cursor:pointer}.cameraPanel button:hover{border-color:#87bfdc;background:#213e50}.cameraPanel small{color:#86cbbd}.hideHud .cameraPanel{display:none}
+.cameraZoom{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;gap:7px}.cameraZoom span{text-align:center;color:#9eb4c5;font-size:10px;letter-spacing:.12em}.cameraZoom button{min-width:44px;font-size:18px;line-height:1;padding:8px}
+@media(max-width:600px),(max-height:560px){.cameraPanel{left:12px;top:116px;bottom:auto;max-width:210px;padding:9px;gap:6px}.cameraPanel p{font-size:10px}}

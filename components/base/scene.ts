@@ -8,31 +8,42 @@ import { disposeObjectTree } from "../../src/renderer/three/dispose";
 import { ASSET_URLS } from "../../src/assets/registry";
 import { createFrameLoop, type FrameTick } from "../../src/core/loop/frame-loop";
 import { createMovementInput } from "../../src/input/movement-input";
+import { physicalMovementKey } from "../../src/input/keyboard/physical-movement-key.ts";
 import { BASE_CAMERA, createFollowCamera } from "../../src/renderer/camera/follow-camera";
+import { createFrameCamera, type FrameCameraMode } from '../../src/renderer/camera/frame-camera.ts';
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { PoseController } from "../game/pose-controller";
+import { createHeroAnimator, loadHero, type HeroAnimator } from "../../src/renderer/animations/hero/hero.ts";
 import { CombatDriver } from "../game/combat-driver";
-import { buildMetro, courtyardWithMetroOpening, METRO_PIT } from "./metro";
+import { buildMetro, courtyardFloorGeometry } from "./metro";
 import { createRefugeMaterials } from "./materials";
 import { addRefugeSurfaceDetails } from "./details";
 import { createWetFloor } from "./wet-floor";
+import { BACKGROUND_NORTH, FLOOR_CENTER_X, FLOOR_CENTER_Z, FLOOR_DEPTH, FLOOR_EAST, FLOOR_SOUTH, FLOOR_WEST, FLOOR_WIDTH } from './layout.ts';
 import { buildRefugeZones } from "./zones";
 import { buildConcretePerimeter } from "./fence";
 import { adaptQuality, initialQuality, renderRatio, type QualityMode } from "./quality";
 import { adaptMobileBudget, initialMobileBudget, mobileRenderRatio, usesTouchProfile } from "../expedition/mobile-performance";
-import { canStand, findPath, moveWithCollision, nearestStation, BASE_EXPANSION, SPAWN, STATIONS, type Point, type StationId } from "./world";
+import { canStand, findPath, moveWithCollision, nearestStation, SPAWN, STATIONS, type Point, type StationId } from "./world";
+import { createImplantsBuilding } from "../../src/renderer/environment/implants-building.ts";
+import { createElevatedRail } from "../../src/renderer/environment/elevated-rail.ts";
+import { createMediaTower } from "../../src/renderer/environment/media-tower.ts";
+import { createReferenceBuildingLibrary } from "../../src/renderer/three/reference-building-library.ts";
 
-export type BaseSnapshot = { x: number; z: number; near: StationId | null; fps: number; p95: number; draws: number; triangles: number; ratio: number; high: boolean; submitMs: number; timingLimited: boolean; target: 30 | 60; scale: number };
+const DEV_TOOLS = process.env.CYBERBASE_DEV_TOOLS === "1";
+
+export type BaseSnapshot = { x: number; z: number; near: StationId | null; fps: number; p95: number; draws: number; triangles: number; ratio: number; high: boolean; submitMs: number; timingLimited: boolean; target: 30 | 60; scale: number; cameraMode: FrameCameraMode };
 export type BaseEngine = {
   editor:WorldEditor; setMaster(value:boolean):void;
   dispose(): void; setPaused(value: boolean): void; setStick(x: number, y: number): void;
   setRain(value: boolean): void; setQuality(value: QualityMode): void;
   resetCamera(): void; goTo(id: StationId): void;
+  frameCamera(): void; zoomCamera(delta: number): void; fixCamera(): boolean;
+  restoreCameraPreset2(): boolean;
 };
 
 export function createBaseScene(
@@ -109,11 +120,31 @@ export function createBaseScene(
   surfaces.apply(m.wall, "concrete", 0.55);
   surfaces.apply(m.concrete, "concrete", 0.45);
   const batches = new Map<T.Material, T.Matrix4[]>();
+  type EditLabel = { id: string; name: string };
+  const editLabels = new Map<T.Object3D, EditLabel>();
+  const boxLabels = new Map<T.Material, EditLabel[]>();
+  const instanceLabels = new Map<T.InstancedMesh, readonly EditLabel[]>();
+  let currentLabel: EditLabel | undefined, partId = 0;
+  const section = (id: string, name: string, build: () => void) => {
+    if (!DEV_TOOLS) { build(); return; }
+    const previous = currentLabel, before = new Set(scene.children);
+    currentLabel = { id, name };
+    build();
+    for (const object of scene.children) {
+      if (!before.has(object) && !editLabels.has(object)) editLabels.set(object, currentLabel);
+    }
+    currentLabel = previous;
+  };
   const dummy = new T.Object3D();
   const box = (x: number, y: number, z: number, w: number, h: number, d: number, mat: T.Material, ry = 0) => {
     dummy.position.set(x, y, z); dummy.scale.set(w, h, d); dummy.rotation.set(0, ry, 0); dummy.updateMatrix();
     if (!batches.has(mat)) batches.set(mat, []);
     batches.get(mat)!.push(dummy.matrix.clone());
+    if (DEV_TOOLS) {
+      const labels = boxLabels.get(mat) ?? [];
+      labels.push(currentLabel ?? { id: `base:part:${++partId}`, name: `Деталь / ${partId} (${x.toFixed(1)}, ${z.toFixed(1)})` });
+      boxLabels.set(mat, labels);
+    }
   };
   const cylinder = (x: number, y: number, z: number, r: number, h: number, mat: T.Material, rotation?: T.Euler) => {
     const mesh = new T.Mesh(new T.CylinderGeometry(r, r, h, 10), mat);
@@ -140,54 +171,54 @@ export function createBaseScene(
     mesh.position.set(x, y, z); mesh.rotation.y = rotation; scene.add(mesh);
   }
 
-  // A layered slab with service conduits and an exposed foundation.
-  const slabWithOpening = (w: number, d: number, y: number, h: number, mat: T.Material) => {
-    const {left:l,right:r,back:b,front:f}=METRO_PIT;
-    box((-w/2+l)/2,y,0,l+w/2,h,d,mat);
-    box((r+w/2)/2,y,0,w/2-r,h,d,mat);
-    box((l+r)/2,y,(-d/2+b)/2,r-l,h,b+d/2,mat);
-    box((l+r)/2,y,(f+d/2)/2,r-l,h,d/2-f,mat);
-  };
-  slabWithOpening(28 * BASE_EXPANSION, 23 * BASE_EXPANSION, -0.68, 1.3, m.dark);
-  slabWithOpening(27.5 * BASE_EXPANSION, 22.5 * BASE_EXPANSION, -0.11, .22, m.concrete);
-  for (let x = -13 * BASE_EXPANSION; x < 14 * BASE_EXPANSION; x += 1.3) {
-    box(x, -0.6, 11.55 * BASE_EXPANSION, 1.17, 0.88, 0.18, m.edge);
-    if (x % 2 < 1) box(x, -0.5, 11.66 * BASE_EXPANSION, 0.45, 0.1, 0.03, m.brass);
+  // One continuous layered city slab. The relocated metro no longer leaves a
+  // structural opening behind in the courtyard.
+  section("base:foundation", "Основание платформы", () => {
+  box(FLOOR_CENTER_X, -0.68, FLOOR_CENTER_Z, FLOOR_WIDTH + 1, 1.3, FLOOR_DEPTH + 1, m.dark);
+  box(FLOOR_CENTER_X, -0.11, FLOOR_CENTER_Z, FLOOR_WIDTH, .22, FLOOR_DEPTH, m.concrete);
+  for (let x = FLOOR_WEST + .65; x < FLOOR_EAST; x += 1.3) {
+    box(x, -0.6, FLOOR_SOUTH - .45, 1.17, 0.88, 0.18, m.edge);
+    if (x % 2 < 1) box(x, -0.5, FLOOR_SOUTH - .34, 0.45, 0.1, 0.03, m.brass);
   }
-  pipe([[-13 * BASE_EXPANSION, -0.7, 11.7 * BASE_EXPANSION], [0, -0.7, 11.7 * BASE_EXPANSION], [13 * BASE_EXPANSION, -0.7, 11.7 * BASE_EXPANSION]], 0.08);
+  pipe([[FLOOR_WEST + .4, -0.7, FLOOR_SOUTH - .3], [0, -0.7, FLOOR_SOUTH - .3], [FLOOR_EAST - .4, -0.7, FLOOR_SOUTH - .3]], 0.08);
 
+  });
   // The scan supplies aligned stone faces, chipped joints and normals.
   // A second geometric grid would cut across those joints, so use one receiver.
   const stone = surfaces.apply(new T.MeshStandardMaterial({ color: "#c9cfd3", roughness: .9, metalness: .02 }), "stone", .25);
-  const courtyardFloor = new T.Mesh(courtyardWithMetroOpening(),stone);
+  section("base:floor", "Покрытие двора", () => {
+  const courtyardFloor = new T.Mesh(courtyardFloorGeometry(),stone);
   courtyardFloor.rotation.x = -Math.PI/2; courtyardFloor.position.y=.075;
   courtyardFloor.receiveShadow=true; scene.add(courtyardFloor);
+  });
+  section("base:markings", "Разметка двора", () => {
   for (let z = -8; z <= 9; z += 0.34) {
     box(-3.4, 0.076, z, 0.22, 0.026, 0.27, m.black);
     box(3.4, 0.076, z, 0.22, 0.026, 0.27, m.black);
   }
   for (let x = -9; x < 10; x += 0.7) box(x, 0.073, 7.8, 0.34, 0.025, 0.08, m.brass);
 
-  buildMetro({ box, cylinder, pipe, sign, light, m, surface: surfaces.apply });
-  buildRefugeZones({ box, cylinder, pipe, sign, light, m, surface: surfaces.apply });
+  });
+  section("base:metro", "Метро · вход и лестница", () => buildMetro({ box, cylinder, pipe, sign, light, m, surface: surfaces.apply }));
+  buildRefugeZones({ box, cylinder, pipe, sign, light, m, surface: surfaces.apply, section });
 
+  section("base:city-gate", "Городской шлюз", () => {
   sign("NEON SPRAWL", "CITY AIRLOCK / SEALED", -14.3, 4.5, 0, 4, "#8cc5c3", Math.PI / 2);
   light(-13.95, 2.8, 0, 0x80d5e7, 18, 6);
+  });
   const fenceConcrete = surfaces.apply(new T.MeshStandardMaterial({
     name: "Weathered precast concrete", color: "#a5a49b", roughness: .96, metalness: 0,
   }), "concrete", .65);
   fenceConcrete.normalScale.setScalar(.7);
   // Keep the already merged fence separate from the indexed pipe batches.
-  buildConcretePerimeter(scene, fenceConcrete, m.edge.clone());
+  section("base:perimeter", "Обломки периметра", () => buildConcretePerimeter(scene, fenceConcrete, m.edge.clone(), DEV_TOOLS ? section : undefined));
 
   // A wide, damaged expedition passage branches from the refuge perimeter.
+  section("base:annex-floor", "Дорога к пристройке", () => {
   box(19, -0.35, 7.5, 8, 0.7, 5.4, m.dark);
   box(26, -0.35, 7.5, 6.2, 0.7, 7.2, m.dark);
-  for (let x = 15; x < 29; x++) for (let z = 4; z < 11; z++) {
-    if (x < 23 && (z < 5 || z >= 10)) continue;
-    box(x + 0.5, 0.025, z + 0.5, 0.965, 0.1, 0.965, stone);
-  }
-  for (const z of [4.8, 10.2]) {
+  });
+  for (const z of [4.8, 10.2]) section(z < 7 ? "base:rail-north" : "base:rail-south", z < 7 ? "Ограда прохода · север" : "Ограда прохода · юг", () => {
     for (let x = 15; x <= 23; x++) {
       box(x, 0.75, z, 0.09, 1.5, 0.09, m.brass);
       if (x % 2 === 1) box(x, 1.52, z, 0.14, 0.07, 0.14, m.teal);
@@ -195,7 +226,8 @@ export function createBaseScene(
     for (const y of [0.25, 0.65, 1.05, 1.45]) box(19, y, z, 8, 0.035, 0.035, m.edge);
     for (let x = 15.25; x < 23; x += 0.25) box(x, 0.82, z, 0.025, 1.2, 0.025, m.edge);
     box(19, 0.11, z + (z < 7 ? 0.16 : -0.16), 8, 0.025, 0.05, m.teal);
-  }
+  });
+  section("base:breach", "Проход в экспедицию", () => {
   // Nothing spans the whole opening: the uneven beam stumps keep it reading as
   // a torn wall rather than a purpose-built doorway.
   box(14.94, 2.94, 5.28, .5, .34, 1.18, m.edge, -.12);
@@ -215,12 +247,14 @@ export function createBaseScene(
     box(x, .14, z, .78, .12, .42, m.concrete, angle);
   }
   for (let x = 15.6; x < 22.5; x += 1.35) box(x, .105, 7.5, .82, .035, .09, m.rust, (x % 2) * .08);
-  box(26, 1.65, 4, 6.2, 3.3, 0.25, m.wall);
-  box(29, 1.15, 7.5, 0.25, 2.3, 7, m.wall);
-  box(26, 0.38, 11, 6, 0.75, 0.25, m.edge);
-  for (const z of [5, 10]) box(23, 0.6, z, 0.25, 1.2, 2, m.edge);
+  });
+  section("base:charge-back", "Задняя стена пристройки", () => box(26, 1.65, 4, 6.2, 3.3, 0.25, m.wall));
+  section("base:charge-east", "Восточная стена пристройки", () => box(29, 1.15, 7.5, 0.25, 2.3, 7, m.wall));
+  section("base:charge-front", "Парапет пристройки", () => box(26, 0.38, 11, 6, 0.75, 0.25, m.edge));
+  for (const z of [5, 10]) section(z < 7 ? "base:charge-door-north" : "base:charge-door-south", "Стойка прохода", () => box(23, 0.6, z, 0.25, 1.2, 2, m.edge));
   box(26, 3.34, 4, 6.4, 0.18, 0.5, m.brass);
   sign("QUANTUM CHARGE", "DAILY CYCLE / STANDBY", 26, 2.55, 4.16, 4.6, "#9ae5ec");
+  section("base:charge-dock", "Quantum Charge · станция", () => {
   box(26, 0.65, 5.1, 2, 1.2, 1.1, m.dark);
   box(26, 1.29, 5.1, 2.2, 0.12, 1.25, m.brass);
   cylinder(26, 1.4, 5.1, 0.45, 0.12, m.teal);
@@ -228,16 +262,20 @@ export function createBaseScene(
     box(x, 1.8, 5.05, 0.16, 1.1, 0.18, m.edge);
     box(x, 1.8, 5.18, 0.07, 0.75, 0.04, m.teal);
   }
+  });
   box(28.2, 0.55, 4.8, 0.7, 1.1, 0.8, m.rust);
   light(26, 2.4, 5.7, 0x78dfe9, 25, 7);
 
   function crate(x: number, z: number, size = 0.8, y = 0) {
+    section(`base:crate:${x}:${z}`, `Ящик (${x}, ${z})`, () => {
     box(x, y + size / 2, z, size, size, size * 0.8, m.dark);
     for (const side of [-1, 1]) box(x + side * size * 0.37, y + size / 2, z + size * 0.41, 0.07, size, 0.08, m.brass);
     box(x, y + size * 0.78, z + size * 0.42, size * 0.4, 0.11, 0.04, m.concrete);
+    });
   }
   crate(-10.7, 5, 0.6);
   crate(10.5, -5.2); crate(11.1, -4.1, 0.65); crate(-10.8, -5.4, 0.9);
+  section("base:battery", "Батарейный док", () => {
   // Battery dock: physically present, but no timed or financial reward in stage 1.
   box(-7.4, 0.63, -5.6, 1.35, 1.2, 0.75, m.dark);
   box(-7.4, 1.26, -5.6, 1.55, 0.1, 0.95, m.brass);
@@ -247,7 +285,9 @@ export function createBaseScene(
   }
   box(-7.4, 0.83, -5.2, 0.45, 0.25, 0.03, m.teal);
 
+  });
   function planter(x: number, z: number, w: number) {
+    section(x < 0 ? "base:planter-west" : "base:planter-east", x < 0 ? "Клумба · запад" : "Клумба · восток", () => {
     box(x, 0.28, z, w, 0.5, 1.25, m.edge);
     box(x, 0.55, z, w + 0.12, 0.12, 1.37, m.brass);
     box(x, 0.63, z, w - 0.2, 0.08, 1.0, m.black);
@@ -256,6 +296,7 @@ export function createBaseScene(
       const h = 0.35 + rand() * 0.7;
       box(xx, 0.68 + h / 2, zz, 0.025, h, 0.025, m.rust);
     }
+    });
   }
   planter(-5.4, 0.2, 2.8); planter(5.1, 0.2, 2.8);
   // Windblown debris.
@@ -265,9 +306,9 @@ export function createBaseScene(
     box(x, 0.09, z, 0.06 + rand() * 0.12, 0.015, 0.06 + rand() * 0.19, rand() > 0.3 ? m.leaf : m.brass, rand() * 6);
   }
   // Four bollard lights and terminal rings.
-  for (const [x, z] of [[-9, 7], [9, 7], [-3.7, -5.6], [3.7, -5.6]]) {
+  for (const [x, z] of [[-9, 7], [9, 7], [-3.7, -5.6], [3.7, -5.6]]) section(`base:lamp:${x}:${z}`, `Фонарь (${x}, ${z})`, () => {
     box(x, 0.53, z, 0.26, 1, 0.26, m.dark); box(x, 1.05, z, 0.28, 0.16, 0.28, m.amber);
-  }
+  });
   const stationRings=new Map<StationId,T.Mesh>();
   for (const st of STATIONS) {
     const ring = new T.Mesh(new T.RingGeometry(0.58, 0.61, 40), new T.MeshBasicMaterial({ color: st.color, transparent: true, opacity: 0.5, side: T.DoubleSide }));
@@ -286,10 +327,16 @@ export function createBaseScene(
   for (const [mat, transforms] of batches) {
     const mesh = new T.InstancedMesh(new RoundedBoxGeometry(1, 1, 1, 1, 0.018), mat, transforms.length);
     transforms.forEach((matrix, i) => mesh.setMatrixAt(i, matrix));
+    if (DEV_TOOLS) instanceLabels.set(mesh, boxLabels.get(mat)!);
     mesh.castShadow = mat !== m.teal && mat !== m.amber; mesh.receiveShadow = true;
     scene.add(mesh);
   }
 
+  const excludedEditorObjects = new Set<T.Object3D>([hemi, sun, rim, courtyardFill, ...npcs, ...stationRings.values()]);
+  const editableSources = DEV_TOOLS ? scene.children.filter(object => !excludedEditorObjects.has(object)) : [];
+  if (DEV_TOOLS) editableSources.forEach((object, i) => {
+    if (!editLabels.has(object)) editLabels.set(object, { id: `base:surface:${i}`, name: object.name || `Поверхность / ${i + 1}` });
+  });
   // Merge static pipes, fans and service rigs by material, reducing draw calls.
   // Batched building boxes already use instancing. Animated Outlaw is added later.
   scene.updateMatrixWorld(true);
@@ -307,12 +354,49 @@ export function createBaseScene(
     const merged = mergeGeometries(copies); copies.forEach((g) => g.dispose());
     if (!merged) continue;
     const combined = new T.Mesh(merged, mat); combined.castShadow = true; combined.receiveShadow = true; scene.add(combined);
-    meshes.forEach((mesh) => { mesh.removeFromParent(); mesh.geometry.dispose(); });
+    meshes.forEach((mesh) => { mesh.removeFromParent(); if (!DEV_TOOLS) mesh.geometry.dispose(); });
   }
+  const editableRendered = DEV_TOOLS ? scene.children.filter(object => !excludedEditorObjects.has(object)) : [];
   const npcStations=["smith","contracts","metro","oracle","market"] as const;
-  const editor=createLazyEditor(()=>import("../world-editor/controller").then(({createWorldEditor})=>()=>createWorldEditor(scene,onEditor,{map:"base",anisotropy:4,height:()=>.08,authored:npcs.map((object,i)=>({id:`npc:${npcStations[i]}`,name:npcStations[i],object,onTransform:e=>{setBaseStationOverride(npcStations[i],{x:e.x,z:e.z,deleted:!!e.deleted});const ring=stationRings.get(npcStations[i]);if(ring){ring.position.set(e.x,.1,e.z);ring.visible=!e.deleted;}}})),onColliders:setBaseEditorColliders,onPan:(x,z)=>{pivot.x+=x;pivot.z+=z;},onFocus:(x,z)=>{pivot.x=x;pivot.z=z;}})),()=>onError("Не удалось загрузить MASTER. Повторите попытку."));
+  let editableRender: import("./editable-render").EditableRender | undefined;
+  let editorShadowDirty = false;
+  const worldAssetLoads: Promise<unknown>[] = [];
+  const editor=createLazyEditor(()=>import("./base-map-editor").then(async ({createBaseMapEditor}) => {
+    await Promise.allSettled(worldAssetLoads);
+    return () => {
+      const result = createBaseMapEditor({
+        scene, sources: editableSources, rendered: editableRendered, labels: editLabels, instanceLabels,
+        npcs: npcs.map((object, i) => ({ id: `npc:${npcStations[i]}`, name: npcStations[i], object,
+          onTransform: e => { setBaseStationOverride(npcStations[i],{x:e.x,z:e.z,deleted:!!e.deleted}); const ring=stationRings.get(npcStations[i]); if(ring){ring.position.set(e.x,.1,e.z);ring.visible=!e.deleted;} }
+        })),
+        onEditor: state => { editorShadowDirty = true; onEditor(state); },
+        onColliders: setBaseEditorColliders,
+        onPan: (x,z) => { pivot.x+=x;pivot.z+=z; },
+        onFocus: (x,z) => { pivot.x=x;pivot.z=z; },
+        onFloorVisibility: value => { floorVisible = value; },
+      });
+      editableRender = result.render;
+      return result.editor;
+    };
+  }),()=>onError("Не удалось восстановить карту. Сохранение не изменено. Перезагрузите страницу для повторной попытки."));
+  const detailBefore = new Set(scene.children);
   const surfaceDetails = addRefugeSurfaceDetails(scene);
+  if (DEV_TOOLS) for (const object of scene.children) {
+    if (detailBefore.has(object)) continue;
+    editableSources.push(object); editableRendered.push(object);
+    editLabels.set(object, {id: `base:detail:${editableSources.length}`, name: "Декор поверхности"});
+    if (object instanceof T.InstancedMesh) {
+      instanceLabels.set(object, Array.from({length: object.count}, () => editLabels.get(object)!));
+    }
+    if (object instanceof T.InstancedMesh && object.count === 420) {
+      instanceLabels.set(object, Array.from({length: 420}, (_, i) => ({
+        id: i < 210 ? "base:planter-west" : "base:planter-east",
+        name: i < 210 ? "Клумба · запад" : "Клумба · восток",
+      })));
+    }
+  }
 
+  let floorVisible = true;
   const puddle = createWetFloor(mobile); puddle.visible = quality.high; scene.add(puddle);
 
   const player = new T.Group(); player.position.set(SPAWN.x, 0.12, SPAWN.z); scene.add(player);
@@ -320,6 +404,8 @@ export function createBaseScene(
   const runnerFill = new T.PointLight(0xc8e4db, 3.2, 4.5, 2);
   runnerFill.position.set(0.4, 2.8, 1.1); player.add(runnerFill);
   const fallback = npc(0, 0, m.teal, m.edge); scene.remove(fallback); player.add(fallback); fallback.position.set(0, 0, 0);
+  const heroVisualScale = 1.4;
+  fallback.scale.setScalar(heroVisualScale);
   npcs.pop();
   const marker = new T.Mesh(new T.RingGeometry(0.38, 0.43, 48), new T.MeshBasicMaterial({ color: 0xc8e3d5, transparent: true, opacity: 0.8, depthWrite: false }));
   marker.rotation.x = -Math.PI / 2; marker.position.y = 0.01; player.add(marker);
@@ -327,17 +413,46 @@ export function createBaseScene(
   targetMarker.rotation.x = -Math.PI / 2; targetMarker.visible = false; scene.add(targetMarker);
 
   let disposed = false, paused = false, ready = false, contextLost = false, rainOn = !reducedMotion, path: Point[] = [];
-  let assetsPending = 4, assetSettledAt = performance.now();
+  let assetsPending = 7, assetSettledAt = performance.now();
   const assetSettled = () => { assetsPending--; assetSettledAt = performance.now(); };
-  const markReady = (name: string) => { ready = true; onReady(name); };
-  let mixer: T.AnimationMixer | null = null, runAction: T.AnimationAction | null = null, idleAction: T.AnimationAction | null = null;
+  // Never expose the authored fallback map while the owner's saved layout is loading.
+  renderer.domElement.style.visibility = "hidden";
+  let layoutReady = true, heroReadyName: string | undefined;
+  const revealMap = () => {
+    if (disposed || !layoutReady || !heroReadyName) return;
+    ready = true;
+    renderer.domElement.style.visibility = "visible";
+    onReady(heroReadyName);
+  };
+  const markReady = (name: string) => { heroReadyName = name; revealMap(); };
+  let heroAnimator: HeroAnimator | null = null;
   const combat = new CombatDriver(() => {}, () => 100);
-  let locomotionBlend = 0;
-  let pose: PoseController | null = null;
   let hero: T.Object3D = fallback, previousWalking = false;
   const { loader, draco } = createGltfLoader();
+  const mediaTower = createMediaTower(scene,
+    createReferenceBuildingLibrary(mobile ? 2 : 4, url => loader.loadAsync(url)),
+    onError, () => { assetSettled(); renderer.shadowMap.needsUpdate = true; });
+  if (DEV_TOOLS) {
+    worldAssetLoads.push(mediaTower.ready);
+    editableSources.push(mediaTower.root); editableRendered.push(mediaTower.root);
+    editLabels.set(mediaTower.root, { id: "base:media-tower", name: "Медиа-башня · стекло и портрет" });
+  }
+  const elevatedRail = createElevatedRail(scene, loader, mobile, onError, () => {
+    assetSettled();
+    renderer.shadowMap.needsUpdate = true;
+  });
+  let lastRailShadow = 0;
+  const implantsBuilding = createImplantsBuilding(scene, loader, mobile, onError, () => {
+    assetSettled();
+    renderer.shadowMap.needsUpdate = true;
+  });
+  if (DEV_TOOLS) {
+    worldAssetLoads.push(implantsBuilding.ready);
+    editableSources.push(implantsBuilding.root); editableRendered.push(implantsBuilding.root);
+    editLabels.set(implantsBuilding.root, { id: "base:implants", name: "Здание IMPLANTS" });
+  }
   for (const [file, x, z] of [["workshop", -8.4, -8.6], ["oracle", 0, -9], ["city-gate", -14.8, 0]] as const) {
-    loader.loadAsync(ASSET_URLS.refugeBuilding(file)).then(({ scene: model }) => {
+    const load = loader.loadAsync(ASSET_URLS.refugeBuilding(file)).then(({ scene: model }) => {
       if (disposed) { disposeObjectTree(model); return; }
       const mapped = new Set<T.Material>();
       model.position.set(x, 0.08, z);
@@ -357,65 +472,61 @@ export function createBaseScene(
         }
       });
       scene.add(model);
+      if (DEV_TOOLS) {
+        editableSources.push(model); editableRendered.push(model);
+        editLabels.set(model, {id: `base:${file}`, name: file === "workshop" ? "Здание CYBERSMITH" : file === "oracle" ? "Здание ORACLE" : "Городской шлюз"});
+      }
       if (file === "oracle") {
-        for (const [x, z, size] of [[-18, -18, .95], [10, -18, .78]]) {
+        for (const [x, z, size] of [[-18, BACKGROUND_NORTH-3, .95], [10, BACKGROUND_NORTH-3, .78]]) {
           const neighbour = model.clone(true); neighbour.position.set(x, -.9, z); neighbour.scale.setScalar(size);
           neighbour.traverse((o) => { if ((o as T.Mesh).isMesh) (o as T.Mesh).castShadow = false; });
           scene.add(neighbour);
+          if (DEV_TOOLS) { editableSources.push(neighbour); editableRendered.push(neighbour); editLabels.set(neighbour, {id:`base:neighbour:${x}`,name:`Соседний дом (${x})`}); }
         }
       }
       renderer.shadowMap.needsUpdate = true;
     }).catch(() => { if (!disposed) onError(`The ${file} building could not load. Reload to retry.`); }).finally(assetSettled);
+    worldAssetLoads.push(load);
+  }
+  // The editor remains a development-only dynamic import. Restore saved scenery even
+  // when MASTER is closed; its document readiness includes all placed model loads.
+  if (DEV_TOOLS) {
+    try {
+      if (localStorage.getItem("cyberbase.world-editor.base.v1") !== null) {
+        layoutReady = false;
+        void editor.initialize().then(() => {
+          if (disposed) return;
+          layoutReady = true;
+          revealMap();
+        }).catch(() => { /* The lazy facade reports the error; keep the stale map hidden. */ });
+      }
+    } catch { onError("Сохранённая карта недоступна: браузер заблокировал локальное хранилище."); }
   }
   // Refuge character selection is independent of the legacy city.
   const character = "NEON SENTINEL";
   const loadTimeout = window.setTimeout(() => { if (!disposed) markReady("RUNNER"); }, 12000);
-  loader.loadAsync(ASSET_URLS.heroModel)
+  loadHero(loader, ASSET_URLS.heroModel, (mesh) => {
+      for (const mat of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+        if (!(mat instanceof T.MeshStandardMaterial)) continue;
+        mat.normalScale.setScalar(0.55);
+        for (const texture of [mat.map, mat.normalMap, mat.roughnessMap, mat.metalnessMap]) {
+          if (!texture) continue;
+          texture.anisotropy = Math.min(mobile ? 4 : 8, renderer.capabilities.getMaxAnisotropy());
+          texture.minFilter = T.LinearMipmapLinearFilter;
+          texture.needsUpdate = true;
+        }
+      }
+    })
     .then((gltf) => {
       if (disposed) { disposeObjectTree(gltf.scene); return; }
       const root = gltf.scene;
-      root.updateMatrixWorld(true);
-      const run = gltf.animations.find((a) => /run|walk/i.test(a.name));
-      const bounds = new T.Box3().setFromObject(root);
-      const size = bounds.getSize(new T.Vector3()); const scale = 1.85 / size.y;
-      root.scale.multiplyScalar(scale); root.updateMatrixWorld(true);
-      const scaledBounds = new T.Box3().setFromObject(root);
-      root.position.y -= scaledBounds.min.y;
-      root.traverse((o) => {
-        const mesh = o as T.Mesh;
-        if (!mesh.isMesh) return;
-        mesh.castShadow = true;
-        // The cached sun map contains an older skeletal pose. Receiving it on
-        // the animated skin projects stale limbs across the back every few frames.
-        // Keep the ground shadow, but light the runner without this self-shadow.
-        mesh.receiveShadow = false;
-        mesh.frustumCulled = false;
-        for (const mat of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
-          if (!(mat instanceof T.MeshStandardMaterial)) continue;
-          mat.normalScale.setScalar(0.55);
-          for (const texture of [mat.map, mat.normalMap, mat.roughnessMap, mat.metalnessMap]) {
-            if (!texture) continue;
-            texture.anisotropy = Math.min(mobile ? 4 : 8, renderer.capabilities.getMaxAnisotropy());
-            texture.minFilter = T.LinearMipmapLinearFilter;
-            texture.needsUpdate = true;
-          }
-        }
-      });
       player.remove(fallback);
       // Shared refuge materials must remain alive; only the temporary rig geometry is owned here.
       fallback.traverse((o) => { if ((o as T.Mesh).isMesh) (o as T.Mesh).geometry.dispose(); });
       hero = new T.Group(); hero.add(root); player.add(hero);
-      mixer = new T.AnimationMixer(root);
-      combat.attach(root, mixer, gltf.animations);
-      const idle = gltf.animations.find((a) => /idle/i.test(a.name));
-      if (idle) idleAction = mixer.clipAction(idle).play();
-      else { pose = new PoseController(root); pose.buildIdle(root); }
-      if (run) {
-        // Keep locomotion in world code: retain pelvis height but remove clip X/Z travel.
-        const inPlace = run.clone();
-        for (const track of inPlace.tracks) if (/hips\.position$/i.test(track.name)) for (let i = 0; i < track.values.length; i += 3) { track.values[i] = track.values[0]; track.values[i + 2] = track.values[2]; }
-        runAction = mixer.clipAction(inPlace); runAction.setEffectiveWeight(0).play();
-      }
+      hero.scale.setScalar(heroVisualScale);
+      heroAnimator = createHeroAnimator(root, gltf.animations, { idle: "clip-or-pose", run: /run|walk/i });
+      combat.attach(root, heroAnimator.mixer, gltf.animations);
       clearTimeout(loadTimeout); markReady(character.toUpperCase());
       renderer.shadowMap.needsUpdate = true;
     }).catch(() => { clearTimeout(loadTimeout); if (!disposed) { markReady("RUNNER"); onError("Character model unavailable. A service rig is active; the refuge is still playable."); } }).finally(assetSettled);
@@ -430,7 +541,11 @@ export function createBaseScene(
   rain.frustumCulled = false; scene.add(rain);
   const input = createMovementInput(), moveDirection = { x: 0, z: 0 };
   const pivot = new T.Vector3(SPAWN.x, 1.05, SPAWN.z);
-  const cameraRig = createFollowCamera(BASE_CAMERA, pivot), azimuth = cameraRig.azimuth;
+  const cameraRig = createFollowCamera(BASE_CAMERA, pivot);
+  cameraRig.place(camera.position, camera.aspect, false); camera.lookAt(pivot);
+  let cameraStorage: Storage | undefined;
+  try { cameraStorage = localStorage; } catch { /* Framing remains available without storage. */ }
+  const frameCamera = createFrameCamera(camera, renderer.domElement, cameraStorage, undefined, pivot);
   const loopStart = performance.now();
   let fpsTime = loopStart, frames = 0, fps = 0, reportTime = 0;
   let qualityWindow = loopStart, qualityFrames = 0, qualityElapsed = 0, lastResolution = 0;
@@ -445,11 +560,22 @@ export function createBaseScene(
   const observer = new ResizeObserver(resize); observer.observe(host); resize();
   const raycaster = new T.Raycaster(), pointer = new T.Vector2(), hit = new T.Vector3(), floor = new T.Plane(new T.Vector3(0, 1, 0), -0.08);
   let down: { x: number; y: number; id: number } | null = null;
-  const onHover=(e:PointerEvent)=>{if(!editor.active)return;const r=renderer.domElement.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,1-(e.clientY-r.top)/r.height*2);raycaster.setFromCamera(pointer,camera);if(raycaster.ray.intersectPlane(floor,hit))editor.hover(hit);};
-  const onDown = (e: PointerEvent) => { if (e.button !== 0 || down || paused || modalOpen || !ready) return; down = { x: e.clientX, y: e.clientY, id: e.pointerId }; renderer.domElement.focus({ preventScroll: true }); };
+  const onHover = (e: PointerEvent) => {
+    if (!editor.active || frameCamera.mode === 'free') return;
+    const r = renderer.domElement.getBoundingClientRect();
+    pointer.set((e.clientX-r.left)/r.width*2-1,1-(e.clientY-r.top)/r.height*2);
+    raycaster.setFromCamera(pointer,camera);
+    if (raycaster.ray.intersectPlane(floor,hit)) editor.hover(hit);
+  };
+  const onDown = (e: PointerEvent) => {
+    if (frameCamera.mode === 'free' || e.button !== 0 || down || paused || modalOpen || !ready) return;
+    down = { x: e.clientX, y: e.clientY, id: e.pointerId };
+    renderer.domElement.focus({ preventScroll: true });
+  };
   const onUp = (e: PointerEvent) => {
     if (!down || e.pointerId !== down.id) return;
-    const tap = Math.hypot(e.clientX - down.x, e.clientY - down.y) < 12; down = null;
+    const tap = Math.hypot(e.clientX - down.x, e.clientY - down.y) < 12;
+    down = null;
     if (!tap || paused || modalOpen || !ready) return;
     const r = renderer.domElement.getBoundingClientRect(); pointer.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
     raycaster.setFromCamera(pointer, camera);
@@ -461,14 +587,22 @@ export function createBaseScene(
   };
   const editable = (e: KeyboardEvent) => e.target instanceof HTMLElement && !!e.target.closest("input, textarea, select, button, a, [role=dialog]");
   const keyDown = (e: KeyboardEvent) => {
-    if (editable(e) || paused || modalOpen || !ready) return;
-    if(editor.active){editor.keyDown(e);return;}
-    const key = e.key.toLowerCase();
+    if (paused || modalOpen || !ready || e.isComposing || frameCamera.mode === 'free') return;
+    const textEntry = e.target instanceof HTMLElement && !!e.target.closest('input, textarea, select, [role="textbox"], [contenteditable]:not([contenteditable="false"])');
+    if (textEntry) return;
+    if (editor.active) { if (!editable(e)) editor.keyDown(e); return; }
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const movement = physicalMovementKey(e);
+    if (editable(e) && !movement) return;
+    // Reclaim play focus after ordinary HUD buttons, but never from a modal
+    // or text input. A second click on the ground is no longer required to walk.
+    if (movement) renderer.domElement.focus({ preventScroll: true });
+    const key = movement ?? e.key.toLowerCase();
     if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", "q", "e", "r", " "].includes(key)) e.preventDefault();
-    input.keys.add(key);
+    if (movement) input.keys.add(movement);
     if (key === "e" && !e.repeat && !paused) { const near = nearestStation(player.position); if (near) onInteract(near.id); }
   };
-  const keyUp = (e: KeyboardEvent) => input.keys.delete(e.key.toLowerCase());
+  const keyUp = (e: KeyboardEvent) => input.keys.delete(physicalMovementKey(e) ?? e.key.toLowerCase());
   const clearInput = () => { input.clear(); down = null; path = []; targetMarker.visible = false; };
   const resetInput = () => { clearInput(); window.dispatchEvent(new Event("netrunner:input-reset")); };
   let modalOpen = !!document.querySelector('[aria-modal="true"]');
@@ -478,7 +612,11 @@ export function createBaseScene(
     modalOpen = next;
   });
   modalObserver.observe(host.parentElement ?? host, { childList: true, subtree: true });
-  const wheel = (e: WheelEvent) => { e.preventDefault(); if (editor.active) cameraRig.zoomBy(e.deltaY); };
+  const wheel = (e: WheelEvent) => {
+    e.preventDefault();
+    if (paused || modalOpen || !ready) return;
+    if (editor.active && frameCamera.mode === 'follow') cameraRig.zoomBy(e.deltaY);
+  };
   const lostContext = (e: Event) => { e.preventDefault(); contextLost = true; resetInput(); loop.stop(); onError("Graphics connection lost. Reload the refuge to reconnect."); };
   renderer.domElement.addEventListener("pointermove",onHover);
   renderer.domElement.addEventListener("pointerdown", onDown);
@@ -506,11 +644,17 @@ export function createBaseScene(
       }
     }
     const time = now / 1000;
+    if (elevatedRail.update(paused || modalOpen || editor.active ? 0 : dt, reducedMotion)
+      && !mobile && now - lastRailShadow > 100) {
+      renderer.shadowMap.needsUpdate = true;
+      lastRailShadow = now;
+    }
     surfaceDetails.update(reducedMotion ? 0 : time);
     (puddle.material as T.ShaderMaterial).uniforms.waterTime.value = reducedMotion ? 0 : time;
     let walking = false;
-    if (ready && !paused && !modalOpen && !editor.active) {
+    if (ready && !paused && !modalOpen && !editor.active && frameCamera.mode !== 'free') {
       let dx = 0, dz = 0;
+      const azimuth = frameCamera.mode === 'follow' ? cameraRig.azimuth : frameCamera.azimuth;
       if (input.resolve(moveDirection, azimuth, 0.12)) {
         path = []; targetMarker.visible = false;
         dx = moveDirection.x; dz = moveDirection.z;
@@ -533,18 +677,21 @@ export function createBaseScene(
       renderer.shadowMap.needsUpdate = true;
       previousWalking = walking;
     }
-    locomotionBlend = T.MathUtils.damp(locomotionBlend, walking ? 1 : 0, 16, dt);
-    combat.tick(dt, paused || modalOpen || !ready || editor.active);
-    if (runAction) runAction.setEffectiveWeight(locomotionBlend * (1 - combat.weight));
-    if (idleAction) idleAction.setEffectiveWeight((1 - locomotionBlend) * (1 - combat.weight));
-    mixer?.update(dt);
-    pose?.apply((1 - locomotionBlend) * (1 - combat.weight));
-    // Aim at the hero's body with no sideways or forward composition offset; MASTER holds the pivot.
-    if (!editor.active) cameraRig.follow(player.position.x, player.position.y + 0.93, player.position.z, dt, reducedMotion);
-    else cameraRig.follow(pivot.x, pivot.y, pivot.z, dt, reducedMotion);
-    cameraRig.place(camera.position, camera.aspect, editor.active);
-    camera.lookAt(pivot);
+    combat.tick(dt, paused || modalOpen || !ready || editor.active || frameCamera.mode === 'free');
+    heroAnimator?.update(dt, walking, combat.weight);
+    // Keep the original body-pivot damping; saved framing adds its composition offsets.
+    if (frameCamera.mode !== 'free') {
+      if (!editor.active) cameraRig.follow(player.position.x, player.position.y + 0.93, player.position.z, dt, reducedMotion);
+      else cameraRig.follow(pivot.x, pivot.y, pivot.z, dt, reducedMotion);
+      if (frameCamera.mode === 'fixed') frameCamera.place(pivot);
+      else {
+        cameraRig.place(camera.position, camera.aspect, editor.active);
+        camera.lookAt(pivot);
+      }
+    }
+    frameCamera.update(ready && !paused && !modalOpen);
     rain.visible = rainOn;
+    puddle.visible = quality.high && floorVisible && !editor.active;
     if (rainOn) {
       for (let i = 0; i < rainCount; i++) {
         const k = i * 6;
@@ -554,10 +701,13 @@ export function createBaseScene(
       rainGeometry.attributes.position.needsUpdate = true;
     }
     editor.stream(editor.active?pivot:player.position);
-    // MASTER used to redraw the whole shadow map every frame; 10 Hz still follows placements.
-    if (editor.active && now - lastShadow > 100) { renderer.shadowMap.needsUpdate = true; lastShadow = now; }
+    // Key repeat can emit much faster than rendering. Refresh changed scenery at
+    // most 10 Hz in MASTER, and stop redrawing its shadows when the editor is idle.
+    if (editorShadowDirty && (!editor.active || now - lastShadow > 100)) {
+      renderer.shadowMap.needsUpdate = true; lastShadow = now; editorShadowDirty = false;
+    }
     // Static lighting is cached; refresh shadows at a bounded rate while moving.
-    if ((walking || locomotionBlend > 0.001) && now - lastShadow > (mobile ? 100 : quality.high ? 33 : 65)) {
+    if ((walking || (heroAnimator?.locomotionBlend ?? 0) > 0.001) && now - lastShadow > (mobile ? 100 : quality.high ? 33 : 65)) {
       renderer.shadowMap.needsUpdate = true; lastShadow = now;
     }
   }
@@ -583,7 +733,7 @@ export function createBaseScene(
       }
     }
     if (now - reportTime > 130) {
-      onSnapshot({ x: player.position.x, z: player.position.z, near: nearestStation(player.position)?.id ?? null, fps, p95, draws: renderer.info.render.calls, triangles: renderer.info.render.triangles, ratio: renderer.getPixelRatio(), high: quality.high, submitMs, timingLimited, target: mobile ? budget.target : 60, scale: mobile ? resolutionScale : quality.scale }); reportTime = now;
+      onSnapshot({ x: player.position.x, z: player.position.z, near: nearestStation(player.position)?.id ?? null, fps, p95, draws: renderer.info.render.calls, triangles: renderer.info.render.triangles, ratio: renderer.getPixelRatio(), high: quality.high, submitMs, timingLimited, target: mobile ? budget.target : 60, scale: mobile ? resolutionScale : quality.scale, cameraMode: frameCamera.mode }); reportTime = now;
     }
   }
   const loop = createFrameLoop({
@@ -601,22 +751,29 @@ export function createBaseScene(
     editor,setMaster(value){editor.setActive(value);resetInput();},
     setPaused(value) { paused = value; resetInput(); },
     setStick(x, y) {
-      if (editor.active || paused || modalOpen || !ready || document.hidden || contextLost) { input.clearStick(); return; }
+      if (frameCamera.mode === 'free' || editor.active || paused || modalOpen || !ready || document.hidden || contextLost) { input.clearStick(); return; }
       input.setStick(x, y);
     },
     setRain(value) { rainOn = value; },
     setQuality(value) { quality = initialQuality(mobile, value); if (quality.high) enablePostprocessing(); puddle.visible = quality.high; rainGeometry.setDrawRange(0, quality.high ? rainCount * 2 : Math.min(rainCount, 180) * 2); renderer.shadowMap.needsUpdate = true; resize(); },
-    resetCamera() { cameraRig.snapToTarget(); },
+    frameCamera() { resetInput(); frameCamera.start(pivot); },
+    zoomCamera(delta) { frameCamera.zoomBy(delta); },
+    fixCamera() { resetInput(); return frameCamera.fix(pivot); },
+    restoreCameraPreset2() { resetInput(); return frameCamera.restorePreset2(pivot); },
+    resetCamera() { frameCamera.follow(); cameraRig.moveTo(player.position.x, player.position.z); pivot.y = player.position.y + .93; resetInput(); },
     goTo(id) { const station = getBaseStations().find((s) => s.id === id); if (station && ready && !paused && !modalOpen && !editor.active) { path = findPath(player.position, { x: station.x, z: station.z + 1 }); targetMarker.position.set(station.x, 0.1, station.z + 1); targetMarker.visible = path.length > 0; } },
     dispose() {
-      disposed = true; loop.dispose(); clearTimeout(loadTimeout); observer.disconnect(); draco.dispose();
+      disposed = true; clearInput(); frameCamera.dispose(); loop.dispose(); clearTimeout(loadTimeout); observer.disconnect(); draco.dispose();
       window.removeEventListener("keydown", keyDown); window.removeEventListener("keyup", keyUp); window.removeEventListener("blur", clearInput);
       window.removeEventListener("netrunner:input-reset", clearInput); modalObserver.disconnect();
-      editor.dispose();clearBaseEditor();renderer.domElement.removeEventListener("pointermove",onHover);
+      editor.dispose(); editableRender?.dispose(); implantsBuilding.dispose(); mediaTower.dispose(); elevatedRail.dispose(); clearBaseEditor();
+      // Retained source geometries may be detached by the static merge.
+      if (DEV_TOOLS) for (const object of editableSources) if (!object.parent && object !== implantsBuilding.root && object !== mediaTower.root) scene.add(object);
+      renderer.domElement.removeEventListener("pointermove",onHover);
       renderer.domElement.removeEventListener("pointerdown", onDown); renderer.domElement.removeEventListener("pointerup", onUp);
       renderer.domElement.removeEventListener("pointercancel", clearInput); renderer.domElement.removeEventListener("wheel", wheel);
       renderer.domElement.removeEventListener("webglcontextlost", lostContext);
-      combat.dispose(); mixer?.stopAllAction(); if (mixer) mixer.uncacheRoot(mixer.getRoot());
+      combat.dispose(); heroAnimator?.mixer.stopAllAction(); if (heroAnimator) heroAnimator.mixer.uncacheRoot(heroAnimator.mixer.getRoot());
       puddle.getRenderTarget().dispose(); disposeObjectTree(scene); environment.dispose(); surfaces.dispose(); bloom?.dispose(); output?.dispose(); composer?.dispose(); renderer.dispose();
       renderer.domElement.remove();
     },

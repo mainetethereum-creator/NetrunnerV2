@@ -8,11 +8,12 @@ import { createFrameLoop, type FrameTick } from '../../src/core/loop/frame-loop'
 import { createMovementInput } from '../../src/input/movement-input';
 import { EDITOR_PAN_KEYS, MOVE_KEYS } from '../../src/input/keyboard/move-keys';
 import { EXPEDITION_CAMERA, createFollowCamera } from '../../src/renderer/camera/follow-camera';
+import { createFrameCamera } from '../../src/renderer/camera/frame-camera';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
-import { PoseController } from '../game/pose-controller';
+import { createHeroAnimator, loadHero, type HeroAnimator } from '../../src/renderer/animations/hero/hero.ts';
 import { CombatDriver } from '../game/combat-driver';
 import { buildEnvironment } from './environment';
 import { findRoute, move, makeWorld, DEFAULT_VEGETATION_TREES, type Point } from './world';
@@ -55,15 +56,11 @@ export function createExpedition(host:HTMLElement,onState:(s:Snapshot)=>void,onE
   const fill=new T.PointLight('#b7d4c7',3.2,4.5,2);fill.position.set(.4,2.8,1.1);player.add(fill);
   const ring=new T.Mesh(new T.RingGeometry(.35,.39,36),new T.MeshBasicMaterial({color:'#b9d6c5',transparent:true,opacity:.65,depthWrite:false}));ring.rotation.x=-Math.PI/2;ring.position.y=.015;player.add(ring);
   const destination=new T.Mesh(new T.RingGeometry(.17,.21,32),new T.MeshBasicMaterial({color:'#e1d4b1',depthWrite:false}));destination.rotation.x=-Math.PI/2;destination.position.y=.08;destination.visible=false;scene.add(destination);
-  let hero:T.Object3D|null=null,mixer:T.AnimationMixer|null=null,run:T.AnimationAction|null=null,pose:PoseController|null=null,blend=0,ready=false,disposed=false;
+  let hero:T.Object3D|null=null,heroAnimator:HeroAnimator|null=null,ready=false,disposed=false;
   const {loader,draco}=createGltfLoader();
-  loader.loadAsync(ASSET_URLS.heroModel).then(gltf=>{
+  loadHero(loader,ASSET_URLS.heroModel,mesh=>{for(const mat of Array.isArray(mesh.material)?mesh.material:[mesh.material])if(mat instanceof T.MeshStandardMaterial){mat.normalScale.setScalar(.55);if(mat.map){mat.map.anisotropy=anisotropy;mat.map.needsUpdate=true;}}}).then(gltf=>{
     if(disposed){disposeObjectTree(gltf.scene);return;}
-    const root=gltf.scene;root.updateMatrixWorld(true);const bounds=new T.Box3().setFromObject(root);
-    root.scale.multiplyScalar(1.85/bounds.getSize(new T.Vector3()).y);root.updateMatrixWorld(true);root.position.y-=new T.Box3().setFromObject(root).min.y;
-    root.traverse(o=>{const mesh=o as T.Mesh;if(!mesh.isMesh)return;mesh.castShadow=true;mesh.receiveShadow=false;mesh.frustumCulled=false;for(const mat of Array.isArray(mesh.material)?mesh.material:[mesh.material])if(mat instanceof T.MeshStandardMaterial){mat.normalScale.setScalar(.55);if(mat.map){mat.map.anisotropy=anisotropy;mat.map.needsUpdate=true;}}});
-    hero=new T.Group();hero.add(root);player.add(hero);pose=new PoseController(root);pose.buildIdle(root);mixer=new T.AnimationMixer(root);combat.attach(root,mixer,gltf.animations);
-    const clip=gltf.animations.find(a=>/run/i.test(a.name));if(clip){const inPlace=clip.clone();for(const track of inPlace.tracks)if(/hips\.position$/i.test(track.name))for(let i=0;i<track.values.length;i+=3){track.values[i]=track.values[0];track.values[i+2]=track.values[2];}run=mixer.clipAction(inPlace).setEffectiveWeight(0).play();}
+    const root=gltf.scene;hero=new T.Group();hero.add(root);player.add(hero);heroAnimator=createHeroAnimator(root,gltf.animations,{idle:'pose',run:/run/i});combat.attach(root,heroAnimator.mixer,gltf.animations);
     ready=true;renderer.shadowMap.needsUpdate=true;
   }).catch(()=>{if(!disposed)onError('Character could not load. Return to the refuge and try again.');});
   const enemyPool:T.Mesh[]=[];
@@ -95,7 +92,10 @@ export function createExpedition(host:HTMLElement,onState:(s:Snapshot)=>void,onE
   renderer.domElement.addEventListener('pointermove',hover);renderer.domElement.addEventListener('wheel',wheel,{passive:false});
   renderer.domElement.addEventListener('pointerdown',down);renderer.domElement.addEventListener('pointerup',up);
   const lost=(e:Event)=>{e.preventDefault();onError('Graphics connection lost. Reload this level.');};renderer.domElement.addEventListener('webglcontextlost',lost);
-  const pivot=new T.Vector3(world.spawn.x,1,world.spawn.z),cameraRig=createFollowCamera(EXPEDITION_CAMERA,pivot),shadowAnchor=new T.Vector3(Infinity,0,0),azimuth=cameraRig.azimuth;
+  const pivot=new T.Vector3(world.spawn.x,1,world.spawn.z),cameraRig=createFollowCamera(EXPEDITION_CAMERA,pivot),shadowAnchor=new T.Vector3(Infinity,0,0);
+  let cameraStorage: Storage | undefined;
+  try { cameraStorage = window.localStorage; } catch { /* Default follow remains available. */ }
+  const frameCamera = createFrameCamera(camera, renderer.domElement, cameraStorage, undefined, pivot);
   let modalOpen=false;const modalObserver=new MutationObserver(()=>{modalOpen=!!document.querySelector('[aria-modal="true"]');if(modalOpen)reset();});modalObserver.observe(host.parentElement??host,{childList:true,subtree:true});
   const loopStart=performance.now();
   let report=loopStart,windowStart=loopStart,count=0,fps=0,lastShadow=0,lastLights=0,lastStream=0;
@@ -109,15 +109,17 @@ export function createExpedition(host:HTMLElement,onState:(s:Snapshot)=>void,onE
     if(mobile&&now-lastResolution>600&&Math.abs(resolutionScale-budget.scale)>.001){resolutionScale+=T.MathUtils.clamp(budget.scale-resolutionScale,-.025,.025);resize();lastResolution=now;}
     const time=now/1000;
     let dx=0,dz=0;
+    const azimuth = !editor.active && frameCamera.mode === 'fixed' ? frameCamera.azimuth : cameraRig.azimuth;
     if(input.resolve(moveDirection,azimuth,.1,editor.active?EDITOR_PAN_KEYS:MOVE_KEYS)){dx=moveDirection.x;dz=moveDirection.z;route.length=0;destination.visible=false;}
     else if(route.length){const p=route[0],distance=Math.hypot(p.x-player.position.x,p.z-player.position.z);if(distance<.14)route.shift();else{dx=(p.x-player.position.x)/distance;dz=(p.z-player.position.z)/distance;}}
     if(editor.active){cameraRig.pan(dx,dz,dt);dx=0;dz=0;route=[];}
     const speed=input.running?6:4,next=ready&&session.status==='active'?move(world,player.position,dx*speed*dt,dz*speed*dt):player.position;
     const walking=Math.hypot(next.x-player.position.x,next.z-player.position.z)>.0001;player.position.x=next.x;player.position.z=next.z;player.position.y=elevationAt(next)+.09;
     if(hero&&walking){const angle=Math.atan2(dx,dz)-hero.rotation.y;hero.rotation.y+=Math.atan2(Math.sin(angle),Math.cos(angle))*Math.min(1,dt*14);}
-    combat.tick(dt,session.status!=='active');blend=T.MathUtils.damp(blend,walking?1:0,16,dt);run?.setEffectiveWeight(blend*(1-combat.weight));mixer?.update(dt);pose?.apply((1-blend)*(1-combat.weight));if(!route.length)destination.visible=false;
+    combat.tick(dt,session.status!=='active');heroAnimator?.update(dt,walking,combat.weight);if(!route.length)destination.visible=false;
     if(!editor.active)cameraRig.follow(player.position.x,player.position.y+1,player.position.z,dt,reduced);
-    cameraRig.place(camera.position,camera.aspect,editor.active);camera.lookAt(pivot);
+    if (!editor.active && frameCamera.mode === 'fixed') frameCamera.place(pivot);
+    else { cameraRig.place(camera.position,camera.aspect,editor.active);camera.lookAt(pivot); }
     if(now>beamUntil)beam.visible=false;
     if(!editor.active){session.tick(dt,player.position);if(autoFire)fire();}
     editor.stream(editor.active?pivot:player.position);treeEditor.stream(editor.active?pivot:player.position);
@@ -144,5 +146,5 @@ export function createExpedition(host:HTMLElement,onState:(s:Snapshot)=>void,onE
     render:renderFrame,
   });
   loop.start();
-  return {editor,treeEditor,landscape:env.landscape.studio,setLandscapeMode(value:boolean){landscapeMode=value;treeMode=false;treeEditor.setActive(false);editor.cancel();env.landscape.studio.setActive(value&&editor.active);},setTreeMode(value:boolean){treeMode=value;landscapeMode=false;env.landscape.studio.setActive(false);editor.cancel();treeEditor.setActive(value&&masterActive);},setMaster(value:boolean){masterActive=value;reset();editor.setActive(value);treeEditor.setActive(value&&treeMode)},setAutoFire(value:boolean){autoFire=value;},interact(){session.interact(player.position);},attack(){fire();},setDebug(value:boolean){debug=value;},teleport(p:Point){if(world.canStand(p)){player.position.set(p.x,.09,p.z);reset();}},setStick(x:number,z:number){if(modalOpen||editor.active||session.status!=='active'){input.clearStick();return;}input.setStick(x,z);},dispose(){disposed=true;loop.dispose();observer.disconnect();window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',reset);window.removeEventListener('netrunner:input-reset',reset);modalObserver.disconnect();renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointerup',up);renderer.domElement.removeEventListener('webglcontextlost',lost);renderer.domElement.removeEventListener('pointermove',hover);renderer.domElement.removeEventListener('wheel',wheel);editor.dispose();treeEditor.dispose();combat.dispose();env.dispose();mixer?.stopAllAction();disposeObjectTree(scene);env.surfaces.dispose();environment.dispose();draco.dispose();bloom?.dispose();output?.dispose();composer?.dispose();renderer.dispose();renderer.domElement.remove();}};
+  return {editor,treeEditor,landscape:env.landscape.studio,setLandscapeMode(value:boolean){landscapeMode=value;treeMode=false;treeEditor.setActive(false);editor.cancel();env.landscape.studio.setActive(value&&editor.active);},setTreeMode(value:boolean){treeMode=value;landscapeMode=false;env.landscape.studio.setActive(false);editor.cancel();treeEditor.setActive(value&&masterActive);},setMaster(value:boolean){masterActive=value;reset();editor.setActive(value);treeEditor.setActive(value&&treeMode)},setAutoFire(value:boolean){autoFire=value;},interact(){session.interact(player.position);},attack(){fire();},setDebug(value:boolean){debug=value;},teleport(p:Point){if(world.canStand(p)){player.position.set(p.x,.09,p.z);reset();}},setStick(x:number,z:number){if(modalOpen||editor.active||session.status!=='active'){input.clearStick();return;}input.setStick(x,z);},dispose(){disposed=true;frameCamera.dispose();loop.dispose();observer.disconnect();window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',reset);window.removeEventListener('netrunner:input-reset',reset);modalObserver.disconnect();renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointerup',up);renderer.domElement.removeEventListener('webglcontextlost',lost);renderer.domElement.removeEventListener('pointermove',hover);renderer.domElement.removeEventListener('wheel',wheel);editor.dispose();treeEditor.dispose();combat.dispose();env.dispose();heroAnimator?.mixer.stopAllAction();disposeObjectTree(scene);env.surfaces.dispose();environment.dispose();draco.dispose();bloom?.dispose();output?.dispose();composer?.dispose();renderer.dispose();renderer.domElement.remove();}};
 }

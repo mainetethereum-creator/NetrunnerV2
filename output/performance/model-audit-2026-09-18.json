@@ -1,0 +1,1430 @@
+{
+  "generatedAt": "2026-09-18T11:46:50.400Z",
+  "scope": "All GLB/GLTF files in public plus the existing offline procedural catalogue audit, if available",
+  "method": "Header/accessor/scene metadata only. No geometry decoder, renderer or browser; Draco triangles use declared accessor counts.",
+  "limitations": [
+    "Source scene draws exclude shadow/depth/reflection/postprocess passes and runtime clones, visibility, procedural scenery and particles.",
+    "File bytes are uncompressed HTTP payload sizes, not downloaded bytes or GPU allocation.",
+    "RGBA8 + full mip estimates are per source image; runtime replacement/disposal, GPU texture compression, source reuse and color-space duplicates can change actual memory.",
+    "Runtime reference-aligned railway repeats/subdivides prototypes: full desktop assembly measured separately at 70,150 triangles / 32 draws; mobile 69,526 / 32. See current AI_HANDOFF.md; the rejected broad curve had different counts.",
+    "Authored map placement counts are not inferred from old backups; this report does not read or change browser saves."
+  ],
+  "summary": {
+    "files": 14,
+    "totalPublicBytes": 18194600,
+    "activeOrOnDemandBytes": 13773064,
+    "reserveBytes": 4421536
+  },
+  "models": [
+    {
+      "url": "/game/models/mixamo/neon-sentinel-mixamo-test.glb",
+      "fileBytes": 3391124,
+      "registered": true,
+      "usage": {
+        "category": "base-and-expedition-active",
+        "routes": [
+          "base",
+          "expedition"
+        ],
+        "mode": "default animated player",
+        "evidence": [
+          "components/base/scene.ts",
+          "components/expedition/scene.ts"
+        ],
+        "defaultSceneCopies": 1
+      },
+      "meshDefinitions": 1,
+      "materialDefinitions": 1,
+      "uniqueMeshTriangles": 68132,
+      "sourceScene": {
+        "roots": [
+          {
+            "name": "Neon_Sentinel_Armature",
+            "triangles": 68132,
+            "draws": 1,
+            "meshInstances": 1
+          }
+        ],
+        "triangles": 68132,
+        "draws": 1,
+        "meshInstances": 1
+      },
+      "geometryDeclaredDecodedBytes": 9885724,
+      "geometryBufferViewBytes": 1492232,
+      "dracoCompressed": true,
+      "skins": 1,
+      "animations": 7,
+      "animationAccessorBytes": 214032,
+      "images": [
+        {
+          "index": 0,
+          "name": "Normal",
+          "embedded": true,
+          "bytes": 341294,
+          "format": "WebP",
+          "width": 1024,
+          "height": 1024,
+          "rgba8WithMipsEstimate": 5592404,
+          "sha256": "ababd7c1f1c81c33fecbde1b9bd20a0dd2b60c2ae98db9a0d2c9edbff5efb2eb",
+          "usedByMaterials": [
+            "Neon_Sentinel_PBR"
+          ],
+          "runtimeNote": "Image remains part of this source model; exact live GPU memory requires renderer measurement."
+        },
+        {
+          "index": 1,
+          "name": "Base Color",
+          "embedded": true,
+          "bytes": 1114224,
+          "format": "WebP",
+          "width": 2048,
+          "height": 2048,
+          "rgba8WithMipsEstimate": 22369620,
+          "sha256": "6bf4d05df4db5a2b35d46340cf95ef2a0a84a54a58baf253ce112ab36d2439f6",
+          "usedByMaterials": [
+            "Neon_Sentinel_PBR"
+          ],
+          "runtimeNote": "Image remains part of this source model; exact live GPU memory requires renderer measurement."
+        },
+        {
+          "index": 2,
+          "name": "Metallic Roughness",
+          "embedded": true,
+          "bytes": 103810,
+          "format": "WebP",
+          "width": 1024,
+          "height": 1024,
+          "rgba8WithMipsEstimate": 5592404,
+          "sha256": "02b23ffb830d32a656f3b457fd1a8e8f89df1252470aa16532ace2e1f2416888",
+          "usedByMaterials": [
+            "Neon_Sentinel_PBR"
+          ],
+          "runtimeNote": "Image remains part of this source model; exact live GPU memory requires renderer measurement."
+        }
+      ],
+      "imageBytes": 1559328,
+      "imageRgba8WithMipsEstimate": 33554428
+    },
+    {
+      "url": "/game/buildings/media-tower-v1/media-tower.glb",
+      "fileBytes": 3071264,
+      "registered": true,
+      "usage": {
+        "category": "base-active-and-shared-catalogue",
+        "routes": [
+          "base",
+          "expedition catalogue"
+        ],
+        "mode": "default Base building plus on-demand shared editor catalogue",
+        "evidence": [
+          "components/base/scene.ts",
+          "src/renderer/three/reference-building-library.ts"
+        ],
+        "defaultSceneCopies": 1
+      },
+      "meshDefinitions": 9,
+      "materialDefinitions": 9,
+      "uniqueMeshTriangles": 6623,
+      "sourceScene": {
+        "roots": [
+          {
+            "name": "CBM1_MediaTower",
+            "triangles": 6623,
+            "draws": 9,
+            "meshInstances": 9
+          }
+        ],
+        "triangles": 6623,
+        "draws": 9,
+        "meshInstances": 9
+      },
+      "geometryDeclaredDecodedBytes": 457306,
+      "geometryBufferViewBytes": 457306,
+      "dracoCompressed": false,
+      "skins": 0,
+      "animations": 0,
+      "animationAccessorBytes": 0,
+      "images": [
+        {
+          "index": 0,
+          "name": "surface",
+          "embedded": true,
+          "bytes": 284227,
+          "format": "JPEG",
+          "width": 1024,
+          "height": 1024,
+          "rgba8WithMipsEstimate": 5592404,
+          "sha256": "e3b7c430a78e003a5754238f3d4b6e78e24dba86b894e4133ba9ccb06eb18aa8",
+          "usedByMaterials": [
+            "CBM1_RoofMetal",
+            "CBM1_BlackFrame",
+            "CBM1_ServiceMetal"
+          ],
+          "runtimeNote": "Image remains part of this source model; exact live GPU memory requires renderer measurement."
+        },
+        {
+          "index": 1,
+          "name": "01-media-tower",
+          "embedded": true,
+          "bytes": 2113242,
+          "format": "PNG",
+          "width": 1024,
+          "height": 1536,
+          "rgba8WithMipsEstimate": 8388604,
+          "sha256": "dcbf3eede2b2772a22b328add6f2816f082c09e999746ce48d3b683f6cef78d1",
+          "usedByMaterials": [
+            "CBM1_ApprovedMedia"
+          ],
+          "runtimeNote": "Image remains part of this source model; exact live GPU memory requires renderer measurement."
+        },
+        {
+          "index": 2,
+          "name": "cold-concrete",
+          "embedded": true,
+          "bytes": 205702,
+          "format": "JPEG",
+          "width": 1024,
+          "height": 1024,
+          "rgba8WithMipsEstimate": 5592404,
+          "sha256": "ad1a863dd63bf9ab10b781c941b715125f5484f89b64b0756e18beb083fa1af2",
+          "usedByMaterials": [
+            "CBR1_Concrete_MediaTower"
+          ],
+          "runtimeNote": "Reference loader replaces concrete with shared atlas shader and disposes the unused embedded texture; included transfer is real, this source-image GPU estimate is not persistent runtime use."
+        }
+      ],
+      "imageBytes": 2603171,
+      "imageRgba8WithMipsEstimate": 19573412
+    },
+    {
+      "url": "/base/models/night-market-kit.glb",
+      "fileBytes": 2375980,
+      "registered": false,
+      "usage": {
+        "category": "reserve-unreferenced",
+        "routes": [],
+        "mode": "retained public file with no current Base/Expedition loader reference found",
+        "evidence": [],
+        "defaultSceneCopies": 0
+      },
+      "meshDefinitions": 27,
+      "materialDefinitions": 6,
+      "uniqueMeshTriangles": 26840,
+      "sourceScene": {
+        "roots": [
+          {
+            "name": "Apartment",
+            "triangles": 9452,
+            "draws": 6,
+            "meshInstances": 6
+          },
+          {
+            "name": "Armory",
+            "triangles": 5500,
+            "draws": 5,
+            "meshInstances": 5
+          },
+          {
+            "name": "Implants",
+            "triangles": 6972,
+            "draws": 6,
+            "meshInstances": 6
+          },
+          {
+            "name": "NoodleStall",
+            "triangles": 1624,
+            "draws": 6,
+            "meshInstances": 6
+          },
+          {
+            "name": "Train",
+            "triangles": 3292,
+            "draws": 4,
+            "meshInstances": 4
+          }
+        ],
+        "triangles": 26840,
+        "draws": 27,
+        "meshInstances": 27
+      },
+      "geometryDeclaredDecodedBytes": 1803616,
+      "geometryBufferViewBytes": 1803616,
+      "dracoCompressed": false,
+      "skins": 0,
+      "animations": 0,
+      "animationAccessorBytes": 0,
+      "images": [
+        {
+          "index": 0,
+          "name": "building-atlas",
+          "embedded": true,
+          "bytes": 548010,
+          "format": "WebP",
+          "width": 1254,
+          "height": 1254,
+          "rgba8WithMipsEstimate": 8384072,
+          "sha256": "6d7e12a662634c25262d9fc04dfe2230cf1050d0fd940f64993aceca50507489",
+          "usedByMaterials": [
+            "NM_Concrete",
+            "NM_AgedTealPlaster",
+            "NM_RustedSteel",
+            "NM_CorrugatedSteel",
+            "NM_DarkPanelGlass",
+            "NM_WarmRedGlow"
+          ],
+          "runtimeNote": "Image remains part of this source model; exact live GPU memory requires renderer measurement."
+        }
+      ],
+      "imageBytes": 548010,
+      "imageRgba8WithMipsEstimate": 8384072
+    },
+    {
+      "url": "/game/buildings/reference-v1/chinese-restaurant.glb",
+      "fileBytes": 1226964,
+      "registered": true,
+      "usage": {
+        "category": "shared-catalogue-on-demand",
+        "routes": [
+          "base saved map/catalogue",
+          "expedition catalogue"
+        ],
+        "mode": "loaded when authored map or catalogue requests this building; not all are automatically placed",
+        "evidence": [
+          "components/expedition/prop-assets.ts",
+          "src/renderer/three/reference-building-library.ts"
+        ],
+        "defaultSceneCopies": null
+      },
+      "meshDefinitions": 8,
+      "materialDefinitions": 8,
+      "uniqueMeshTriangles": 10430,
+      "sourceScene": {
+        "roots": [
+          {
+            "name": "ChineseRestaurantV1",
+            "triangles": 10430,
+            "draws": 8,
+            "meshInstances": 8
+          }
+        ],
+        "triangles": 10430,
+        "draws": 8,
+        "meshInstances": 8
+      },
+      "geometryDeclaredDecodedBytes": 727476,
+      "geometryBufferViewBytes": 727476,
+      "dracoCompressed": false,
+      "skins": 0,
+      "animations": 0,
+      "animationAccessorBytes": 0,
+      "images": [
+        {
+          "index": 0,
+          "name": "surface",
+          "embedded": true,
+          "bytes": 284227,
+          "format": "JPEG",
+          "width": 1024,
+          "height": 1024,
+          "rgba8WithMipsEstimate": 5592404,
+          "sha256": "e3b7c430a78e003a5754238f3d4b6e78e24dba86b894e4133ba9ccb06eb18aa8",
+          "usedByMaterials": [
+            "CBR1_AgedAluminium",
+            "CBR1_Gunmetal",
+            "CBR1_OxideRed",
+            "CBR1_ServiceGreen"
+          ],
+          "runtimeNote": "Image remains part of this source model; exact live GPU memory requires renderer measurement."
+        },
+        {
+          "index": 1,
+          "name": "cold-concrete",
+          "embedded": true,
+          "bytes": 205702,
+          "format": "JPEG",
+          "width": 1024,
+          "height": 1024,
+          "rgba8WithMipsEstimate": 5592404,
+          "sha256": "ad1a863dd63bf9ab10b781c941b715125f5484f89b64b0756e18beb083fa1af2",
+          "usedByMaterials": [
+            "CBR1_Concrete"
+          ],
+          "runtimeNote": "Reference loader replaces concrete with shared atlas shader and disposes the unused embedded texture; included transfer is real, this source-image GPU estimate is not persistent runtime use."
+        }
+      ],
+      "imageBytes": 489929,
+      "imageRgba8WithMipsEstimate": 11184808
+    },
+    {
+      "url": "/game/buildings/reference-v1/central-administration.glb",
+      "fileBytes": 1145620,
+      "registered": true,
+      "usage": {
+        "category": "shared-catalogue-on-demand",
+        "routes": [
+          "base saved map/catalogue",
+          "expedition catalogue"
+        ],
+        "mode": "loaded when authored map or catalogue requests this building; not all are automatically placed",
+        "evidence": [
+          "components/expedition/prop-assets.ts",
+          "src/renderer/three/reference-building-library.ts"
+        ],
+        "defaultSceneCopies": null
+      },
+      "meshDefinitions": 7,
+      "materialDefinitions": 7,
+      "uniqueMeshTriangles": 9174,
+      "sourceScene": {
+        "roots": [
+          {
+            "name": "CentralAdministrationV1",
+            "triangles": 9174,
+            "draws": 7,
+            "meshInstances": 7
+          }
+        ],
+        "triangles": 9174,
+        "draws": 7,
+        "meshInstances": 7
+      },
+      "geometryDeclaredDecodedBytes": 647172,
+      "geometryBufferViewBytes": 647172,
+      "dracoCompressed": false,
+      "skins": 0,
+      "animations": 0,
+      "animationAccessorBytes": 0,
+      "images": [
+        {
+          "index": 0,
+          "name": "surface",
+          "embedded": true,
+          "bytes": 284227,
+          "format": "JPEG",
+          "width": 1024,
+          "height": 1024,
+          "rgba8WithMipsEstimate": 5592404,
+          "sha256": "e3b7c430a78e003a5754238f3d4b6e78e24dba86b894e4133ba9ccb06eb18aa8",
+          "usedByMaterials": [
+            "CBR1_AgedAluminium",
+            "CBR1_Gunmetal",
+            "CBR1_ServiceGreen"
+          ],
+          "runtimeNote": "Image remains part of this source model; exact live GPU memory requires renderer measurement."
+        },
+        {
+          "index": 1,
+          "name": "cold-concrete",
+          "embedded": true,
+          "bytes": 205702,
+          "format": "JPEG",
+          "width": 1024,
+          "height": 1024,
+          "rgba8WithMipsEstimate": 5592404,
+          "sha256": "ad1a863dd63bf9ab10b781c941b715125f5484f89b64b0756e18beb083fa1af2",
+          "usedByMaterials": [
+            "CBR1_Concrete"
+          ],
+          "runtimeNote": "Reference loader replaces concrete with shared atlas shader and disposes the unused embedded texture; included transfer is real, this source-image GPU estimate is not persistent runtime use."
+        }
+      ],
+      "imageBytes": 489929,
+      "imageRgba8WithMipsEstimate": 11184808
+    },
+    {
+      "url": "/base/models/outlaw-refuge.glb",
+      "fileBytes": 1097464,
+      "registered": false,
+      "usage": {
+        "category": "reserve-unreferenced",
+        "routes": [],
+        "mode": "retained public file with no current Base/Expedition loader reference found",
+        "evidence": [],
+        "defaultSceneCopies": 0
+      },
+      "meshDefinitions": 1,
+      "materialDefinitions": 9,
+      "uniqueMeshTriangles": 14640,
+      "sourceScene": {
+        "roots": [
+          {
+            "name": "Outlaw_Rig",
+            "triangles": 14640,
+            "draws": 9,
+            "meshInstances": 1
+          }
+        ],
+        "triangles": 14640,
+        "draws": 9,
+        "meshInstances": 1
+      },
+      "geometryDeclaredDecodedBytes": 1032992,
+      "geometryBufferViewBytes": 1032992,
+      "dracoCompressed": false,
+      "skins": 1,
+      "animations": 2,
+      "animationAccessorBytes": 9492,
+      "images": [
+        {
+          "index": 0,
+          "name": "woven",
+          "embedded": true,
+          "bytes": 21005,
+          "format": "PNG",
+          "width": 128,
+          "height": 128,
+          "rgba8WithMipsEstimate": 87380,
+          "sha256": "bf080593df171df5172055005e362ae170058317a3749b10b9f10026d9222d37",
+          "usedByMaterials": [
+            "Outlaw graphite woven jacket"
+          ],
+          "runtimeNote": "Image remains part of this source model; exact live GPU memory requires renderer measurement."
+        }
+      ],
+      "imageBytes": 21005,
+      "imageRgba8WithMipsEstimate": 87380
+    },
+    {
+      "url": "/base/models/implants-building.glb",
+      "fileBytes": 1029752,
+      "registered": true,
+      "usage": {
+        "category": "base-active",
+        "routes": [
+          "base"
+        ],
+        "mode": "loads by default, hidden/deleted by current owner map",
+        "evidence": [
+          "components/base/scene.ts",
+          "src/renderer/environment/implants-building.ts"
+        ],
+        "defaultSceneCopies": 1
+      },
+      "meshDefinitions": 6,
+      "materialDefinitions": 6,
+      "uniqueMeshTriangles": 6972,
+      "sourceScene": {
+        "roots": [
+          {
+            "name": "Implants",
+            "triangles": 6972,
+            "draws": 6,
+            "meshInstances": 6
+          }
+        ],
+        "triangles": 6972,
+        "draws": 6,
+        "meshInstances": 6
+      },
+      "geometryDeclaredDecodedBytes": 474472,
+      "geometryBufferViewBytes": 474472,
+      "dracoCompressed": false,
+      "skins": 0,
+      "animations": 0,
+      "animationAccessorBytes": 0,
+      "images": [
+        {
+          "index": 0,
+          "name": "building-atlas",
+          "embedded": true,
+          "bytes": 548010,
+          "format": "WebP",
+          "width": 1254,
+          "height": 1254,
+          "rgba8WithMipsEstimate": 8384072,
+          "sha256": "6d7e12a662634c25262d9fc04dfe2230cf1050d0fd940f64993aceca50507489",
+          "usedByMaterials": [
+            "NM_Concrete",
+            "NM_AgedTealPlaster",
+            "NM_RustedSteel",
+            "NM_CorrugatedSteel",
+            "NM_DarkPanelGlass",
+            "NM_WarmRedGlow"
+          ],
+          "runtimeNote": "Image remains part of this source model; exact live GPU memory requires renderer measurement."
+        }
+      ],
+      "imageBytes": 548010,
+      "imageRgba8WithMipsEstimate": 8384072
+    },
+    {
+      "url": "/base/models/elevated-rail-v2.glb",
+      "fileBytes": 1016184,
+      "registered": true,
+      "usage": {
+        "category": "base-active",
+        "routes": [
+          "base"
+        ],
+        "mode": "default scenery; prototypes repeated and deck subdivided in runtime",
+        "evidence": [
+          "src/renderer/environment/elevated-rail.ts"
+        ],
+        "defaultSceneCopies": null
+      },
+      "meshDefinitions": 25,
+      "materialDefinitions": 9,
+      "uniqueMeshTriangles": 7080,
+      "sourceScene": {
+        "roots": [
+          {
+            "name": "RailDeck",
+            "triangles": 924,
+            "draws": 7,
+            "meshInstances": 7
+          },
+          {
+            "name": "RailPier",
+            "triangles": 900,
+            "draws": 5,
+            "meshInstances": 5
+          },
+          {
+            "name": "TrainCar",
+            "triangles": 2658,
+            "draws": 7,
+            "meshInstances": 7
+          },
+          {
+            "name": "TrainMiddle",
+            "triangles": 2598,
+            "draws": 6,
+            "meshInstances": 6
+          }
+        ],
+        "triangles": 7080,
+        "draws": 25,
+        "meshInstances": 25
+      },
+      "geometryDeclaredDecodedBytes": 502832,
+      "geometryBufferViewBytes": 502832,
+      "dracoCompressed": false,
+      "skins": 0,
+      "animations": 0,
+      "animationAccessorBytes": 0,
+      "images": [
+        {
+          "index": 0,
+          "name": "surface",
+          "embedded": true,
+          "bytes": 284227,
+          "format": "JPEG",
+          "width": 1024,
+          "height": 1024,
+          "rgba8WithMipsEstimate": 5592404,
+          "sha256": "e3b7c430a78e003a5754238f3d4b6e78e24dba86b894e4133ba9ccb06eb18aa8",
+          "usedByMaterials": [
+            "CBRail_BlackSteel.001",
+            "CBRail_WornAlloy.001",
+            "CBRail_MidnightBody.001"
+          ],
+          "runtimeNote": "Image remains part of this source model; exact live GPU memory requires renderer measurement."
+        },
+        {
+          "index": 1,
+          "name": "cold-concrete",
+          "embedded": true,
+          "bytes": 205702,
+          "format": "JPEG",
+          "width": 1024,
+          "height": 1024,
+          "rgba8WithMipsEstimate": 5592404,
+          "sha256": "ad1a863dd63bf9ab10b781c941b715125f5484f89b64b0756e18beb083fa1af2",
+          "usedByMaterials": [
+            "CBRail_Concrete.001"
+          ],
+          "runtimeNote": "Rail instance materials use shared atlas concrete instead. Original GLB material remains owned until rail teardown; embedded concrete is decoded but is not drawn by the rail instances."
+        }
+      ],
+      "imageBytes": 489929,
+      "imageRgba8WithMipsEstimate": 11184808
+    },
+    {
+      "url": "/base/models/elevated-rail-v1.glb",
+      "fileBytes": 948092,
+      "registered": false,
+      "usage": {
+        "category": "reserve-unreferenced",
+        "routes": [],
+        "mode": "retained public file with no current Base/Expedition loader reference found",
+        "evidence": [],
+        "defaultSceneCopies": 0
+      },
+      "meshDefinitions": 23,
+      "materialDefinitions": 9,
+      "uniqueMeshTriangles": 6126,
+      "sourceScene": {
+        "roots": [
+          {
+            "name": "RailDeck",
+            "triangles": 708,
+            "draws": 6,
+            "meshInstances": 6
+          },
+          {
+            "name": "RailPier",
+            "triangles": 828,
+            "draws": 4,
+            "meshInstances": 4
+          },
+          {
+            "name": "TrainCar",
+            "triangles": 2280,
+            "draws": 7,
+            "meshInstances": 7
+          },
+          {
+            "name": "TrainMiddle",
+            "triangles": 2310,
+            "draws": 6,
+            "meshInstances": 6
+          }
+        ],
+        "triangles": 6126,
+        "draws": 23,
+        "meshInstances": 23
+      },
+      "geometryDeclaredDecodedBytes": 436276,
+      "geometryBufferViewBytes": 436276,
+      "dracoCompressed": false,
+      "skins": 0,
+      "animations": 0,
+      "animationAccessorBytes": 0,
+      "images": [
+        {
+          "index": 0,
+          "name": "surface",
+          "embedded": true,
+          "bytes": 284227,
+          "format": "JPEG",
+          "width": 1024,
+          "height": 1024,
+          "rgba8WithMipsEstimate": 5592404,
+          "sha256": "e3b7c430a78e003a5754238f3d4b6e78e24dba86b894e4133ba9ccb06eb18aa8",
+          "usedByMaterials": [
+            "CBRail_BlackSteel",
+            "CBRail_WornAlloy",
+            "CBRail_MidnightBody"
+          ],
+          "runtimeNote": "Image remains part of this source model; exact live GPU memory requires renderer measurement."
+        },
+        {
+          "index": 1,
+          "name": "cold-concrete",
+          "embedded": true,
+          "bytes": 205702,
+          "format": "JPEG",
+          "width": 1024,
+          "height": 1024,
+          "rgba8WithMipsEstimate": 5592404,
+          "sha256": "ad1a863dd63bf9ab10b781c941b715125f5484f89b64b0756e18beb083fa1af2",
+          "usedByMaterials": [
+            "CBRail_Concrete"
+          ],
+          "runtimeNote": "Rail instance materials use shared atlas concrete instead. Original GLB material remains owned until rail teardown; embedded concrete is decoded but is not drawn by the rail instances."
+        }
+      ],
+      "imageBytes": 489929,
+      "imageRgba8WithMipsEstimate": 11184808
+    },
+    {
+      "url": "/game/buildings/reference-v1/armory.glb",
+      "fileBytes": 939360,
+      "registered": true,
+      "usage": {
+        "category": "shared-catalogue-on-demand",
+        "routes": [
+          "base saved map/catalogue",
+          "expedition catalogue"
+        ],
+        "mode": "loaded when authored map or catalogue requests this building; not all are automatically placed",
+        "evidence": [
+          "components/expedition/prop-assets.ts",
+          "src/renderer/three/reference-building-library.ts"
+        ],
+        "defaultSceneCopies": null
+      },
+      "meshDefinitions": 7,
+      "materialDefinitions": 7,
+      "uniqueMeshTriangles": 6301,
+      "sourceScene": {
+        "roots": [
+          {
+            "name": "ArmoryV1",
+            "triangles": 6301,
+            "draws": 7,
+            "meshInstances": 7
+          }
+        ],
+        "triangles": 6301,
+        "draws": 7,
+        "meshInstances": 7
+      },
+      "geometryDeclaredDecodedBytes": 441166,
+      "geometryBufferViewBytes": 441166,
+      "dracoCompressed": false,
+      "skins": 0,
+      "animations": 0,
+      "animationAccessorBytes": 0,
+      "images": [
+        {
+          "index": 0,
+          "name": "surface",
+          "embedded": true,
+          "bytes": 284227,
+          "format": "JPEG",
+          "width": 1024,
+          "height": 1024,
+          "rgba8WithMipsEstimate": 5592404,
+          "sha256": "e3b7c430a78e003a5754238f3d4b6e78e24dba86b894e4133ba9ccb06eb18aa8",
+          "usedByMaterials": [
+            "CBR1_AgedAluminium",
+            "CBR1_Gunmetal",
+            "CBR1_ServiceGreen"
+          ],
+          "runtimeNote": "Image remains part of this source model; exact live GPU memory requires renderer measurement."
+        },
+        {
+          "index": 1,
+          "name": "cold-concrete",
+          "embedded": true,
+          "bytes": 205702,
+          "format": "JPEG",
+          "width": 1024,
+          "height": 1024,
+          "rgba8WithMipsEstimate": 5592404,
+          "sha256": "ad1a863dd63bf9ab10b781c941b715125f5484f89b64b0756e18beb083fa1af2",
+          "usedByMaterials": [
+            "CBR1_Concrete"
+          ],
+          "runtimeNote": "Reference loader replaces concrete with shared atlas shader and disposes the unused embedded texture; included transfer is real, this source-image GPU estimate is not persistent runtime use."
+        }
+      ],
+      "imageBytes": 489929,
+      "imageRgba8WithMipsEstimate": 11184808
+    },
+    {
+      "url": "/base/models/oracle.glb",
+      "fileBytes": 848348,
+      "registered": true,
+      "usage": {
+        "category": "base-active",
+        "routes": [
+          "base"
+        ],
+        "mode": "default building plus two shared-geometry background clones; saved deletions may hide copies",
+        "evidence": [
+          "components/base/scene.ts"
+        ],
+        "defaultSceneCopies": 3
+      },
+      "meshDefinitions": 8,
+      "materialDefinitions": 8,
+      "uniqueMeshTriangles": 11444,
+      "sourceScene": {
+        "roots": [
+          {
+            "name": "oracle_amber",
+            "triangles": 108,
+            "draws": 1,
+            "meshInstances": 1
+          },
+          {
+            "name": "oracle_amber_dim",
+            "triangles": 36,
+            "draws": 1,
+            "meshInstances": 1
+          },
+          {
+            "name": "oracle_concrete",
+            "triangles": 2596,
+            "draws": 1,
+            "meshInstances": 1
+          },
+          {
+            "name": "oracle_concrete_edge",
+            "triangles": 264,
+            "draws": 1,
+            "meshInstances": 1
+          },
+          {
+            "name": "oracle_cyan",
+            "triangles": 220,
+            "draws": 1,
+            "meshInstances": 1
+          },
+          {
+            "name": "oracle_glass",
+            "triangles": 908,
+            "draws": 1,
+            "meshInstances": 1
+          },
+          {
+            "name": "oracle_steel",
+            "triangles": 5184,
+            "draws": 1,
+            "meshInstances": 1
+          },
+          {
+            "name": "oracle_steel_trim",
+            "triangles": 2128,
+            "draws": 1,
+            "meshInstances": 1
+          }
+        ],
+        "triangles": 11444,
+        "draws": 8,
+        "meshInstances": 8
+      },
+      "geometryDeclaredDecodedBytes": 838968,
+      "geometryBufferViewBytes": 838968,
+      "dracoCompressed": false,
+      "skins": 0,
+      "animations": 0,
+      "animationAccessorBytes": 0,
+      "images": [],
+      "imageBytes": 0,
+      "imageRgba8WithMipsEstimate": 0
+    },
+    {
+      "url": "/base/models/workshop.glb",
+      "fileBytes": 708372,
+      "registered": true,
+      "usage": {
+        "category": "base-active",
+        "routes": [
+          "base"
+        ],
+        "mode": "loads by default, hidden/deleted by current owner map",
+        "evidence": [
+          "components/base/scene.ts"
+        ],
+        "defaultSceneCopies": 1
+      },
+      "meshDefinitions": 9,
+      "materialDefinitions": 9,
+      "uniqueMeshTriangles": 9296,
+      "sourceScene": {
+        "roots": [
+          {
+            "name": "workshop_amber",
+            "triangles": 132,
+            "draws": 1,
+            "meshInstances": 1
+          },
+          {
+            "name": "workshop_concrete",
+            "triangles": 88,
+            "draws": 1,
+            "meshInstances": 1
+          },
+          {
+            "name": "workshop_concrete_edge",
+            "triangles": 440,
+            "draws": 1,
+            "meshInstances": 1
+          },
+          {
+            "name": "workshop_crate_olive",
+            "triangles": 836,
+            "draws": 1,
+            "meshInstances": 1
+          },
+          {
+            "name": "workshop_cyan",
+            "triangles": 88,
+            "draws": 1,
+            "meshInstances": 1
+          },
+          {
+            "name": "workshop_recess",
+            "triangles": 788,
+            "draws": 1,
+            "meshInstances": 1
+          },
+          {
+            "name": "workshop_roof_steel",
+            "triangles": 2728,
+            "draws": 1,
+            "meshInstances": 1
+          },
+          {
+            "name": "workshop_steel",
+            "triangles": 3932,
+            "draws": 1,
+            "meshInstances": 1
+          },
+          {
+            "name": "workshop_worn_brass",
+            "triangles": 264,
+            "draws": 1,
+            "meshInstances": 1
+          }
+        ],
+        "triangles": 9296,
+        "draws": 9,
+        "meshInstances": 9
+      },
+      "geometryDeclaredDecodedBytes": 698064,
+      "geometryBufferViewBytes": 698064,
+      "dracoCompressed": false,
+      "skins": 0,
+      "animations": 0,
+      "animationAccessorBytes": 0,
+      "images": [],
+      "imageBytes": 0,
+      "imageRgba8WithMipsEstimate": 0
+    },
+    {
+      "url": "/base/models/city-gate.glb",
+      "fileBytes": 223976,
+      "registered": true,
+      "usage": {
+        "category": "base-active",
+        "routes": [
+          "base"
+        ],
+        "mode": "default scenery",
+        "evidence": [
+          "components/base/scene.ts"
+        ],
+        "defaultSceneCopies": 1
+      },
+      "meshDefinitions": 7,
+      "materialDefinitions": 7,
+      "uniqueMeshTriangles": 2956,
+      "sourceScene": {
+        "roots": [
+          {
+            "name": "gate_amber",
+            "triangles": 176,
+            "draws": 1,
+            "meshInstances": 1
+          },
+          {
+            "name": "gate_concrete",
+            "triangles": 220,
+            "draws": 1,
+            "meshInstances": 1
+          },
+          {
+            "name": "gate_concrete_edge",
+            "triangles": 376,
+            "draws": 1,
+            "meshInstances": 1
+          },
+          {
+            "name": "gate_cyan",
+            "triangles": 88,
+            "draws": 1,
+            "meshInstances": 1
+          },
+          {
+            "name": "gate_recess",
+            "triangles": 228,
+            "draws": 1,
+            "meshInstances": 1
+          },
+          {
+            "name": "gate_steel",
+            "triangles": 1404,
+            "draws": 1,
+            "meshInstances": 1
+          },
+          {
+            "name": "gate_steel_panel",
+            "triangles": 464,
+            "draws": 1,
+            "meshInstances": 1
+          }
+        ],
+        "triangles": 2956,
+        "draws": 7,
+        "meshInstances": 7
+      },
+      "geometryDeclaredDecodedBytes": 215880,
+      "geometryBufferViewBytes": 215880,
+      "dracoCompressed": false,
+      "skins": 0,
+      "animations": 0,
+      "animationAccessorBytes": 0,
+      "images": [],
+      "imageBytes": 0,
+      "imageRgba8WithMipsEstimate": 0
+    },
+    {
+      "url": "/game/models/anim/shoot.glb",
+      "fileBytes": 172100,
+      "registered": false,
+      "usage": {
+        "category": "base-and-expedition-animation-donor",
+        "routes": [
+          "base",
+          "expedition"
+        ],
+        "mode": "ranger attack donor requested by combat.attach; mesh used for retargeting, not rendered as scenery",
+        "evidence": [
+          "components/game/class-actions.ts",
+          "components/game/combat-driver.ts"
+        ],
+        "defaultSceneCopies": 0
+      },
+      "meshDefinitions": 1,
+      "materialDefinitions": 1,
+      "uniqueMeshTriangles": 422,
+      "sourceScene": {
+        "roots": [
+          {
+            "name": "Armature",
+            "triangles": 422,
+            "draws": 1,
+            "meshInstances": 1
+          }
+        ],
+        "triangles": 422,
+        "draws": 1,
+        "meshInstances": 1
+      },
+      "geometryDeclaredDecodedBytes": 36516,
+      "geometryBufferViewBytes": 36516,
+      "dracoCompressed": false,
+      "skins": 1,
+      "animations": 1,
+      "animationAccessorBytes": 89136,
+      "images": [],
+      "imageBytes": 0,
+      "imageRgba8WithMipsEstimate": 0
+    }
+  ],
+  "duplicateImagePayloads": [
+    {
+      "bytes": 284227,
+      "width": 1024,
+      "height": 1024,
+      "sha256": "e3b7c430a78e003a5754238f3d4b6e78e24dba86b894e4133ba9ccb06eb18aa8",
+      "occurrences": [
+        {
+          "url": "/game/buildings/media-tower-v1/media-tower.glb",
+          "imageIndex": 0,
+          "category": "base-active-and-shared-catalogue"
+        },
+        {
+          "url": "/game/buildings/reference-v1/chinese-restaurant.glb",
+          "imageIndex": 0,
+          "category": "shared-catalogue-on-demand"
+        },
+        {
+          "url": "/game/buildings/reference-v1/central-administration.glb",
+          "imageIndex": 0,
+          "category": "shared-catalogue-on-demand"
+        },
+        {
+          "url": "/base/models/elevated-rail-v2.glb",
+          "imageIndex": 0,
+          "category": "base-active"
+        },
+        {
+          "url": "/base/models/elevated-rail-v1.glb",
+          "imageIndex": 0,
+          "category": "reserve-unreferenced"
+        },
+        {
+          "url": "/game/buildings/reference-v1/armory.glb",
+          "imageIndex": 0,
+          "category": "shared-catalogue-on-demand"
+        }
+      ]
+    },
+    {
+      "bytes": 205702,
+      "width": 1024,
+      "height": 1024,
+      "sha256": "ad1a863dd63bf9ab10b781c941b715125f5484f89b64b0756e18beb083fa1af2",
+      "occurrences": [
+        {
+          "url": "/game/buildings/media-tower-v1/media-tower.glb",
+          "imageIndex": 2,
+          "category": "base-active-and-shared-catalogue"
+        },
+        {
+          "url": "/game/buildings/reference-v1/chinese-restaurant.glb",
+          "imageIndex": 1,
+          "category": "shared-catalogue-on-demand"
+        },
+        {
+          "url": "/game/buildings/reference-v1/central-administration.glb",
+          "imageIndex": 1,
+          "category": "shared-catalogue-on-demand"
+        },
+        {
+          "url": "/base/models/elevated-rail-v2.glb",
+          "imageIndex": 1,
+          "category": "base-active"
+        },
+        {
+          "url": "/base/models/elevated-rail-v1.glb",
+          "imageIndex": 1,
+          "category": "reserve-unreferenced"
+        },
+        {
+          "url": "/game/buildings/reference-v1/armory.glb",
+          "imageIndex": 1,
+          "category": "shared-catalogue-on-demand"
+        }
+      ]
+    },
+    {
+      "bytes": 548010,
+      "width": 1254,
+      "height": 1254,
+      "sha256": "6d7e12a662634c25262d9fc04dfe2230cf1050d0fd940f64993aceca50507489",
+      "occurrences": [
+        {
+          "url": "/base/models/night-market-kit.glb",
+          "imageIndex": 0,
+          "category": "reserve-unreferenced"
+        },
+        {
+          "url": "/base/models/implants-building.glb",
+          "imageIndex": 0,
+          "category": "base-active"
+        }
+      ]
+    }
+  ],
+  "proceduralCatalogue": {
+    "source": ".cache/expedition-asset-audit.json",
+    "modified": "2026-09-18T11:46:33.523Z",
+    "assets": [
+      {
+        "id": "concrete-security-fence",
+        "triangles": 1352,
+        "geometryBytes": 69712,
+        "draws": 3
+      },
+      {
+        "id": "powered-mesh-fence",
+        "triangles": 3092,
+        "geometryBytes": 202296,
+        "draws": 4
+      },
+      {
+        "id": "stop-sign",
+        "triangles": 746,
+        "geometryBytes": 32124,
+        "draws": 5
+      },
+      {
+        "id": "tires",
+        "triangles": 7776,
+        "geometryBytes": 352512,
+        "draws": 1
+      },
+      {
+        "id": "utility-building",
+        "triangles": 2982,
+        "geometryBytes": 116676,
+        "draws": 6
+      },
+      {
+        "id": "garbage-bags",
+        "triangles": 4818,
+        "geometryBytes": 130476,
+        "draws": 2
+      },
+      {
+        "id": "campfire",
+        "triangles": 2348,
+        "geometryBytes": 101580,
+        "draws": 4
+      },
+      {
+        "id": "shipping-container",
+        "triangles": 3040,
+        "geometryBytes": 172480,
+        "draws": 4
+      },
+      {
+        "id": "electrical-cabinet",
+        "triangles": 1336,
+        "geometryBytes": 69904,
+        "draws": 8
+      },
+      {
+        "id": "bus-shelter",
+        "triangles": 2312,
+        "geometryBytes": 86352,
+        "draws": 5
+      },
+      {
+        "id": "modular-fence",
+        "triangles": 3210,
+        "geometryBytes": 223996,
+        "draws": 4
+      },
+      {
+        "id": "building-neon-residence",
+        "triangles": 28790,
+        "geometryBytes": 2137736,
+        "draws": 7
+      },
+      {
+        "id": "building-sector-02",
+        "triangles": 10578,
+        "geometryBytes": 701788,
+        "draws": 7
+      },
+      {
+        "id": "building-directorate",
+        "triangles": 21772,
+        "geometryBytes": 1841736,
+        "draws": 7
+      },
+      {
+        "id": "building-workshop",
+        "triangles": 5544,
+        "geometryBytes": 396528,
+        "draws": 8
+      },
+      {
+        "id": "building-stack",
+        "triangles": 24792,
+        "geometryBytes": 1608208,
+        "draws": 10
+      },
+      {
+        "id": "building-home2",
+        "triangles": 9756,
+        "geometryBytes": 558440,
+        "draws": 9
+      },
+      {
+        "id": "building-ruin",
+        "triangles": 25144,
+        "geometryBytes": 1586000,
+        "draws": 6
+      },
+      {
+        "id": "building-courtyard",
+        "triangles": 5122,
+        "geometryBytes": 330028,
+        "draws": 12
+      },
+      {
+        "id": "building-tokyo",
+        "triangles": 8976,
+        "geometryBytes": 450816,
+        "draws": 10
+      },
+      {
+        "id": "building-tenement",
+        "triangles": 33744,
+        "geometryBytes": 2389600,
+        "draws": 8
+      },
+      {
+        "id": "building-reference-armory",
+        "triangles": 6301,
+        "geometryBytes": 441166,
+        "draws": 7
+      },
+      {
+        "id": "building-reference-restaurant",
+        "triangles": 10430,
+        "geometryBytes": 727476,
+        "draws": 8
+      },
+      {
+        "id": "building-reference-administration",
+        "triangles": 9174,
+        "geometryBytes": 647172,
+        "draws": 7
+      },
+      {
+        "id": "building-media-tower",
+        "triangles": 6623,
+        "geometryBytes": 457306,
+        "draws": 9
+      },
+      {
+        "id": "barricade",
+        "triangles": 562,
+        "geometryBytes": 32172,
+        "draws": 6
+      },
+      {
+        "id": "blue-drum",
+        "triangles": 1848,
+        "geometryBytes": 49104,
+        "draws": 2
+      },
+      {
+        "id": "kerosene",
+        "triangles": 3828,
+        "geometryBytes": 103480,
+        "draws": 5
+      },
+      {
+        "id": "dumpster",
+        "triangles": 2888,
+        "geometryBytes": 102512,
+        "draws": 8
+      },
+      {
+        "id": "tire-pile",
+        "triangles": 7448,
+        "geometryBytes": 213360,
+        "draws": 5
+      },
+      {
+        "id": "hydrant",
+        "triangles": 5280,
+        "geometryBytes": 164000,
+        "draws": 2
+      },
+      {
+        "id": "microbus",
+        "triangles": 27184,
+        "geometryBytes": 1284864,
+        "draws": 9
+      }
+    ]
+  },
+  "findings": [
+    {
+      "topic": "Low-poly classification",
+      "finding": "New authored building GLBs use 6,301–10,430 triangles each; the portrait tower is 6,623. They are modest game buildings. The 68,132-triangle animated hero is materially heavier and should not be described as equally low-poly.",
+      "recommendation": "Preserve the approved buildings/portrait; investigate editor hot-path stalls before reducing visible detail."
+    },
+    {
+      "topic": "Largest active model",
+      "finding": "The hero is 3,391,124 bytes, 68,132 triangles and one material draw. Declared decoded geometry is 9,885,724 bytes; three embedded images would occupy about 32 MiB as RGBA8 with mips.",
+      "recommendation": "If measured GPU/skinning cost remains excessive, add a separately validated mobile/distant LOD while preserving the current close model, rig, silhouette and animations. Do not decimate the only hero source automatically."
+    },
+    {
+      "topic": "Portrait texture",
+      "finding": "The 3,071,264-byte media tower contains the exact 2,113,242-byte 1024×1536 approved PNG. Its geometry is only 6,623 triangles / 9 draws.",
+      "recommendation": "Keep the original portrait unchanged. Its file size is not evidence of expensive geometry or the cause of a repeatable editor-open freeze."
+    },
+    {
+      "topic": "Repeated surface payloads",
+      "finding": "Five active/on-demand GLBs embed the same 284,227-byte surface JPEG and 205,702-byte concrete JPEG. Loading all five repeats 1,959,716 bytes beyond one copy. Reference-building concrete is already replaced and its unused embedded texture disposed; it is incorrect to sum all embedded concrete maps as live GPU memory. Metal surfaces still remain in separate model material resources.",
+      "recommendation": "A future external/shared surface texture resource could preserve all pixels and avoid redundant transfer and uploads. Keep independent model lifetimes correct; verify actual retained textures before claiming memory savings."
+    },
+    {
+      "topic": "Railway",
+      "finding": "The V2 GLB is a four-prototype kit with 7,080 source-scene triangles; the complete current runtime railway is 70,150 desktop / 69,526 mobile triangles and 32 draws after repetition, bending, train, cables and city details.",
+      "recommendation": "If measured scene geometry cost is high, evaluate culling/distant detail on rail stretches outside the visible street before changing the nearby train, lamps or columns."
+    },
+    {
+      "topic": "Reserve files",
+      "finding": "night-market-kit.glb, outlaw-refuge.glb and elevated-rail-v1.glb have no current Base/Expedition loader usage; they total 4,421,536 bytes on disk.",
+      "recommendation": "Do not delete them as an FPS fix: unrequested files add no current frame rendering cost."
+    },
+    {
+      "topic": "Procedural catalogue",
+      "finding": "Many editor buildings and street props are procedural rather than GLB. Their separately generated catalogue counts are included with an explicit timestamp; the largest entries must be considered alongside this GLB inventory.",
+      "recommendation": "Avoid reconstructing the catalogue or traversing all geometry on every editor panel update. Profile allocations and CPU time around open/select/transform before assigning the freeze to polygon count."
+    }
+  ]
+}

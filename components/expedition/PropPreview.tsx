@@ -7,6 +7,7 @@ import {animateCityProps} from './city-props';
 /** One renderer and library per panel. Render only when the asset, angle or size changes. */
 export default function PropPreview({asset,rotation,length=3}:{asset:PropId;rotation:number;length?:number}){
  const host=useRef<HTMLDivElement>(null);
+ const [status,setStatus]=useState('');
  const [stats,setStats]=useState({triangles:0,geometryBytes:0,drawCalls:0,width:0,height:0,depth:0});
  const update=useRef<((asset:PropId,rotation:number,length:number)=>void)|null>(null);
  const latest=useRef({asset,rotation,length});
@@ -17,6 +18,7 @@ export default function PropPreview({asset,rotation,length=3}:{asset:PropId;rota
   renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=.95;renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.VSMShadowMap;
   renderer.domElement.style.display='block';renderer.domElement.style.width='100%';renderer.domElement.style.height='200px';container.appendChild(renderer.domElement);
   const scene=new T.Scene(),camera=new T.PerspectiveCamera(32,1,.01,50);
+  let request=0;
   let disposed=false,frame=0,fireFrame=0,object:T.Group|null=null,current:string|null=null;
   const draw=()=>{if(disposed)return;cancelAnimationFrame(frame);frame=requestAnimationFrame(()=>renderer.render(scene,camera));};
   const library=createPropLibrary(8,draw);
@@ -45,11 +47,24 @@ export default function PropPreview({asset,rotation,length=3}:{asset:PropId;rota
    camera.far=Math.max(50,distance*2+30);camera.position.copy(center).addScaledVector(direction,distance*1.09);camera.lookAt(center);camera.updateProjectionMatrix();draw();
   }
   const animateFire=()=>{if(disposed||!object)return;animateCityProps(object,performance.now()/1000);renderer.render(scene,camera);fireFrame=requestAnimationFrame(animateFire);};
-  update.current=(id,angle,len)=>{cancelAnimationFrame(fireFrame);if(id+len!==current){if(object)scene.remove(object);object=library.create(id,len);scene.add(object);current=id+len;setStats(library.metrics(id,len));}object!.rotation.y=angle*Math.PI/180;fit();if(id==='campfire')fireFrame=requestAnimationFrame(animateFire);};
+  update.current=(id,angle,len)=>{
+   const token=++request;cancelAnimationFrame(fireFrame);
+   const show=()=>{
+    if(disposed||token!==request)return;
+    setStatus('');
+    if(id+len!==current){if(object)scene.remove(object);object=library.create(id,len);scene.add(object);current=id+len;setStats(library.metrics(id,len));}
+    object!.rotation.y=angle*Math.PI/180;fit();
+    if(id==='campfire')fireFrame=requestAnimationFrame(animateFire);
+   };
+   if(library.isReady(id)){show();return;}
+   if(object){scene.remove(object);object=null;current=null;draw();}
+   setStatus('Загружаем 3D-модель…');
+   library.prepare(id).then(show).catch(()=>{if(!disposed&&token===request)setStatus('Не удалось загрузить модель. Выберите её повторно.');});
+  };
   update.current(latest.current.asset,latest.current.rotation,latest.current.length);
   const resize=new ResizeObserver(fit);resize.observe(container);
   return()=>{disposed=true;update.current=null;resize.disconnect();cancelAnimationFrame(frame);cancelAnimationFrame(fireFrame);floor.geometry.dispose();floor.material.dispose();library.dispose();renderer.dispose();renderer.domElement.remove();};
  },[]);
  useEffect(()=>{update.current?.(asset,rotation,length);},[asset,rotation,length]);
- return <><div ref={host} aria-label="Трёхмерный предпросмотр выбранной модели"/><small>{Math.round(stats.triangles).toLocaleString('ru-RU')} треугольников · {(stats.geometryBytes/1024).toFixed(1)} КБ геометрии · {stats.drawCalls} вызовов отрисовки<br/>{stats.width.toFixed(2)} × {stats.depth.toFixed(2)} × {stats.height.toFixed(2)} м · Ш × Г × В</small></>;
+ return <><div ref={host} aria-label="Трёхмерный предпросмотр выбранной модели"/><small role="status">{status}</small><small hidden={!!status}>{Math.round(stats.triangles).toLocaleString('ru-RU')} треугольников · {(stats.geometryBytes/1024).toFixed(1)} КБ геометрии · {stats.drawCalls} вызовов отрисовки<br/>{stats.width.toFixed(2)} × {stats.depth.toFixed(2)} × {stats.height.toFixed(2)} м · Ш × Г × В</small></>;
 }

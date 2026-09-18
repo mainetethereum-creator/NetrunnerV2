@@ -1,0 +1,41 @@
+{
+  "timestamp": "2026-09-18T14:50:29.9599759+03:00",
+  "totalProcesses": 563,
+  "freeMemoryGB": 14.46,
+  "totalMemoryGB": 31.93,
+  "port3000Listeners": [
+    {
+      "OwningProcess": 24672
+    }
+  ],
+  "helpers": [
+    {
+      "name": "blender-mcp.exe",
+      "count": 23,
+      "workingSetMB": 112.0
+    },
+    {
+      "name": "node_repl.exe",
+      "count": 46,
+      "workingSetMB": 582.0
+    },
+    {
+      "name": "python.exe",
+      "count": 46,
+      "workingSetMB": 680.0
+    },
+    {
+      "name": "StudioMCP.exe",
+      "count": 23,
+      "workingSetMB": 216.0
+    },
+    {
+      "name": "uv.exe",
+      "count": 23,
+      "workingSetMB": 406.0
+    }
+  ],
+  "confirmedOrphanHelpers": 0,
+  "action": "Reused existing server/browser. No confirmed orphan helper found; no user-owned sessions terminated. Transient audits/tests ended normally.",
+  "cpuSample": "Earlier 2s idle sample: no helper among top CPU users; ChatGPT host processes led. This is not a sustained CPU/GPU profile."
+}

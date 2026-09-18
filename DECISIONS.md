@@ -252,3 +252,148 @@ own `Vector3` is the pivot (editors and streaming keep reading `pivot`), the sce
 animation and player state are extracted.
 **Consequences:** `tests/camera.test.mjs` proves pivot and camera position are bit-identical to the old
 code on random frame sequences. Browser checks for this step are owed (`ROADMAP.md` TD-02).
+
+## ADR-023: Extend the existing refuge as a lightweight night district
+**Status:** accepted (owner request, 2026-09-17)
+**Decision:** preserve the courtyard, original buildings, hero, NPCs and all expedition mechanics.
+Add a west-side district through a real opening in the concrete perimeter. Author new layered
+shop-houses/stalls/train in Blender MCP using the existing building atlas; share materials and
+instance repeated meshes. Keep far-city detail in one compressed image card plus low-detail
+parallax silhouettes. No extra NPCs, full-city simulation, postprocessing pipeline or frame loop.
+**Interaction:** armory opens existing Inventory; implants opens the existing Talent Tree preview;
+noodles enable an optional city sound bed. No fabricated economic/health/upgrade mechanic.
+**Camera/accessibility:** Base defaults to a more open City framing; Tactical keeps the old rig.
+Rain and train motion respect reduced-motion defaults, with explicit settings overrides. Audio
+is disabled by default and starts only after user activation; hidden tabs suspend it.
+**Resource ownership:** Base owns teardown. GLB source kit keeps shared resources alive; repeated
+apartments/stalls/carriages use instancing; skyline late-load callbacks guard disposal. No new
+window event channels. Owner requested the final development preview remain running; no deploy.
+
+## ADR-024: Opt-in third-person camera experiment in the Base
+**Status:** accepted (owner request, 2026-09-17)
+**Decision:** add a separate orbit/boom camera, not replace the shared isometric rig or change
+the map. City remains default; a minimap-side button, Settings and V cycle City / 3rd person /
+Tactical. Switching clears movement/path input. Reset positions the camera behind the hero.
+Mouse/touch drag orbits; short taps retain pathfinding. Wheel zooms, WASD/stick remain relative
+to the current view. No automatic yaw chasing that would cause lateral movement to spiral.
+**Cost/limits:** FOV 58, zoom 2.2–9 m; <=45 reused-point footprint probes per update, no mesh
+raycasts, assets, lights or render passes. Contract immediately at walls; ease only the return
+(instant with reduced motion). Conservative 2D footprints also shorten around low props;
+near-body rendering hides the hero visual below a 0.65 m boom to avoid interior clipping.
+This is an experimental Base viewpoint, not a completed third-person conversion of the game.
+Expedition, Metro and MASTER retain their original cameras; mobile feel needs real-device QA.
+
+## ADR-025: Add an ARPG comparison mode and robust Base WASD
+**Status:** accepted (owner request, 2026-09-18) · extends ADR-024's mode cycle
+**Decision:** City → 3rd person → Tactical → ARPG. The new Base-only composition has a fixed
+50° pitch, 45° azimuth, 38° perspective FOV, 18/24 m Near/Far distances, ×1.2 in portrait.
+These are our tuning values, not asserted Diablo IV internals. It uses the existing damped pivot
+and respects reduced motion, has no mouse orbit, added geometry, render pass or frame loop.
+Distance switches are available under the minimap and in Settings. City remains the load default.
+**Input:** Base normalizes physical WASD/arrows/Shift identically on keydown and keyup, so Russian
+ЦФЫВ works and a keyboard-layout change cannot strand a held movement key. Movement reclaims
+canvas focus from ordinary HUD/camera buttons; text entry, modals, composing text and Ctrl/Alt/Meta
+shortcuts remain protected. V also recognizes physical KeyV without intercepting Ctrl+V.
+**Scope:** same map, collisions, movement speeds, click paths, mobile stick and original modes.
+No wall fading added in this iteration; tall foreground geometry may still obscure the hero.
+MASTER, Expedition and Metro are unchanged. This is a camera comparison, not a refactor step.
+
+## ADR-026: Keep Tactical only after the owner's camera comparison
+**Status:** accepted (owner, 2026-09-18) · supersedes camera choices in ADR-023/024/025
+**Decision:** keep the original Tactical camera, unchanged. Remove City framing, third-person
+and ARPG rigs, their UI state, mode/V switches, Near/Far controls and obsolete experiment tests.
+The night district, skyline, train, rain and audio remain; only alternative cameras are removed.
+Preserve physical WASD/Russian-layout support and HUD-focus recovery introduced during ADR-025.
+The shared camera parity tests remain the source of truth. No scene replacement, no deployment.
+
+## ADR-027: Restore the original Base surroundings, keep only IMPLANTS
+**Status:** accepted (owner browser annotations, 2026-09-18); supersedes ADR-023 environment.
+**Decision:** remove the added distant city, neighbouring apartments, viaduct/train, west roads,
+armory, food stalls, street furniture and city ambience. Restore original walking bounds,
+west wall, station list, minimap and rain. Keep only the marked green IMPLANTS facade at its
+original position, with its original materials and signs. It is decorative beyond the west wall;
+do not retain a navigation target in removed walking space. Load a standalone extracted GLB,
+not the entire abandoned district kit. Source assets/backups remain recoverable on disk.
+Tactical and physical WASD remain unchanged. No hero/Expedition rollback, push or deployment.
+
+## ADR-028: Authoring controls for the existing Base scenery
+**Status:** accepted (owner request, 2026-09-18).
+**Decision:** extend MASTER in place to select/delete/transform existing Base scenery and
+place its pristine templates from the catalogue, alongside existing prop assets. Buildings,
+planters, terminals and six wall runs are composite objects, not individual triangles.
+Hero, weather, station triggers and logical navigation boundaries are not authoring objects.
+Keep undo/redo, browser-local documents and JSON; do not overwrite the user's saved layout.
+Retain labelled pre-merge sources only in development; lazy editor reconstructs them and
+re-batches compatible instances when closed. Authored collider overrides replace original
+footprints; decorative floor copies remain traversable. Copied NPCs/terminals are decoration,
+not additional quest/service registrations. No production editor, new game, push or deploy.
+
+## ADR-029: Extend Base north behind the owner's placed buildings
+**Status:** accepted (owner browser comment, 2026-09-18).
+**Decision:** expand the existing refuge north, moving the back fence from z=-11.6
+to -23 and extending the adjoining side runs, pavement, foundation, reflections,
+walkable bounds and minimap. Keep the front courtyard, metro opening, west gate,
+expedition breach and annex in place. Move background scenery behind the new
+perimeter. Preserve owner building transforms and saved editor layout; retain
+wall IDs. This targeted extension supersedes ADR-027's original north boundary,
+without restoring the rejected city district or adding gameplay stations.
+
+## ADR-030: User-selected follow framing on Base and Expedition
+**Status:** accepted (owner request, 2026-09-18).
+**Decision:** retain Tactical follow as default, add explicit manual orbit/pan/zoom
+and a camera frame saved per browser. Owner clarification: lock angle, distance
+and composition, while continuing smooth player follow on Base and Expedition.
+Store position/look-target offsets relative to the player pivot and migrate old
+world-space frames without changing their Base spawn composition. Resume editing
+in place; returning to the standard preset clears the saved frame. Suppress movement/placement input while
+framing and resolve runner movement relative to the selected view after locking.
+This supersedes ADR-026's camera-choice restriction for gameplay framing; it does
+not restore the removed third-person or ARPG camera modes.
+
+## ADR-031: Reference-driven elevated railway on Base
+**Status:** accepted (owner image/request, 2026-09-18).
+**Decision:** add a new Blender-authored low-poly transit line matching the supplied
+image: diagonal elevated concrete platforms, illuminated columns and a dark three-car
+train passing above the administration/metro side. Preserve the owner's buildings and
+camera. Use instanced modules, the approved concrete shader and the existing frame loop;
+provide colliders only at the column feet. This explicitly supersedes ADR-027's railway
+removal for this new feature; the rejected district is not restored. No boarding,
+new stations, editor-map mutation, audio, deployment or production push.
+
+## ADR-032: Open the Base perimeter for continued city construction
+**Status:** accepted (owner browser annotations, 2026-09-18) · supersedes ADR-029 boundaries.
+**Decision:** keep only the marked front concrete fence line. Remove the west, east and north
+concrete runs and their breach rubble. Replace the old yard/annex split with one continuous
+64 × 54 m tiled construction pad (x −32…32, z −42…12), including the obsolete metro hole and
+the former east-side void. Extend the structural slab, wet-floor receiver, walking/pathfinding
+bounds and minimap to the same rectangle. The metro assembly remains a movable MASTER object;
+the owner's saved object transforms and camera frame remain untouched. This creates space for
+continued city authoring without adding stations, restoring the rejected district, or deploying.
+
+## ADR-033: Implement the first approved glass media tower
+**Status:** accepted (owner concept selection, 2026-09-18).
+**Decision:** model and install the first glass/neon tower in Blender, preserving the
+approved woman's image and style. Embed the original concept PNG unchanged, with
+projective facade UVs; use actual low-poly construction for the body and equipment.
+Place one default, editable tower on the Base rear east lot and expose the same
+asset in both MASTER catalogues. Preserve existing map/camera saves and walking
+routes. Second building implementation waits for a subsequent owner request.
+
+## ADR-034: Curved reference railway with articulated rolling stock
+**Status:** accepted (owner reference/request and explicit resume, 2026-09-18).
+**Decision:** replace ADR-031's straight diagonal with a smooth elevated route emerging
+behind the existing portrait tower and sweeping around the street. Preserve the owner's
+latest building positions and saved follow framing; keep the reference height13.2 m.
+Use Blender V2 train/deck/support prototypes, bend the deck into merged material batches,
+pose each rigid coach on its own pair of bogies, and add flexible links, headlights,
+route lighting, hanging cables and utility fixtures. Keep support-foot colliders aligned,
+bounded low-poly budgets, shared scene-loop ownership and mobile lighting reductions.
+The railway remains source scenery, with no new gameplay station or boarding mechanic.
+
+## ADR-035: Restore the reference railway, restrict the bend to the tower approach
+**Status:** accepted (owner correction, 2026-09-18); supersedes ADR-034 route geometry.
+**Decision:** the wide street-sweeping arc is rejected. Restore the original diagonal
+above administration/metro and its right-hand support positions. Keep only a small20°
+bend at the portrait-tower approach, joining the reference main span smoothly. Preserve
+the13.2 m height, saved buildings/camera and V2 train/lighting. Validate actual roof
+clearance instead of moving the whole guideway in front of the buildings.

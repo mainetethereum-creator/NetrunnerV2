@@ -3,7 +3,7 @@ import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeom
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
 /** Precast concrete panels, tapered feet and lifting eyes, batched by material. */
-export function buildConcretePerimeter(scene: T.Scene, concrete: T.Material, steel: T.Material) {
+export function buildConcretePerimeter(scene: T.Scene, concrete: T.Material, steel: T.Material, section?: (id: string, name: string, build: () => void) => void) {
   const batches = new Map<T.Material, T.BufferGeometry[]>();
   const posts = new Set<string>();
   const transform = new T.Object3D();
@@ -24,7 +24,7 @@ export function buildConcretePerimeter(scene: T.Scene, concrete: T.Material, ste
     for (let i = 0; i < p.count; i++) if (p.getY(i) > 0) p.setZ(i, p.getZ(i) * .56);
     g.computeVertexNormals(); return g;
   };
-  function wall(ax: number, az: number, bx: number, bz: number) {
+  function buildWall(ax: number, az: number, bx: number, bz: number) {
     const length = Math.hypot(bx - ax, bz - az), count = Math.ceil(length / 3.2), step = length / count;
     const ux = (bx - ax) / length, uz = (bz - az) / length, angle = -Math.atan2(uz, ux);
     for (let i = 0; i <= count; i++) {
@@ -48,35 +48,25 @@ export function buildConcretePerimeter(scene: T.Scene, concrete: T.Material, ste
       block(cx, 2.403, cz, step - .47, .045, .30, angle);
     }
   }
-  // Outside the walkable limits. The east side is deliberately torn open into
-  // a broad expedition breach instead of ending in a clean manufactured gate.
+  function flush() {
+    for (const [material, geometries] of batches) {
+      const merged = mergeGeometries(geometries);
+      geometries.forEach(g => g.dispose());
+      if (!merged) continue;
+      const mesh = new T.Mesh(merged, material);
+      mesh.name = "Precast perimeter " + material.name;
+      mesh.castShadow = true; mesh.receiveShadow = true; scene.add(mesh);
+    }
+    batches.clear();
+  }
+  function wall(ax: number, az: number, bx: number, bz: number, id = `base:wall:${ax}:${az}:${bx}:${bz}`) {
+    if (section) section(id, `Стена периметра (${ax}, ${az}) → (${bx}, ${bz})`, () => {
+      buildWall(ax, az, bx, bz); flush();
+    });
+    else buildWall(ax, az, bx, bz);
+  }
+  // The owner kept only the front sight-line barrier. The expanded city pad is
+  // deliberately open on the west, east and north sides for future building.
   wall(-14.8, 11.35, 14.8, 11.35);
-  wall(-14.8, -11.6, 14.8, -11.6);
-  wall(-14.8, -11.6, -14.8, -2.85);
-  wall(-14.8, 2.85, -14.8, 11.35);
-  wall(14.8, -11.6, 14.8, 4.65);
-  wall(14.8, 10.35, 14.8, 11.35);
-  for (const [z, y, sx, sy, sz, twist] of [
-    [4.72, .48, .72, .55, .62, .18], [4.88, 1.18, .58, .42, .48, -.28],
-    [10.28, .42, .78, .48, .66, -.14], [10.16, 1.08, .52, .38, .46, .34],
-  ] as const) {
-    const shard = new T.DodecahedronGeometry(.62, 0); shard.scale(sx, sy, sz);
-    add(shard, 14.72, y, z, twist, concrete);
-  }
-  for (const z of [4.86, 5.08, 9.92, 10.14]) {
-    block(14.42, 1.46 + (z % .3), z, .82, .055, .055, -.15, steel);
-    block(14.5, 2.05 - (z % .25), z, .62, .045, .045, .2, steel);
-  }
-  for (const [x, z, size] of [[14.2, 5.25, .34], [14.9, 5.5, .24], [14.35, 9.72, .28], [15.15, 9.48, .2]] as const) {
-    const rubble = new T.DodecahedronGeometry(size, 0); rubble.scale(1.3, .55, 1);
-    add(rubble, x, size * .3, z, x + z, concrete);
-  }
-  for (const [material, geometries] of batches) {
-    const merged = mergeGeometries(geometries);
-    geometries.forEach(g => g.dispose());
-    if (!merged) continue;
-    const mesh = new T.Mesh(merged, material);
-    mesh.name = "Precast perimeter " + material.name;
-    mesh.castShadow = true; mesh.receiveShadow = true; scene.add(mesh);
-  }
+  flush();
 }

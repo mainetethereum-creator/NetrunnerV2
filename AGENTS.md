@@ -8,118 +8,104 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
-## Process hygiene (Claude and Codex)
+## Project and scope
 
-This machine has repeatedly overheated (CPU ~80C, 500-600 running processes)
-because agent sessions started dev servers, browsers, and MCP helper
-processes (`uv.exe`, `python.exe`, `StudioMCP.exe`, browser automation) and
-never stopped them. Follow these rules in every session working in this repo:
+Netrunner is the CyberBase browser 3D action / extraction RPG: Next.js, React,
+Three.js and wagmi. Work in this repository, in place; do not create a replacement
+game or parallel app. Implement the user's current request, including necessary
+local fixes and verification. The architecture backlog is not permission to
+start unrelated work.
 
-- Before starting a dev server or browser preview, check whether one is
-  already running (`preview_list`, or an existing terminal/task) and reuse it
-  instead of starting another.
-- Stop every server, browser tab, and background task you started
-  (`preview_stop`, closing browser tabs, `TaskStop`) before ending a task or
-  handing off — even if the user did not ask for cleanup.
-- Do not spawn subagents or extra tool processes unless the task genuinely
-  needs them or the user asks for it.
-- If the machine feels slow, run `powershell -File scripts/agent-processes.ps1`
-  (dry run; add `-Stop` to terminate the known MCP-helper processes it
-  reports — `uv.exe`, `python.exe`, `StudioMCP.exe`) to clear what has leaked.
+Routes: `/` Hub → PLAY → `/base`; `/expedition` Outlands; `/metro` frozen
+prototype. Wallet-first access with Base as primary chain is planned (ADR-016);
+do not add new guest-only flows. Development routes are `/editor/vegetation`
+and `/ui-kit-preview`.
 
-## What this project is
+## Context to read
 
-Netrunner **is the CyberBase game**: a browser 3D action / extraction RPG
-(Next.js + React UI, Three.js scenes, Base wallet via wagmi). Routes: `/` Hub (landing
-page), `/base` Runner's Refuge (Base), `/expedition` Outlands, `/metro` (frozen prototype),
-`/editor/vegetation` and `/ui-kit-preview` (development only, ADR-019). UI kits: `docs/ui-kits/README.md`.
+Use the files relevant to the task; reuse context already read unless it changed.
+- `AI_HANDOFF.md`: current work, saved map/camera and outstanding checks.
+- `PROJECT_STATE.md`: implemented features and known limitations.
+- `CODEMAP.md`: locate modules; `ARCHITECTURE.md`: layer boundaries and refactors.
+- `DECISIONS.md`: relevant owner decisions; newer decisions supersede older ones.
+- Feature notes in `docs/`: Base editor, camera, reference buildings, railway or UI kits.
+- `ROADMAP.md`: only when continuing the architecture/debt queue; follow the
+  requested item's prerequisites and completion checks.
+Load a skill when its workflow is relevant or the user requests it; do not load
+unrelated skills just because their descriptions share a keyword.
 
-Owner product rules: the hub links into the game only through PLAY → `/base` (ADR-015);
-access will require a connected EVM wallet (Coinbase Wallet / Base Account, MetaMask, Rabby, OKX,
-others) with **Base** as the primary chain (ADR-016 — recorded, not implemented yet; do not add new
-guest-only flows).
+## Working to completion
 
-Before changing code read, in order: this file, `PROJECT_STATE.md`,
-`ARCHITECTURE.md`, `CODEMAP.md`, `DECISIONS.md`, the latest `AI_HANDOFF.md`, `ROADMAP.md`, and the
-feature notes in `docs/` for the area you touch.
+Carry an implementation through the requested behavior, relevant checks and fixes
+for regressions it causes. Routine local edits, asset generation, tests and inspection
+are authorized within the request; do not stop after a first draft for approval.
+Ask only when a missing choice materially changes the result or additional authority
+is needed. If blocked, state the concrete blocker and what remains unverified.
 
-**Continuing the refactor:** `ROADMAP.md` is the work queue (architecture steps 4–12 with
-per-step instructions, and the technical debt register). Take the first `next` item, finish it
-as one commit, and update its status and log there. Agents without a visible browser follow the
-rule in `ROADMAP.md` §1 (record owed browser checks in TD-02; steps 6 and 9 wait for them).
+Preserve unrelated working-tree edits and the owner's browser map/camera saves.
+Before a reload that could discard unsaved editor work, save/export that layout.
+Do not reset/import older map data or change the camera for convenience.
+When the owner says they will perform visual checking, respect that preference
+and report which checks you completed.
 
-## Owner rules for the architecture refactor (do not violate)
+## Machine and process ownership
 
-- **Do not create a replacement game or project**, a parallel skeleton, or a new
-  top-level app. A separate `CyberBase` monorepo created by mistake was removed on 2026-09-15.
-- Refactor **in place, incrementally**. Preserve the current maps, 3D models,
-  materials, textures, lighting, character, camera, controls, mobile controls, UI,
-  interactions, Base, Expedition and every working mechanic. Do not rebuild
-  something that works; wrap it, then move it.
-- Three.js becomes the renderer layer; do not add gameplay state to Object3D.
-  Where gameplay depends on Three.js today, add an adapter and move logic out step by step.
-- No big ECS rewrite; component/system structure only where it clearly simplifies.
-- The current maps stay the source of truth; move them to data only with verified visual parity.
-- Editors are dev tools and must stay out of the production gameplay graph.
-  Players never see development tools (ADR-019): development pages are `app/**/page.dev.tsx`
-  (routes only in `next dev`), and in-game editor / debug UI renders only when
-  `DEV_TOOLS = process.env.CYBERBASE_DEV_TOOLS === "1"` (baked in by `next.config.ts`) is true.
+This machine has overheated from leaked servers and helpers. Reuse existing dev
+servers, browser tabs and Blender sessions; check before starting another.
+Stop temporary processes/tabs you created when finished, but keep a server or
+preview running when the user requested it for continued work. Report that handoff.
+Do not stop user-owned sessions. Run heavy checks sequentially.
+Use subagents only when explicitly requested or required by applicable instructions.
 
-## Refactor checklist (after every change)
+For slowness, `powershell -File scripts/agent-processes.ps1` is a read-only
+diagnostic. Inspect its candidates; do not use blanket cleanup to terminate another
+task's helpers. Keep process ownership clear.
 
-1. `npm test`, `npm run lint`, `npx tsc --noEmit` pass (run `npm run build` for larger steps).
-2. The game starts (`npm run dev`, then `/` hub, `/base` and `/expedition`) with no console errors.
-3. The map looks the same (compare screenshots at spawn).
-4. Player movement works (WASD, Shift, tap-to-move / map destinations).
-5. The camera follows the player.
-6. Mobile controls work (stick + portrait/landscape layout).
-7. Interactions work (E / Talk to NPC dialog in Base; E prompt, extraction in Expedition).
+## Architecture and game invariants
 
-Browser checks need a **visible** page. When the Claude app's Browser pane (or any
-tab) is hidden, `document.hidden` is true and `requestAnimationFrame` never fires, so
-the game renders nothing and the player cannot move — that is the shared frame loop's
-intended `stop` behaviour, not a regression. Check `document.hidden` first.
-A visible but unfocused pane (or a GPU shared with other heavy apps) can also drop to a few
-frames per second; count `requestAnimationFrame` calls over 2 s before judging distances, and
-if the rate is low compare against `HEAD` (`git stash -u`, same script, then `git stash pop`).
+- Preserve maps, models, materials, lighting, character, camera, controls,
+  interactions and mechanics except for changes the user requests.
+- Refactor incrementally; no large ECS rewrite. Three.js is the renderer layer:
+  new gameplay state belongs outside Object3D. Map-data extraction requires
+  verified visual parity.
+- Editors stay out of production gameplay: development pages use `page.dev.tsx`;
+  in-game tools require `process.env.CYBERBASE_DEV_TOOLS === "1"`.
+- `app/` holds routes; legacy features remain in `components/`; shared engine
+  layers live in `src/`. Follow boundaries in `ARCHITECTURE.md` and ESLint.
+- Register runtime assets from `public/` in `src/assets/registry.ts`.
+  Preserve shared GPU resource ownership and teardown.
+- In `src/`, use readable TypeScript and relative imports with explicit `.ts`.
+  Retain exact source lines asserted by tests or update those tests deliberately.
+- Do not add `netrunner:*` window events; the existing bridge awaits typed events.
 
-If any item breaks, fix it before continuing. Each architecture step is one commit
-on `main` of the game's own repository `github.com/mainetethereum-creator/NetrunnerV2` (ADR-020);
-no push or deploy without the owner. A push to `main` deploys production automatically
-(Vercel project `netrunner-cyberbase` → https://netrunner-cyberbase.vercel.app).
-Finishing a step also means updating `PROJECT_STATE.md`, `CODEMAP.md`,
-`DECISIONS.md` (when a decision was made), `ARCHITECTURE.md` (when boundaries change)
-and overwriting `AI_HANDOFF.md`.
+## Verification and handoff
 
-## Structure
+Choose checks that can detect problems caused by the change:
+- Documentation/instruction-only edits: check content, local references and diff.
+  Do not build or start the game for text changes.
+- Code changes: affected behavior tests, `npm run lint`, `npx tsc --noEmit`.
+  Run `npm test` for shared logic, map/navigation changes and refactor completion.
+- Run `npm run build` for routes/config/bootstrap, production boundaries or major
+  integrations. Avoid repeating passed checks without new changes or evidence.
+- Visual/gameplay changes: inspect the affected visible scene and relevant
+  movement, camera, collision or interaction paths. Shared/mobile changes need
+  matching route/viewport checks. Full refactor protocol: `ROADMAP.md` §5.
 
-- `app/` — Next.js routes only.
-- `components/` — current game code by feature (`base`, `expedition`, `game`,
-  `metro3d`, `world-editor`, `vegetation`, `editor`), being migrated.
-- `src/` — new engine layers (`assets`, `renderer`, later `core`, `input`,
-  `world`, `gameplay`, `ui`, `shared`). Boundaries are enforced by `eslint.config.mjs`
-  and `tests/engine-architecture.test.mjs` (see `ARCHITECTURE.md` §4).
-- `public/` — runtime assets; register URLs in `src/assets/registry.ts`.
-- `tests/` — `node:test` suites run by `npm test`.
+A hidden page pauses rendering; check `document.hidden` before judging behavior.
+Measure frame cadence when investigating timing issues. For baseline comparisons,
+use a separate checkout or recorded evidence; do not stash a dirty shared workspace.
+Fix regressions introduced by the task; report pre-existing failures separately.
+State what was actually tested and any checks still owed.
 
-## Commands
+Update the feature notes/current handoff when behavior changes. Update the project
+state, code map, architecture or decisions only when their contents change.
+Keep `AI_HANDOFF.md` current; historical decisions belong in ADRs and the roadmap log.
 
-| Command | What |
-|---|---|
-| `npm ci` | Install |
-| `npm run dev` | Dev server on http://localhost:3000 |
-| `npm test` | `node:test` suites (Node type stripping, no bundler) |
-| `npm run lint` | ESLint (Next rules + src boundaries) |
-| `npx tsc --noEmit` | Typecheck |
-| `npm run build` | Production build |
+## Commands and release boundaries
 
-## Coding conventions
-
-- Code in `src/`: TypeScript, readable multi-line formatting, relative imports with
-  explicit `.ts` extensions (so tests can import it through Node).
-- Some tests assert exact source lines in scene/UI files (e.g.
-  `editor.stream(editor.active?pivot:player.position)`, `createLazyEditor(()=>import(`).
-  Keep them intact or update the test deliberately in the same commit.
-- `netrunner:*` window events are the current UI ↔ engine bridge; do not add new
-  ones — they will be replaced by a typed event bus.
-- Never commit `.env*` or `.vercel/`; never push or deploy without the owner.
+`npm run dev` serves http://localhost:3000. Tests use `npm test` (Node test runner).
+`npm ci` installs dependencies; lint, typecheck and build commands are above.
+The owner-authorized architecture track uses one item/commit on `main` (ADR-020);
+ordinary feature work stays on the current branch unless instructed otherwise.
+Never commit `.env*` or `.vercel/`. Never push or deploy without the owner:
+a push to `main` of `mainetethereum-creator/NetrunnerV2` deploys production.

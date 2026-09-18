@@ -12,8 +12,12 @@ what the last session did. Read `AGENTS.md` first — its owner rules override t
 
 ## 1. How to continue (for any agent)
 
-1. Read `AGENTS.md` → `PROJECT_STATE.md` → `ARCHITECTURE.md` → `CODEMAP.md` →
-   `DECISIONS.md` → `AI_HANDOFF.md` → this file.
+This protocol applies when the user asks to continue the refactor/debt queue.
+For a feature, asset, map or documentation request, follow that request and the
+task-scoped guidance in `AGENTS.md`; do not start the next architecture item.
+
+1. Use `AGENTS.md` and the current handoff, then read the selected item's
+   architecture, decisions and feature notes as needed. Reuse unchanged context.
 2. Take the **first item in §3 whose status is `next`** (architecture track) or an
    open item in §4 (debt track) that is not marked *owner*. Do not skip ahead: later
    steps assume earlier ones (ADR-006).
@@ -28,7 +32,8 @@ what the last session did. Read `AGENTS.md` first — its owner rules override t
    this file (status + verification line), `PROJECT_STATE.md`, `CODEMAP.md`,
    `ARCHITECTURE.md` (§1.3/§4/§5 when boundaries change), `DECISIONS.md` (new ADR
    when a decision was made) and overwrite `AI_HANDOFF.md`.
-6. Stop every dev server, browser tab and background process you started.
+6. Stop temporary processes/tabs you started. Keep a server or preview available
+   when the user requested it for continued work; report what remains running.
 
 **Agents without a visible browser (e.g. Codex CLI):** do not block on browser checks.
 - Steps that must not change behaviour (4, 5, 7, 8, 11) may be committed when the unit tests
@@ -37,8 +42,8 @@ what the last session did. Read `AGENTS.md` first — its owner rules override t
 - Steps that change behaviour or visuals — **6** (fixed-step movement) and **9** (map data
   parity) — start only after the owner (or an agent with a visible browser) has run the owed
   TD-02 checks and marked them done in the log.
-- Claude-specific tool names in `AGENTS.md` (`preview_list`, `preview_stop`, `TaskStop`) mean:
-  reuse a running `npm run dev` instead of starting another, and stop what you started.
+- Reuse a running dev server and existing browser/Blender sessions. Process
+  ownership and user-requested server handoff follow `AGENTS.md`.
 
 Status words: `done` · `next` · `planned` · `owner` (needs the owner's decision first).
 
@@ -107,7 +112,7 @@ Status words: `done` · `next` · `planned` · `owner` (needs the owner's decisi
   random dt / targets / aspects / reduced motion / editor sequences; architecture test
   asserts scenes use the rig and no longer contain the position formula.
 - **Browser:** spawn screenshots equal; minimap position after the same key hold equal
-  (A/B with `git stash`); MASTER zoom and pan still work; "Reset camera" in base settings.
+  (A/B using a separate baseline checkout); MASTER zoom and pan still work; "Reset camera" in base settings.
 
 ### Step 5 · Hero model and animation
 
@@ -216,7 +221,7 @@ Status words: `done` · `next` · `planned` · `owner` (needs the owner's decisi
 | Id | Debt | Where | Fix | Status |
 |---|---|---|---|---|
 | TD-01 | `ARCHITECTURE.md` §1.1 listed `/` → BaseApp and plain `page.tsx` for dev pages | docs | Routes table matches code | done |
-| TD-02 | Browser checks owed. Step 3: Cybersmith route → dialog, mobile stick drag. Step 4 (Browser pane was hidden, no frames ran): spawn screenshots on `/base`, `/expedition`, `/metro`; camera follows while walking; base settings "Reset camera"; MASTER wheel zoom (base, expedition) and WASD/Q pan (expedition); tree editor focus; mobile portrait distance | base, expedition, metro, mobile | Run §5 in a visible browser (A/B against `git stash` if numbers differ) | planned |
+| TD-02 | Browser checks owed. Step 3: Cybersmith route → dialog, mobile stick drag. Step 4 (Browser pane was hidden, no frames ran): spawn screenshots on `/base`, `/expedition`, `/metro`; camera follows while walking; base settings "Reset camera"; MASTER wheel zoom (base, expedition) and WASD/Q pan (expedition); tree editor focus; mobile portrait distance | base, expedition, metro, mobile | Run §5 in a visible browser (compare recorded or separate-checkout baseline if numbers differ) | planned |
 | TD-03 | Dead animation references `slash.glb`, `cast.glb` (files absent, never loaded) | `components/game/class-actions.ts` | Remove the entries or register real files | planned |
 | TD-04 | Unused `createOneHandedSword` with missing `/game/weapons/sword/01-up.webp` | `components/game/sword-attack.ts` | Delete the unused function and constant | planned |
 | TD-05 | Unreferenced district builder | `components/base/district.ts` | Delete (nothing imports it) | planned |
@@ -235,20 +240,27 @@ Status words: `done` · `next` · `planned` · `owner` (needs the owner's decisi
 ## 5. Browser verification protocol
 
 - Check `document.hidden` first: a hidden Browser pane renders nothing (loop `stop` mode).
-- Count `requestAnimationFrame` calls over 2 s; if the rate is low (unfocused pane or
-  busy GPU), compare A/B instead of absolute numbers: run the same script on the
-  change and on `HEAD` (`git stash -u` … `git stash pop`).
+- When timing is in question, count `requestAnimationFrame` calls over 2 s. A low
+  cadence can come from an unfocused pane or busy GPU. Compare recorded evidence
+  or a separate baseline checkout; do not stash the shared dirty worktree.
 - Movement probe: hold a key for a fixed time, read the minimap position from the
   snapshot; Base W and Expedition D are the reference holds used in steps 2–3.
 - Visual probe: screenshot at spawn after load on `/base`, `/expedition`, `/metro`
   (desktop 1536×864 and mobile 375×812).
 - Interactions: base "Talk to" at Cybersmith → dialog → Esc; expedition E at the
   breach → extraction timer; mobile stick drag moves the player.
-- Reuse a running dev server (`preview_list`); stop everything you started.
+- Reuse the running dev server; clean up temporary sessions under `AGENTS.md`.
 
 ---
 
 ## 6. Owner-gated product work (not part of the refactor)
+
+- On 2026-09-18 owner reverted the night district except the marked green IMPLANTS building
+  (ADR-027). Original Base boundaries/stations/roads restored; Tactical and physical WASD retained.
+
+- Owner authorized Base atmosphere expansion on 2026-09-17; implemented in-place on the existing
+  `feature/ui-kit-3d` working branch (ADR-023, `docs/base-night-market.md`). This does not complete
+  architecture step 5 or authorize a push/deploy. The existing uncommitted hero extraction is retained.
 
 - Wallet-first access, EVM wallets, Base chain — ADR-016 (open questions listed there).
 - NPC portrait art, mobile attack button, hub sections (character / inventory).
@@ -262,3 +274,8 @@ Status words: `done` · `next` · `planned` · `owner` (needs the owner's decisi
 |---|---|---|---|
 | 2026-09-15 | Roadmap created; TD-01 | 5947b29 | docs only |
 | 2026-09-15 | Step 4 · follow camera | (this commit) | `npm test` 110/110 (`camera.test.mjs`: bit-identical to the legacy code for all three scenes), lint, tsc; `/base` compiles and loads with no server or console errors; visual and interaction checks owed (TD-02) |
+| 2026-09-17 | Owner-authorized Base night district (not a refactor step), ADR-023 | uncommitted on existing feature branch | 128 tests, lint, tsc, build; visible district route/E/inventory, rain/train/audio settings, responsive viewport checks; Hub and Expedition load, extraction completes. Physical phone/touch/audio listening still owed. |
+| 2026-09-17 | Owner-requested Base third-person camera experiment, ADR-024 | uncommitted on existing feature branch | 134 tests, lint, tsc; visible three-mode switch/V, orbit, zoom, W/Shift+W, route/follow/E and responsive viewport checks. Original shared camera parity still passes; physical touch feel remains owed. No architecture step signoff. |
+| 2026-09-18 | Owner chose Tactical only after ARPG comparison; alternative cameras removed, physical WASD retained (ADR-026) | uncommitted on existing feature branch | 130 tests, lint, tsc, diff check. Browser shows Tactical without switches; user had MASTER open, preserved their editor state. Post-cleanup walking/touch check remains; original camera parity passes. |
+| 2026-09-18 | Owner reverted district except green IMPLANTS (ADR-027) | uncommitted on existing feature branch | 121 tests, lint, tsc, production build. Original camera parity/station paths and restored west limits pass. Physical-phone checks remain owed. |
+| 2026-09-18 | Base MASTER authored scenery deletion/placement (ADR-028; not architecture step 10) | uncommitted on existing feature branch | 135 tests, lint, tsc, build. Visible IMPLANTS delete/Ctrl+Z, crate placement/selection/undo, MASTER close. Browser save covered by unit fixture, actual user save untouched. Physical phone and full Hub/Expedition manual regression owed. |

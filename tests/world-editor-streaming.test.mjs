@@ -33,7 +33,27 @@ test('moved authored props stream independently without revealing old chunk; res
 });
 
 const settle=()=>new Promise(resolve=>setImmediate(resolve));
-function fakeEditor(){const listeners=new Set();return {active:false,placing:false,getSnapshot:()=>({notice:'ready'}),subscribe(fn){listeners.add(fn);return()=>listeners.delete(fn);},setActive(value){this.active=value;for(const fn of listeners)fn();},dispose(){listeners.clear();}};}
+function fakeEditor(ready=Promise.resolve()){const listeners=new Set();return {ready,active:false,placing:false,getSnapshot:()=>({notice:'ready'}),subscribe(fn){listeners.add(fn);return()=>listeners.delete(fn);},setActive(value){this.active=value;for(const fn of listeners)fn();},dispose(){listeners.clear();}};}
+test('saved map initialization waits for restoration without activating MASTER',async()=>{
+ let restored,loads=0,finished=false;
+ const ready=new Promise(resolve=>{restored=resolve;});
+ const editor=createLazyEditor(async()=>{loads++;return()=>fakeEditor(ready);},assert.fail);
+ const pending=editor.initialize().then(()=>{finished=true;});
+ await settle();assert.equal(editor.active,false);assert.equal(finished,false);
+ editor.setActive(true);editor.setActive(false);
+ assert.equal(loads,1);assert.equal(editor.active,false);assert.equal(finished,false);
+ restored();await pending;assert.equal(finished,true);assert.equal(editor.active,false);
+ await editor.initialize();assert.equal(loads,1);editor.dispose();
+});
+test('initialization reports failed document restoration instead of revealing a ready map',async()=>{
+ let rejectRestore,reported;
+ const ready=new Promise((_,reject)=>{rejectRestore=reject;});
+ const editor=createLazyEditor(async()=>()=>fakeEditor(ready),error=>{reported=error;});
+ const pending=editor.initialize();await settle();
+ rejectRestore(new Error('saved asset unavailable'));
+ await assert.rejects(pending,/saved asset unavailable/);
+ assert.equal(reported.message,'saved asset unavailable');assert.equal(editor.active,false);editor.dispose();
+});
 test('lazy facade loads once on first activation and publishes snapshot to pre-existing subscribers',async()=>{
  let loads=0,constructs=0,resolveLoad;const active=[];
  const editor=createLazyEditor(()=>{loads++;return new Promise(resolve=>{resolveLoad=resolve;});},assert.fail,value=>active.push(value));

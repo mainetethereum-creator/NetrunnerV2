@@ -1,0 +1,34 @@
+# Glass + Neon V1 — exact prompts
+
+Mode: built-in Imagegen. Intent: generate with style references. Preview concepts only.
+
+## 01 — Media tower
+
+Use case: stylized-concept.
+Asset type: CyberBase game environment concept for approval BEFORE low-poly 3D modelling. Create ONE original complete building shown as a clear isolated 3D game asset beauty render, portrait composition, all roof and ground edges visible with breathing room, elevated three-quarter view matching an isometric action RPG camera.
+Input images are STYLE REFERENCES ONLY, not edit targets: image 1 Dreamatron panorama gives smoked glass towers and large facade media; image 2 Dreamatron blue portrait gives the pixel-grid cyan advertisement integrated into glass; image 3 is the user's actual CyberBase game and controls the dark worn concrete, practical industrial details, realistic gritty materials and scale readability. Do not reproduce any UI, branding or watermark from references.
+Primary subject: a slender twelve-storey rectangular dark smoked teal GLASS MEDIA TOWER, roughly 11 by 9 metre footprint and 35 metres high. A convincing functional low-poly-friendly architecture, very simple stepped silhouette, chamfered corner, flat roof with compact ventilation and antenna. Glass is the dominant material on the upper ten storeys: broad clean planar curtain wall, thin black mullion grid, subdued imperfect reflections, most windows unlit with occasional warm office windows. At the bottom two storeys, weathered DARK charcoal concrete plinth that matches CyberBase, inset warm entrance with human-scale door, maintenance grille and pipes.
+Main focal point: a huge original cyan holographic advertising portrait of an adult synthetic human face occupying the upper front facade, made from fine luminous pixel/scanline patches embedded over the window grid, visibly letting dark glass and mullions show through. It is a facade media skin, not a bulky billboard on a bracket. A smaller restrained vertical coral-red pixel sign on the side and thin amber news ticker near the plinth. Abstract fictional ad iconography, no readable slogans required. Limit bright neon to advertising; keep most architecture dark and readable.
+Include two attached industrial cable anchor brackets near the mid-level and one short sagging bundle of three black utility wires ending near the edge of its small presentation base, enough to show modular connection. Some roof/service hardware but no dense greeble.
+Presentation: single full building on a small square of the game's dark wet paving, neutral very dark blue-grey studio backdrop, modest contact shadow, softly lit so the unlit facade is visible. Readable clear architecture and believable construction with detailed material textures over economical planar forms. Subtle restrained cyan advertising glow, warm door, slight damp grime. NOT a busy city scene, NOT a low-angle photo, NOT cartoon chunky toy, NO endless skyscraper, NO blown-out bloom, NO fog obscuring detail, NO neon outlining every edge. No inset images, captions, dimensions, human figures or interface. This is a polished 2D visual concept, not a promise of finished 3D.
+
+References, in order:
+- references/dreamatron-panorama.png
+- references/dreamatron-blue-portrait.png
+- references/cyberbase-current.png
+
+## 02 — Glass corner
+
+Use case: stylized-concept.
+Asset type: second original CyberBase environment building concept for approval BEFORE low-poly 3D modelling.
+Input images are references only, NOT edit targets. Image 1 is the first newly designed tall glass media tower: match its realistic game-asset render, dark wet materials, simple modelling-friendly architecture and presentation exactly, but create a DIFFERENT shorter, wider building. Image 2 Dreamatron street is a reference for advertisements and utility cables; image 3 is the current CyberBase game for dark charcoal concrete and established mood. Never reproduce the game UI or reference branding.
+Subject: a compact six-storey angular GLASS COMMERCIAL CORNER BUILDING, about 15m wide by 11m deep and 20m high. Broad asymmetrical stepped massing: five-floor main block with a smaller one-storey rooftop volume, a clipped/chamfered corner built from flat planes, offset roof terrace with simple railing. Flat roof with two modest HVAC units. Clearly different silhouette from the first tall rectangular tower.
+The upper floors are predominantly dark smoky green-teal glass with a readable thin black metal grid, alternating unlit reflective panels and a few warm lit interiors. The two lower levels use the SAME worn dark charcoal concrete as the user's game, believable service access, ventilation grills, warm recessed shopfront and human-scale entrance. Broad glazing dominates, concrete limited to the plinth and support core.
+Advertisement design: one broad luminous coral-magenta media ribbon wraps the chamfered corner across the upper middle storeys; pixelated abstract fictional product artwork and clean geometric glyphs, dark glass still visible between luminous pixels. A small cyan vertical panel at the side. Above the main entrance, an exposed compact industrial projector bracket supports ONE hovering amber-and-cyan holographic emblem: a stylized energy-cell/product icon inside two broken elliptical scan rings. Show convincing slight transparency, horizontal scan lines and small separated fragments; it should read as a hologram sitting ~1m in front of the facade, not a plastic physical statue. Projection is compact, no giant floating character. Use original abstract advertising; no readable slogans or logos required.
+Include visible modular cable attachments at the side and a sagging bundle of three black utility wires between two grounded slim service poles on the building's own narrow paving strip, low enough to show the future street connection but above the door. Simple cable geometry and a few ceramic insulators. Nothing obscures the main silhouette or advertisement.
+Presentation: a single complete isolated building on a modest square plinth of dark wet paving, dark blue-grey neutral background, whole building/roof/base within frame, landscape or square composition, elevated three-quarter isometric game camera. Match first image's sharp architecture and detailed damp surfaces, flattering soft fill that makes glass construction visible, subdued small bloom from ads, restrained cyan/coral and warm amber against mostly dark structure. Economic flat surfaces compatible with later low-poly model; facade interest from materials, not microgeometry. No cinematic city background, no fog, no supertall skyscraper, no cartoon toy, no exploded views, no inset panels, no captions, dimensions, people, cars, UI or watermark.
+
+References, in order:
+- 01-media-tower.png
+- references/dreamatron-street.png
+- references/cyberbase-current.png

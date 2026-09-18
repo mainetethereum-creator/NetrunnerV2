@@ -1,0 +1,12 @@
+{
+  "desktop": {
+    "triangles": 70150,
+    "draws": 32,
+    "lights": 3
+  },
+  "mobile": {
+    "triangles": 69526,
+    "draws": 32,
+    "lights": 1
+  }
+}

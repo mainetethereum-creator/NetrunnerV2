@@ -1,0 +1,29 @@
+{
+  "armory": {
+    "root": "ArmoryV1",
+    "triangles": 6301,
+    "drawCalls": 7,
+    "width": 9.215,
+    "depth": 7.52,
+    "height": 8.28,
+    "bytes": 939360
+  },
+  "chinese-restaurant": {
+    "root": "ChineseRestaurantV1",
+    "triangles": 10430,
+    "drawCalls": 8,
+    "width": 10.035,
+    "depth": 7.6592,
+    "height": 8.28,
+    "bytes": 1226964
+  },
+  "central-administration": {
+    "root": "CentralAdministrationV1",
+    "triangles": 9174,
+    "drawCalls": 7,
+    "width": 13.26,
+    "depth": 8.04,
+    "height": 13.2,
+    "bytes": 1145620
+  }
+}

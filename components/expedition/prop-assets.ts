@@ -1,10 +1,13 @@
 import * as T from 'three';
+import {REFERENCE_BUILDINGS,isReferenceBuilding} from '../../src/assets/reference-buildings.ts';
+import {createReferenceBuildingLibrary} from '../../src/renderer/three/reference-building-library.ts';
 import {BUILDING_PROPS,createBuildingLibrary,type BuildingPropId} from './building-props';
 import {CITY_PROPS,createCityLibrary,type CityPropId} from './city-props';
 import {mergeGeometries,mergeVertices} from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 export const PROP_ASSETS=[
  ...CITY_PROPS,
  ...BUILDING_PROPS,
+ ...REFERENCE_BUILDINGS,
  {id:'barricade',name:'Баррикада · DANGER',category:'Ограждения',description:'Деревянные козлы · потёртая сигнальная доска'},
  {id:'blue-drum',name:'Бочка · синяя ржавая',category:'Ресурсы',description:'Стальной барабан · коррозия и усиленные обручи'},
  {id:'kerosene',name:'Бочки · KEROSENE',category:'Ресурсы',description:'Парные жёлтая и красная топливные бочки'},
@@ -16,6 +19,7 @@ export type PropId=typeof PROP_ASSETS[number]['id'];
 export type PropInstance={id:string;asset:PropId;x:number;z:number;rotation:number;length?:number};
 /** Shared geometries/materials: each prop is batched by material and reused across placements. */
 export function createPropLibrary(anisotropy=4,onTextureReady?:()=>void){
+ const references=createReferenceBuildingLibrary(anisotropy);
  const city=createCityLibrary(anisotropy,onTextureReady);
  const buildings=createBuildingLibrary(anisotropy,onTextureReady);
  const texture=new T.TextureLoader().load('/game/props/salvage/material-atlas.webp',loaded=>{maps.forEach(t=>{t.source=loaded.source;t.needsUpdate=true;});onTextureReady?.();});texture.colorSpace=T.SRGBColorSpace;texture.anisotropy=Math.min(8,anisotropy);
@@ -62,9 +66,23 @@ export function createPropLibrary(anisotropy=4,onTextureReady?:()=>void){
  for(let i=0;i<5;i++)tire(.03,i*.23+.15,0,Math.PI/2+.025*(i%2));tire(.76,.19,.55);tire(.76,.43,.55);tire(-.68,.2,-.24,1.27,.1);tire(.64,.56,-.25,.12,.35);for(let i=0;i<4;i++)box(.14,1.3+i*.17,.055,0,-.4+i*.2,.7,.48,0,-.12,-.22+i*.12);block(.04,1.46,0,-.15);block(-.65,.22,.32);block(.8,.68,.6,.1);for(let i=0;i<19;i++)box(.18+i%3*.035,.1,.105, i%5===0?5:brick,-.62+(i*37%100)/90,.08+(i%3)*.055,.38+(i*19%70)/110,.12*(i%3),i*1.7,.1);cyl(.016,1.4,8,.42,.52,.42,0,-.7);
  }
  if(id==='hydrant'){
- cyl(.25,.82,2,0,.72);cyl(.26,.35,2,0,.28);for(const y of [.09,.45,1.14,1.22]){cyl(y<.2?.36:.32,.065,2,0,y);torus(y<.2?.34:.31,.018,8,0,y+.035);}add(new T.SphereGeometry(.25,20,10,0,Math.PI*2,0,Math.PI/2).scale(1,1.13,1),2,0,1.25,0);cyl(.085,.08,8,0,1.55,0,0,0,.07,8);for(const x of [-.32,.32]){cyl(.12,.26,2,x,.9,0,0,Math.PI/2);cyl(.135,.045,8,x*1.36,.9,0,0,Math.PI/2);cyl(.07,.065,2,x*1.48,.9,0,0,Math.PI/2,.07,6);}cyl(.175,.2,2,0,.87,.27,Math.PI/2);cyl(.09,.08,8,0,.87,.4,Math.PI/2,0,.09,6);for(let i=0;i<8;i++){const a=i*Math.PI/4;for(const y of [.16,1.16])cyl(.034,.05,8,Math.cos(a)*.275,y,Math.sin(a)*.275,0,0,.034,6);}for(const s of [-1,1])for(let i=0;i<22;i++){const t=i/21;torus(.026,.009,8,s*(.46*(1-t)),.87-.59*Math.sin(t*Math.PI)-.19*t,.02+.24*t,i%2?0:Math.PI/2,.2);}for(let i=0;i<6;i++){const a=i*Math.PI/3;box(.026,.27,.025,2,Math.cos(a)*.252,.3,Math.sin(a)*.252);}
+ // Only this small prop uses the lower round-detail density; drums remain unchanged.
+ const body=(r:number,h:number,m:number,x=0,y=0,z=0,rx=0,rz=0,top=r,n=16)=>cyl(r,h,m,x,y,z,rx,rz,top,n);
+ body(.25,.82,2,0,.72);body(.26,.35,2,0,.28);
+ for(const y of [.09,.45,1.14,1.22]){body(y<.2?.36:.32,.065,2,0,y);torus(y<.2?.34:.31,.018,8,0,y+.035);}
+ add(new T.SphereGeometry(.25,16,8,0,Math.PI*2,0,Math.PI/2).scale(1,1.13,1),2,0,1.25,0);
+ body(.085,.08,8,0,1.55,0,0,0,.07,8);
+ for(const x of [-.32,.32]){body(.12,.26,2,x,.9,0,0,Math.PI/2);body(.135,.045,8,x*1.36,.9,0,0,Math.PI/2);body(.07,.065,2,x*1.48,.9,0,0,Math.PI/2,.07,6);}
+ body(.175,.2,2,0,.87,.27,Math.PI/2);body(.09,.08,8,0,.87,.4,Math.PI/2,0,.09,6);
+ for(let i=0;i<8;i++){const a=i*Math.PI/4;for(const y of [.16,1.16])body(.034,.05,8,Math.cos(a)*.275,y,Math.sin(a)*.275,0,0,.034,6);}
+ // Keep every chain link and its smooth normals, with eight segments around each loop.
+ for(const s of [-1,1])for(let i=0;i<22;i++){
+  const t=i/21;
+  add(new T.TorusGeometry(.026,.009,4,8),8,s*(.46*(1-t)),.87-.59*Math.sin(t*Math.PI)-.19*t,.02+.24*t,i%2?0:Math.PI/2,.2);
+ }
+ for(let i=0;i<6;i++){const a=i*Math.PI/3;box(.026,.27,.025,2,Math.cos(a)*.252,.3,Math.sin(a)*.252);}
  }
  const group=new T.Group();group.name=PROP_ASSETS.find(a=>a.id===id)!.name;for(const [m,gs]of buckets){const flat=gs.map(g=>g.index?g.toNonIndexed():g);const merged=mergeGeometries(flat)!;const geometry=mergeVertices(merged);merged.dispose();flat.forEach((g,i)=>{if(g!==gs[i])g.dispose();});const mesh=new T.Mesh(geometry,materials[m]);mesh.castShadow=true;mesh.receiveShadow=true;group.add(mesh);gs.forEach(g=>g.dispose());}prototypes.set(id,group);return group;
  }
- return {metrics(id:PropId,length=3){const root=BUILDING_PROPS.some(a=>a.id===id)?buildings.create(id as BuildingPropId):CITY_PROPS.some(a=>a.id===id)?city.create(id as CityPropId,length):prototypes.get(id)??build(id);let triangles=0,geometryBytes=0,drawCalls=0;root.traverse(o=>{if(o instanceof T.Mesh){drawCalls++;const g=o.geometry;triangles+=(g.index?.count??g.attributes.position.count)/3;for(const a of Object.values(g.attributes) as T.BufferAttribute[])geometryBytes+=a.array.byteLength;if(g.index)geometryBytes+=g.index.array.byteLength;}});const size=new T.Box3().setFromObject(root).getSize(new T.Vector3());if(id==='hydrant')size.multiplyScalar(.75);return {id,triangles,geometryBytes,drawCalls,width:size.x,height:size.y,depth:size.z};},create(id:PropId,length=3){if(BUILDING_PROPS.some(a=>a.id===id))return buildings.create(id as BuildingPropId);if(CITY_PROPS.some(a=>a.id===id))return city.create(id as CityPropId,length);const model=(prototypes.get(id)??build(id)).clone(true);if(id==='hydrant')model.scale.setScalar(.75);return model;},dispose(){city.dispose();buildings.dispose();for(const root of prototypes.values())root.traverse(o=>{if(o instanceof T.Mesh)o.geometry.dispose();});materials.forEach(m=>m.dispose());maps.forEach(t=>t.dispose());texture.dispose();decalTextures.forEach(t=>t.dispose());}};
+ return {prepare(id:PropId){return isReferenceBuilding(id)?references.prepare(id):Promise.resolve();},isReady(id:PropId){return !isReferenceBuilding(id)||references.isReady(id);},metrics(id:PropId,length=3){const root=isReferenceBuilding(id)?references.create(id):BUILDING_PROPS.some(a=>a.id===id)?buildings.create(id as BuildingPropId):CITY_PROPS.some(a=>a.id===id)?city.create(id as CityPropId,length):prototypes.get(id)??build(id);let triangles=0,geometryBytes=0,drawCalls=0;root.traverse(o=>{if(o instanceof T.Mesh){drawCalls++;const g=o.geometry;triangles+=(g.index?.count??g.attributes.position.count)/3;for(const a of Object.values(g.attributes) as T.BufferAttribute[])geometryBytes+=a.array.byteLength;if(g.index)geometryBytes+=g.index.array.byteLength;}});const size=new T.Box3().setFromObject(root).getSize(new T.Vector3());if(id==='hydrant')size.multiplyScalar(.75);return {id,triangles,geometryBytes,drawCalls,width:size.x,height:size.y,depth:size.z};},create(id:PropId,length=3){if(isReferenceBuilding(id))return references.create(id);if(BUILDING_PROPS.some(a=>a.id===id))return buildings.create(id as BuildingPropId);if(CITY_PROPS.some(a=>a.id===id))return city.create(id as CityPropId,length);const model=(prototypes.get(id)??build(id)).clone(true);if(id==='hydrant')model.scale.setScalar(.75);return model;},dispose(){references.dispose();city.dispose();buildings.dispose();for(const root of prototypes.values())root.traverse(o=>{if(o instanceof T.Mesh)o.geometry.dispose();});materials.forEach(m=>m.dispose());maps.forEach(t=>t.dispose());texture.dispose();decalTextures.forEach(t=>t.dispose());}};
 }

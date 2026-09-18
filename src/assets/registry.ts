@@ -14,6 +14,23 @@ export const ASSET_URLS = {
   heroModel: "/game/models/mixamo/neon-sentinel-mixamo-test.glb",
   /** Refuge buildings placed by the base scene. */
   refugeBuilding: (name: RefugeBuildingModel) => `/base/models/${name}.glb`,
+  /** The one retained building from the district experiment. */
+  implantsBuilding: "/base/models/implants-building.glb",
+  elevatedRail: "/base/models/elevated-rail-v2.glb",
+  buildingAtlas: "/game/props/salvage/building-atlas.webp",
+  /** Owner-selected v1 concepts, authored in Blender; loaded on catalogue demand. */
+  referenceBuildings: {
+    armory: "/game/buildings/reference-v1/armory.glb",
+    restaurant: "/game/buildings/reference-v1/chinese-restaurant.glb",
+    administration: "/game/buildings/reference-v1/central-administration.glb",
+    mediaTower: "/game/buildings/media-tower-v1/media-tower.glb",
+    glassCorner: "/game/buildings/glass-corner-v1/glass-corner.glb",
+    japaneseCafe: "/game/buildings/japanese-cafe-v1/japanese-cafe.glb",
+    walletTower: "/game/buildings/wallet-tower-v1/wallet-tower.glb",
+    cyberbaseTower: "/game/buildings/cyberbase-tower-v1/cyberbase-tower.glb",
+    japanesePartsShop: "/game/buildings/japanese-parts-shop-v1/japanese-parts-shop.glb",
+    urbanOffice: "/game/buildings/urban-office-v1/urban-office.glb",
+  },
   /** UI artwork imported from the CyberBase UI kits (`scripts/import-ui-kits.mjs`). Text is never baked in. */
   ui: {
     /** Hub background per layout; CSS loads only the one that matches the screen. */
@@ -58,6 +75,10 @@ export function registeredAssetFiles(): string[] {
     `${ASSET_URLS.dracoDecoder}draco_decoder.wasm`,
     `${ASSET_URLS.dracoDecoder}draco_decoder.js`,
     ASSET_URLS.heroModel,
+    ASSET_URLS.implantsBuilding,
+    ASSET_URLS.elevatedRail,
+    ASSET_URLS.buildingAtlas,
+    ...Object.values(ASSET_URLS.referenceBuildings),
     ...REFUGE_BUILDINGS.map(ASSET_URLS.refugeBuilding),
     ...Object.values(ASSET_URLS.ui.hubBackdrop),
     ASSET_URLS.ui.hubCharacter,

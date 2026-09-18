@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 import type { BaseEngine, BaseSnapshot } from "./scene";
 import type { QualityMode } from "./quality";
-import { SPAWN, getBaseStations, type StationId } from "./world";
+import { SPAWN, getBaseStations, BASE_NORTH, LIMIT, type StationId } from "./world";
 import GameHud from "../game/GameHud";
 import MovementStick from "../game/MovementStick";
 import LoadingScreen from "../../src/ui/loading/LoadingScreen";
@@ -16,6 +16,16 @@ import dynamic from "next/dynamic";
 // Development tools (MASTER editor) are compiled out of production builds (ADR-019, next.config.ts).
 const DEV_TOOLS = process.env.CYBERBASE_DEV_TOOLS === "1";
 const BaseEditorPanel=dynamic(()=>import("./BaseEditorPanel"),{ssr:false});
+
+const MAP_WIDTH = 230;
+const MAP_HEIGHT = 150;
+const MAP_PADDING = 9;
+const MAP_SCALE = Math.min(
+  (MAP_WIDTH - MAP_PADDING * 2) / (LIMIT.x * 2),
+  (MAP_HEIGHT - MAP_PADDING * 2) / (LIMIT.z - BASE_NORTH),
+);
+const mapX = (x: number) => MAP_WIDTH / 2 + x * MAP_SCALE;
+const mapY = (z: number) => MAP_PADDING + (z - BASE_NORTH) * MAP_SCALE;
 
 type Quest = { accepted: boolean; visited: StationId[] };
 const QUEST_KEY = "cyberbase.refuge.orientation.v1";
@@ -63,7 +73,8 @@ export default function BaseApp() {
   const host = useRef<HTMLDivElement>(null), engine = useRef<BaseEngine | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false), [, setHero] = useState("RUNNER");
-  const [snapshot, setSnapshot] = useState<BaseSnapshot>({ ...SPAWN, near: null, fps: 0, p95: 0, draws: 0, triangles: 0, ratio: 1, high: false, submitMs: 0, timingLimited: false, target: 60, scale: 1 });
+  const [sceneVersion, setSceneVersion] = useState(0);
+  const [snapshot, setSnapshot] = useState<BaseSnapshot>({ ...SPAWN, near: null, fps: 0, p95: 0, draws: 0, triangles: 0, ratio: 1, high: false, submitMs: 0, timingLimited: false, target: 60, scale: 1, cameraMode: 'follow' });
   const [dialog, setDialog] = useState<StationId | "wallet" | "settings" | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
   const [rain, setRain] = useState(true), [quality, setQuality] = useState<QualityMode>("auto"), [quest, setQuest] = useState<Quest>(EMPTY_QUEST);
@@ -101,6 +112,9 @@ export default function BaseApp() {
     let stopped = false;
     import("./scene").then(({ createBaseScene }) => {
       if (stopped || !host.current) return;
+      setReady(false);
+      setError("");
+      setSceneVersion(version => version + 1);
       try {
         const saved = JSON.parse(localStorage.getItem(QUEST_KEY) ?? "null");
         if (saved && typeof saved.accepted === "boolean" && Array.isArray(saved.visited)) {
@@ -119,6 +133,11 @@ export default function BaseApp() {
     }).catch(() => setError("The refuge files could not load. Check your connection and reload."));
     return () => { stopped = true; engine.current?.dispose(); engine.current = null; };
   }, [openDialog]);
+
+  // Fast Refresh can recreate the scene while React retains the open MASTER panel.
+  useEffect(() => {
+    if (DEV_TOOLS && worldEditor) engine.current?.setMaster(master);
+  }, [master, worldEditor]);
 
   useEffect(() => {
     engine.current?.setPaused(dialog !== null);
@@ -161,8 +180,26 @@ export default function BaseApp() {
   return <main className={`${styles.root} ${hideHud ? styles.hideHud : ""}`}>
     <button className={styles.hudToggle} onClick={() => setHideHud(!hideHud)} aria-label={hideHud ? "Show interface" : "Hide interface"}>{hideHud ? "H · Show interface" : "H · Hide interface"}</button>
     <div ref={host} className={styles.viewport} />
+    {ready && !dialog && <section className={styles.cameraPanel} aria-label="Настройка камеры">
+      {snapshot.cameraMode !== 'free' ? <button onClick={()=>{setMaster(false);engine.current?.setMaster(false);engine.current?.frameCamera();}}>Камера · {snapshot.cameraMode === 'fixed' ? 'Изменить кадр' : 'Выбрать кадр'}</button> : <>
+        <strong>Свободная камера</strong>
+        <p>ЛКМ — вращать · ПКМ — сдвигать<br/>Колесо или кнопки − / + — масштаб<br/>На экране: один палец — вращение, два — масштаб и сдвиг.</p>
+        <div className={styles.cameraZoom} aria-label="Масштаб камеры">
+          <button aria-label="Отдалить камеру" title="Отдалить камеру" onClick={()=>engine.current?.zoomCamera(4)}>−</button>
+          <span>МАСШТАБ</span>
+          <button aria-label="Приблизить камеру" title="Приблизить камеру" onClick={()=>engine.current?.zoomCamera(-4)}>+</button>
+        </div>
+        <button onClick={()=>{if(engine.current&&!engine.current.fixCamera())setStorageNotice('Кадр зафиксирован на эту сессию; сохранение в браузере недоступно.');}}>Зафиксировать кадр</button>
+      </>}
+      {snapshot.cameraMode !== 'follow' && <button onClick={()=>engine.current?.resetCamera()}>Стандартный ракурс</button>}
+      {snapshot.cameraMode !== 'free' && <button onClick={()=>{
+        if(engine.current?.restoreCameraPreset2())setStorageNotice('');
+        else setStorageNotice('Ракурс «Стандарт 2» пока недоступен. Сначала зафиксируйте кадр.');
+      }}>Стандарт 2</button>}
+      {snapshot.cameraMode === 'fixed' && <small role="status">Ракурс сохранён · следуем за героем</small>}
+    </section>}
     {DEV_TOOLS && <button className={styles.editorToggle} disabled={!ready} onClick={()=>{setMaster(!master);engine.current?.setMaster(!master);}}>MASTER · {master?"Закрыть":"Редактор карты"}</button>}
-    {DEV_TOOLS&&master&&worldEditor&&<aside className={styles.editorPanel}><BaseEditorPanel editor={worldEditor}/></aside>}
+    {DEV_TOOLS&&master&&worldEditor&&ready&&<aside className={styles.editorPanel}><BaseEditorPanel editor={worldEditor}/></aside>}
     <div className={styles.vignette} />
     <header className={styles.header}>
       <div className={styles.headerRight}>
@@ -176,20 +213,26 @@ export default function BaseApp() {
     <div className={styles.mapWrap}>
       <button className={styles.minimap} aria-label={mapOpen ? "Close refuge map" : "Open refuge map"} aria-expanded={mapOpen} onClick={() => setMapOpen(!mapOpen)}>
         <div className={styles.mapTitle}><span>REFUGE / 01</span><span>N ↑</span></div>
-        <svg viewBox="0 0 230 125" aria-hidden="true"><path d="M146 96h45v14h-45zM191 87h29v33h-29z" fill="#244249" stroke="#78cbbb" /><path d="M14 22h132v92H14z" fill="#153034" stroke="#496562" strokeWidth="1" /><path d="M18 24h37v23H18zM61 24h36v20H61zM103 24h39v23h-39zM19 62h8v22h-8zM126 65h11v26h-11z" fill="#3e5552" /><path d="M53 61h17v7H53zM94 61h17v7H94z" fill="#736f4b" /><path d="M79 47v56M29 86h95" stroke="#33524f" strokeDasharray="2 3" />{getBaseStations().map((s) => <circle key={s.id} cx={80 + s.x * 4.8} cy={69 + s.z * 4.5} r="2" fill={s.color} />)}<circle cx={80 + snapshot.x * 4.8} cy={69 + snapshot.z * 4.5} r="4" fill="#ebd9b5" stroke="#182c2c" strokeWidth="1.5" /></svg>
+        <svg viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`} aria-hidden="true">
+          <rect x={mapX(-LIMIT.x)} y={mapY(BASE_NORTH)} width={LIMIT.x * MAP_SCALE * 2} height={(LIMIT.z-BASE_NORTH)*MAP_SCALE} fill="#153034" stroke="#496562" strokeWidth="1" />
+          <path d={`M${mapX(-14.8)} ${mapY(11.35)}H${mapX(14.8)}`} stroke="#736f4b" strokeWidth="3" />
+          {getBaseStations().map((s) => <circle key={s.id} cx={mapX(s.x)} cy={mapY(s.z)} r="2.4" fill={s.color} />)}
+          <circle cx={mapX(snapshot.x)} cy={mapY(snapshot.z)} r="4" fill="#ebd9b5" stroke="#182c2c" strokeWidth="1.5" />
+        </svg>
         <div className={styles.mapBottom}><Icon name="map" size={12} /><span>AREA MAP</span><span>+</span></div>
       </button>
+      <div className={styles.cameraHint}>WASD · WALK / SHIFT · RUN</div>
       {mapOpen && <nav className={styles.destinations} aria-label="Refuge destinations">{getBaseStations().map((s) => <button key={s.id} onClick={() => { engine.current?.goTo(s.id); setMapOpen(false); }}><span style={{ color: s.color }}>◇</span>{s.name}<span>↗</span></button>)}</nav>}
     </div>
 
-    {!master && !dialog && nearest && ready && <button className={styles.interact} onClick={() => openDialog(nearest.id)}><kbd>E</kbd><span><small>{nearest.role}</small>Talk to {nearest.id === "city" || nearest.id === "stash" ? "terminal" : nearest.name.toLowerCase()}</span><Icon name="arrow" /></button>}
+    {!master && snapshot.cameraMode !== 'free' && !dialog && nearest && ready && <button className={styles.interact} onClick={() => openDialog(nearest.id)}><kbd>E</kbd><span><small>{nearest.role}</small>Talk to {nearest.id === "city" || nearest.id === "stash" ? "terminal" : nearest.name.toLowerCase()}</span><Icon name="arrow" /></button>}
 
-    <MovementStick onMove={moveStick} disabled={!ready || dialog !== null || master} />
+    <MovementStick onMove={moveStick} disabled={!ready || dialog !== null || master || snapshot.cameraMode === 'free'} />
 
     <GameHud hidden={hideHud || !ready} onSettings={() => setDialog("settings")} onQuest={() => openDialog("contracts")} />
     {showStats && <div className={styles.performance} aria-label="Live graphics performance"><strong>{snapshot.fps} FPS{snapshot.timingLimited ? "*" : ""}</strong><span>{snapshot.p95} ms p95 · {snapshot.high ? "HIGH" : "LITE"}</span><span>{snapshot.submitMs} ms CPU submit</span><span>{snapshot.draws} draws · {Math.round(snapshot.triangles / 1000)}k triangles</span><span>DPR {snapshot.ratio.toFixed(2)} · scale {snapshot.scale.toFixed(2)}</span><span>Target {snapshot.target} FPS · {quality.toUpperCase()}</span>{snapshot.timingLimited && <span>* Possible browser timer limit</span>}</div>}
 
-    <LoadingScreen ready={ready} status="Establishing refuge link" error={ready ? "" : error} retryLabel="Reload refuge" />
+    <LoadingScreen ready={ready} key={sceneVersion} status="Establishing refuge link" error={ready ? "" : error} retryLabel="Reload refuge" />
     {storageNotice && <div className={styles.error} role="status">{storageNotice}</div>}
     {ready && error && <div className={styles.error} role="status">{error}<button onClick={() => setError("")} aria-label="Dismiss notice">×</button></div>}
 
@@ -223,7 +266,7 @@ export default function BaseApp() {
           <button onClick={() => setShowStats(!showStats)} aria-pressed={showStats}><span>Live performance display</span><strong>{showStats ? "ON" : "OFF"}</strong></button>
           <button onClick={() => engine.current?.resetCamera()}><span>Reset camera</span><span>↺</span></button>
           <button onClick={() => router.push("/")}><span>Return to hub</span><span>↩</span></button>
-        </div><p className={styles.modalCopy}>Auto reduces reflections and render resolution if this device stays below the target frame rate. Lite keeps the scanned materials and environment lighting. High adds live puddle reflections and bloom.</p><p className={styles.modalCopy}>WASD / arrows to move, Shift to run. The fixed-angle camera follows your movement. On a phone, use the thumbstick and Talk button.</p><div className={styles.diagnostics}>THREE.JS <span>{snapshot.fps} FPS · {snapshot.p95} ms p95 · {snapshot.draws} draws</span></div><p className={styles.notice}>{snapshot.submitMs} ms CPU submission (not GPU time). {snapshot.timingLimited ? "Possible browser timer limit: measure in a foreground browser before judging performance." : "Measure on your target phone; desktop results are not a mobile guarantee."}</p></>}
+        </div><p className={styles.modalCopy}>Auto reduces reflections and render resolution if this device stays below the target frame rate. Lite keeps the scanned materials and environment lighting. High adds live puddle reflections and bloom.</p><p className={styles.modalCopy}>Tactical camera follows your character. WASD / arrows and the thumbstick move relative to the view; Shift runs. Physical WASD also works with the Russian layout (ЦФЫВ), including after using HUD buttons. A short tap still sets a destination.</p><div className={styles.diagnostics}>THREE.JS <span>{snapshot.fps} FPS · {snapshot.p95} ms p95 · {snapshot.draws} draws</span></div><p className={styles.notice}>{snapshot.submitMs} ms CPU submission (not GPU time). {snapshot.timingLimited ? "Possible browser timer limit: measure in a foreground browser before judging performance." : "Measure on your target phone; desktop results are not a mobile guarantee."}</p></>}
       </div>
     </div>}
   </main>;
