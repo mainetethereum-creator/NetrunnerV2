@@ -5,6 +5,27 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 
 ## Root
 
+Movable metro opening: `src/renderer/environment/metro-opening.ts` [3] owns live
+clipping planes/material copies and binds the pristine editor delta. Base scene
+applies them to foundation/stone; `wet-floor.ts` clips the Reflector shader;
+`base-map-editor.ts` updates the cut on original metro transforms/delete/undo.
+Stairs/shell/guide lighting: `components/base/metro.ts`. Notes:
+`docs/metro-opening.md`; coverage: `tests/metro-opening.test.mjs`.
+
+City frontage/traffic: `src/renderer/environment/city-street.ts` [3] owns the
+street batches/resources; `city-vehicles.ts` + `city-street-geometry.ts` [3] build
+reusable 3D shells/material batches; `city-traffic-layout.ts` [P] defines lanes,
+headways and constant-speed poses. Base scene supplies the shared clock;
+`BaseApp.tsx` persists the City traffic switch. `scripts/place-city-street.mjs`
+removes only the previous task's scenery IDs. Notes: `docs/city-street.md`;
+checks: `tests/city-street.test.mjs`.
+
+Corner / slender tower / outskirts kit: `scripts/build-outskirts-kit.py` → seven
+`public/game/buildings/<slug>-v1/` GLBs. `scripts/place-outskirts-kit.mjs` reproduces
+the map additions. Notes: `docs/outskirts-kit.md`; tests: `tests/outskirts-kit.test.mjs`.
+Ground collision policy: `src/assets/reference-buildings.ts`; burning drum:
+`components/expedition/prop-assets.ts` (reuses existing drum/campfire).
+
 Approved CYBERBASE / parts / office trio: `scripts/build-city-trio.py` →
 `public/game/buildings/{cyberbase-tower,japanese-parts-shop,urban-office}-v1/`.
 Shared catalogue IDs use the same slugs prefixed `building-`.
@@ -230,3 +251,7 @@ Offline performance tools: `scripts/benchmark-editor-nudge.mjs` measures control
 CPU work without a GPU/server; `scripts/audit-runtime-models.mjs` inventories all
 public GLB/GLTF geometry, image dimensions, bytes and runtime usage. Results are
 under `output/performance/`; source-model counts are distinct from repeated scene draws.
+
+- `src/assets/base-published-layout.ts`: immutable 40-entry production Base release data.
+- `components/base/published-map.ts`: release scenery hydration, collision/station transforms and library lifetime; no editor controller.
+- `tests/base-published-map.test.mjs`: export parity, fresh runtime hydration and resource ownership.

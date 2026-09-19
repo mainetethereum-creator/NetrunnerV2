@@ -1,8 +1,14 @@
 # Project state — Netrunner / CyberBase
 
-Last updated: 2026-09-18 · repository `mainetethereum-creator/NetrunnerV2`; current working branch `feature/ui-kit-3d` · architecture refactor steps 1–4, UI kits and owner-requested Base environment rollback. Uncommitted hero extraction predates this atmosphere task; step 5 is not signed off.
+Last updated: 2026-09-19 · repository `mainetethereum-creator/NetrunnerV2`; current working branch `feature/ui-kit-3d` · architecture refactor steps 1–4, UI kits and owner-requested Base environment rollback. Uncommitted hero extraction predates this atmosphere task; step 5 is not signed off.
 
 ## Implemented (the working game — must be preserved)
+
+- **Relocated metro opening (2026-09-19):** revealed the existing stairs and 2.4 m lower landing beneath the owner's east-side entrance. Shared clipping planes cut stone, both structural layers and High-mode reflections; cut follows original metro transforms and closes on deletion. Four tread guide lights. Current **40-entry** owner map is preserved exactly in `output/map-backups/base-with-metro-opening-2026-09-19.json`; camera unchanged. Visual entrance only; door/navigation unchanged. See `docs/metro-opening.md` (ADR-038). Earlier map counts below are historical.
+
+- **City frontage and traffic (2026-09-19):** the owner replaced the outskirts with a two-way street, sidewalks, low divider, bus stops and lamps. Instanced sedans, taxis and buses animate in the shared scene loop. Settings → City traffic persists and can override the reduced-motion default; enabled in the owner's browser. Latest map: **37 entries**, `output/map-backups/base-with-city-traffic-2026-09-19.json`. Only 20 outskirts scenery IDs removed; all owner edits/four new buildings/camera retained. Road is scenery outside walking bounds. See `docs/city-street.md` (ADR-037).
+
+- **Four buildings and first outskirts (2026-09-19, scenery superseded above):** two corners and two slender modern towers modeled and placed in the owner's Base. Seven GLBs plus reused drums, fire, tires and bags remain in the catalogue. Historical 57-entry map: `output/map-backups/base-with-outskirts-2026-09-19.json`; all original 32 entries unchanged. See `docs/outskirts-kit.md`.
 
 - **Latest owner map checkpoint (2026-09-19):** saved in browser and exported as `output/map-backups/base-checkpoint-2026-09-19.json` (28 entries). Includes owner-placed parts shop/CYBERBASE, relocated Coinbase/metro and second portrait tower. This supersedes all historical positions and 16-entry snapshots below; preserve newer browser edits.
 
@@ -130,3 +136,7 @@ When the owner asks to resume the architecture refactor, follow `ROADMAP.md`.
 First `next` item: step 5, hero model and animation in `src/renderer/animations/hero`,
 no behaviour change; run the owed browser checks (TD-02) before or alongside it.
 Feature and asset requests remain their own tasks and do not start this queue.
+
+Production Base now includes the owner-approved 40-entry city layout independently
+of local editor saves. Release hydration preserves moved/deleted buildings, stations,
+colliders and metro opening. See `docs/base-map-editor.md`.

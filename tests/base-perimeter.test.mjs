@@ -13,7 +13,7 @@ const {buildConcretePerimeter}=await import('../components/base/fence.ts');
 const {courtyardFloorGeometry}=await import('../components/base/metro.ts');
 const {FLOOR_EAST,FLOOR_NORTH,FLOOR_SOUTH,FLOOR_WEST}=await import('../components/base/layout.ts');
 
-test('expanded pavement is solid across the old metro pit and new city pad',()=>{
+test('expanded pavement receiver covers the whole pad before the movable metro material cut',()=>{
  const geometry=courtyardFloorGeometry(),mesh=new T.Mesh(geometry,new T.MeshBasicMaterial());
  mesh.rotation.x=-Math.PI/2;mesh.updateMatrixWorld(true);
  const ray=new T.Raycaster();

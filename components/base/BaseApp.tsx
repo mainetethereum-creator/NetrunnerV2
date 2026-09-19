@@ -78,6 +78,7 @@ export default function BaseApp() {
   const [dialog, setDialog] = useState<StationId | "wallet" | "settings" | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
   const [rain, setRain] = useState(true), [quality, setQuality] = useState<QualityMode>("auto"), [quest, setQuest] = useState<Quest>(EMPTY_QUEST);
+  const [traffic, setTraffic] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [master,setMaster]=useState(false),[worldEditor,setWorldEditor]=useState<WorldEditor|null>(null);
   const [hideHud, setHideHud] = useState(false);
@@ -127,6 +128,13 @@ export default function BaseApp() {
         setWorldEditor(engine.current.editor);
         const motion = matchMedia("(prefers-reduced-motion: reduce)").matches;
         setRain(!motion);
+        let trafficEnabled = !motion;
+        try {
+          const savedTraffic = localStorage.getItem("cyberbase.base.traffic.v1");
+          if (savedTraffic === "true" || savedTraffic === "false") trafficEnabled = savedTraffic === "true";
+        } catch { /* The system motion preference remains the session default. */ }
+        setTraffic(trafficEnabled);
+        engine.current.setTraffic(trafficEnabled);
         engine.current.setQuality("auto");
         setQuality("auto");
       } catch { setError("The refuge could not start WebGL. Enable hardware acceleration in your browser, then reload."); }
@@ -262,6 +270,12 @@ export default function BaseApp() {
         </>}
         {dialog === "settings" && <><h2 id="base-dialog-title">Make yourself comfortable.</h2><div className={styles.settingRows}>
           <button onClick={() => { setRain(!rain); engine.current?.setRain(!rain); }} aria-pressed={rain}><span>Rain particles</span><strong>{rain ? "ON" : "OFF"}</strong></button>
+          <button onClick={() => {
+            const enabled = !traffic;
+            setTraffic(enabled); engine.current?.setTraffic(enabled);
+            try { localStorage.setItem("cyberbase.base.traffic.v1", String(enabled)); }
+            catch { setStorageNotice("Traffic preference lasts for this visit only; browser storage is unavailable."); }
+          }} aria-pressed={traffic}><span>City traffic</span><strong>{traffic ? "ON" : "OFF"}</strong></button>
           <button onClick={() => { const next = quality === "auto" ? "high" : quality === "high" ? "lite" : "auto"; setQuality(next); engine.current?.setQuality(next); }}><span>Graphics quality</span><strong>{quality.toUpperCase()} · {snapshot.high ? "HIGH" : "LITE"}</strong></button>
           <button onClick={() => setShowStats(!showStats)} aria-pressed={showStats}><span>Live performance display</span><strong>{showStats ? "ON" : "OFF"}</strong></button>
           <button onClick={() => engine.current?.resetCamera()}><span>Reset camera</span><span>↺</span></button>

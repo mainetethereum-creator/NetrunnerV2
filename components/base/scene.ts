@@ -31,6 +31,8 @@ import { adaptMobileBudget, initialMobileBudget, mobileRenderRatio, usesTouchPro
 import { canStand, findPath, moveWithCollision, nearestStation, SPAWN, STATIONS, type Point, type StationId } from "./world";
 import { createImplantsBuilding } from "../../src/renderer/environment/implants-building.ts";
 import { createElevatedRail } from "../../src/renderer/environment/elevated-rail.ts";
+import { createCityStreet } from "../../src/renderer/environment/city-street.ts";
+import { createMetroOpening } from "../../src/renderer/environment/metro-opening.ts";
 import { createMediaTower } from "../../src/renderer/environment/media-tower.ts";
 import { createReferenceBuildingLibrary } from "../../src/renderer/three/reference-building-library.ts";
 
@@ -40,7 +42,7 @@ export type BaseSnapshot = { x: number; z: number; near: StationId | null; fps: 
 export type BaseEngine = {
   editor:WorldEditor; setMaster(value:boolean):void;
   dispose(): void; setPaused(value: boolean): void; setStick(x: number, y: number): void;
-  setRain(value: boolean): void; setQuality(value: QualityMode): void;
+  setRain(value: boolean): void; setTraffic(value: boolean): void; setQuality(value: QualityMode): void;
   resetCamera(): void; goTo(id: StationId): void;
   frameCamera(): void; zoomCamera(delta: number): void; fixCamera(): boolean;
   restoreCameraPreset2(): boolean;
@@ -62,6 +64,8 @@ export function createBaseScene(
   let budget = initialMobileBudget(), resolutionScale = 1;
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const renderer = new T.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+  renderer.localClippingEnabled = true;
+  const metroOpening = createMetroOpening();
   renderer.setPixelRatio(mobile ? mobileRenderRatio(host.clientWidth, host.clientHeight, devicePixelRatio, resolutionScale) : renderRatio(host.clientWidth, host.clientHeight, devicePixelRatio, quality));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = T.VSMShadowMap;
@@ -126,7 +130,6 @@ export function createBaseScene(
   const instanceLabels = new Map<T.InstancedMesh, readonly EditLabel[]>();
   let currentLabel: EditLabel | undefined, partId = 0;
   const section = (id: string, name: string, build: () => void) => {
-    if (!DEV_TOOLS) { build(); return; }
     const previous = currentLabel, before = new Set(scene.children);
     currentLabel = { id, name };
     build();
@@ -140,7 +143,7 @@ export function createBaseScene(
     dummy.position.set(x, y, z); dummy.scale.set(w, h, d); dummy.rotation.set(0, ry, 0); dummy.updateMatrix();
     if (!batches.has(mat)) batches.set(mat, []);
     batches.get(mat)!.push(dummy.matrix.clone());
-    if (DEV_TOOLS) {
+    {
       const labels = boxLabels.get(mat) ?? [];
       labels.push(currentLabel ?? { id: `base:part:${++partId}`, name: `Деталь / ${partId} (${x.toFixed(1)}, ${z.toFixed(1)})` });
       boxLabels.set(mat, labels);
@@ -171,11 +174,10 @@ export function createBaseScene(
     mesh.position.set(x, y, z); mesh.rotation.y = rotation; scene.add(mesh);
   }
 
-  // One continuous layered city slab. The relocated metro no longer leaves a
-  // structural opening behind in the courtyard.
+  // The metro's live opening clips both structural layers and the paving.
   section("base:foundation", "Основание платформы", () => {
-  box(FLOOR_CENTER_X, -0.68, FLOOR_CENTER_Z, FLOOR_WIDTH + 1, 1.3, FLOOR_DEPTH + 1, m.dark);
-  box(FLOOR_CENTER_X, -0.11, FLOOR_CENTER_Z, FLOOR_WIDTH, .22, FLOOR_DEPTH, m.concrete);
+  box(FLOOR_CENTER_X, -0.68, FLOOR_CENTER_Z, FLOOR_WIDTH + 1, 1.3, FLOOR_DEPTH + 1, metroOpening.material(m.dark));
+  box(FLOOR_CENTER_X, -0.11, FLOOR_CENTER_Z, FLOOR_WIDTH, .22, FLOOR_DEPTH, metroOpening.material(m.concrete));
   for (let x = FLOOR_WEST + .65; x < FLOOR_EAST; x += 1.3) {
     box(x, -0.6, FLOOR_SOUTH - .45, 1.17, 0.88, 0.18, m.edge);
     if (x % 2 < 1) box(x, -0.5, FLOOR_SOUTH - .34, 0.45, 0.1, 0.03, m.brass);
@@ -186,6 +188,7 @@ export function createBaseScene(
   // The scan supplies aligned stone faces, chipped joints and normals.
   // A second geometric grid would cut across those joints, so use one receiver.
   const stone = surfaces.apply(new T.MeshStandardMaterial({ color: "#c9cfd3", roughness: .9, metalness: .02 }), "stone", .25);
+  metroOpening.apply(stone);
   section("base:floor", "Покрытие двора", () => {
   const courtyardFloor = new T.Mesh(courtyardFloorGeometry(),stone);
   courtyardFloor.rotation.x = -Math.PI/2; courtyardFloor.position.y=.075;
@@ -200,7 +203,7 @@ export function createBaseScene(
 
   });
   section("base:metro", "Метро · вход и лестница", () => buildMetro({ box, cylinder, pipe, sign, light, m, surface: surfaces.apply }));
-  buildRefugeZones({ box, cylinder, pipe, sign, light, m, surface: surfaces.apply, section });
+  buildRefugeZones({ box, cylinder, pipe, sign, light, m, surface: surfaces.apply, section, groundMaterial: metroOpening.apply });
 
   section("base:city-gate", "Городской шлюз", () => {
   sign("NEON SPRAWL", "CITY AIRLOCK / SEALED", -14.3, 4.5, 0, 4, "#8cc5c3", Math.PI / 2);
@@ -211,12 +214,12 @@ export function createBaseScene(
   }), "concrete", .65);
   fenceConcrete.normalScale.setScalar(.7);
   // Keep the already merged fence separate from the indexed pipe batches.
-  section("base:perimeter", "Обломки периметра", () => buildConcretePerimeter(scene, fenceConcrete, m.edge.clone(), DEV_TOOLS ? section : undefined));
+  section("base:perimeter", "Обломки периметра", () => buildConcretePerimeter(scene, fenceConcrete, m.edge.clone(), section));
 
   // A wide, damaged expedition passage branches from the refuge perimeter.
   section("base:annex-floor", "Дорога к пристройке", () => {
-  box(19, -0.35, 7.5, 8, 0.7, 5.4, m.dark);
-  box(26, -0.35, 7.5, 6.2, 0.7, 7.2, m.dark);
+  box(19, -0.35, 7.5, 8, 0.7, 5.4, metroOpening.material(m.dark));
+  box(26, -0.35, 7.5, 6.2, 0.7, 7.2, metroOpening.material(m.dark));
   });
   for (const z of [4.8, 10.2]) section(z < 7 ? "base:rail-north" : "base:rail-south", z < 7 ? "Ограда прохода · север" : "Ограда прохода · юг", () => {
     for (let x = 15; x <= 23; x++) {
@@ -327,14 +330,14 @@ export function createBaseScene(
   for (const [mat, transforms] of batches) {
     const mesh = new T.InstancedMesh(new RoundedBoxGeometry(1, 1, 1, 1, 0.018), mat, transforms.length);
     transforms.forEach((matrix, i) => mesh.setMatrixAt(i, matrix));
-    if (DEV_TOOLS) instanceLabels.set(mesh, boxLabels.get(mat)!);
+    instanceLabels.set(mesh, boxLabels.get(mat)!);
     mesh.castShadow = mat !== m.teal && mat !== m.amber; mesh.receiveShadow = true;
     scene.add(mesh);
   }
 
   const excludedEditorObjects = new Set<T.Object3D>([hemi, sun, rim, courtyardFill, ...npcs, ...stationRings.values()]);
-  const editableSources = DEV_TOOLS ? scene.children.filter(object => !excludedEditorObjects.has(object)) : [];
-  if (DEV_TOOLS) editableSources.forEach((object, i) => {
+  const editableSources = scene.children.filter(object => !excludedEditorObjects.has(object));
+  editableSources.forEach((object, i) => {
     if (!editLabels.has(object)) editLabels.set(object, { id: `base:surface:${i}`, name: object.name || `Поверхность / ${i + 1}` });
   });
   // Merge static pipes, fans and service rigs by material, reducing draw calls.
@@ -354,9 +357,9 @@ export function createBaseScene(
     const merged = mergeGeometries(copies); copies.forEach((g) => g.dispose());
     if (!merged) continue;
     const combined = new T.Mesh(merged, mat); combined.castShadow = true; combined.receiveShadow = true; scene.add(combined);
-    meshes.forEach((mesh) => { mesh.removeFromParent(); if (!DEV_TOOLS) mesh.geometry.dispose(); });
+    meshes.forEach((mesh) => { mesh.removeFromParent(); });
   }
-  const editableRendered = DEV_TOOLS ? scene.children.filter(object => !excludedEditorObjects.has(object)) : [];
+  const editableRendered = scene.children.filter(object => !excludedEditorObjects.has(object));
   const npcStations=["smith","contracts","metro","oracle","market"] as const;
   let editableRender: import("./editable-render").EditableRender | undefined;
   let editorShadowDirty = false;
@@ -374,14 +377,16 @@ export function createBaseScene(
         onPan: (x,z) => { pivot.x+=x;pivot.z+=z; },
         onFocus: (x,z) => { pivot.x=x;pivot.z=z; },
         onFloorVisibility: value => { floorVisible = value; },
+        onMetroTransform: metroOpening.update,
       });
       editableRender = result.render;
       return result.editor;
     };
   }),()=>onError("Не удалось восстановить карту. Сохранение не изменено. Перезагрузите страницу для повторной попытки."));
+  let publishedMap: ReturnType<typeof import("./published-map.ts").createPublishedMap> | undefined;
   const detailBefore = new Set(scene.children);
   const surfaceDetails = addRefugeSurfaceDetails(scene);
-  if (DEV_TOOLS) for (const object of scene.children) {
+  for (const object of scene.children) {
     if (detailBefore.has(object)) continue;
     editableSources.push(object); editableRendered.push(object);
     editLabels.set(object, {id: `base:detail:${editableSources.length}`, name: "Декор поверхности"});
@@ -397,7 +402,7 @@ export function createBaseScene(
   }
 
   let floorVisible = true;
-  const puddle = createWetFloor(mobile); puddle.visible = quality.high; scene.add(puddle);
+  const puddle = createWetFloor(mobile, metroOpening); puddle.visible = quality.high; scene.add(puddle);
 
   const player = new T.Group(); player.position.set(SPAWN.x, 0.12, SPAWN.z); scene.add(player);
   // A small, unshadowed fill follows the runner and gently reaches nearby paving.
@@ -432,7 +437,7 @@ export function createBaseScene(
   const mediaTower = createMediaTower(scene,
     createReferenceBuildingLibrary(mobile ? 2 : 4, url => loader.loadAsync(url)),
     onError, () => { assetSettled(); renderer.shadowMap.needsUpdate = true; });
-  if (DEV_TOOLS) {
+  {
     worldAssetLoads.push(mediaTower.ready);
     editableSources.push(mediaTower.root); editableRendered.push(mediaTower.root);
     editLabels.set(mediaTower.root, { id: "base:media-tower", name: "Медиа-башня · стекло и портрет" });
@@ -442,11 +447,13 @@ export function createBaseScene(
     renderer.shadowMap.needsUpdate = true;
   });
   let lastRailShadow = 0;
+  const cityStreet = createCityStreet(scene, mobile);
+  let trafficOn = !reducedMotion;
   const implantsBuilding = createImplantsBuilding(scene, loader, mobile, onError, () => {
     assetSettled();
     renderer.shadowMap.needsUpdate = true;
   });
-  if (DEV_TOOLS) {
+  {
     worldAssetLoads.push(implantsBuilding.ready);
     editableSources.push(implantsBuilding.root); editableRendered.push(implantsBuilding.root);
     editLabels.set(implantsBuilding.root, { id: "base:implants", name: "Здание IMPLANTS" });
@@ -472,7 +479,7 @@ export function createBaseScene(
         }
       });
       scene.add(model);
-      if (DEV_TOOLS) {
+      {
         editableSources.push(model); editableRendered.push(model);
         editLabels.set(model, {id: `base:${file}`, name: file === "workshop" ? "Здание CYBERSMITH" : file === "oracle" ? "Здание ORACLE" : "Городской шлюз"});
       }
@@ -481,7 +488,7 @@ export function createBaseScene(
           const neighbour = model.clone(true); neighbour.position.set(x, -.9, z); neighbour.scale.setScalar(size);
           neighbour.traverse((o) => { if ((o as T.Mesh).isMesh) (o as T.Mesh).castShadow = false; });
           scene.add(neighbour);
-          if (DEV_TOOLS) { editableSources.push(neighbour); editableRendered.push(neighbour); editLabels.set(neighbour, {id:`base:neighbour:${x}`,name:`Соседний дом (${x})`}); }
+          { editableSources.push(neighbour); editableRendered.push(neighbour); editLabels.set(neighbour, {id:`base:neighbour:${x}`,name:`Соседний дом (${x})`}); }
         }
       }
       renderer.shadowMap.needsUpdate = true;
@@ -501,6 +508,27 @@ export function createBaseScene(
         }).catch(() => { /* The lazy facade reports the error; keep the stale map hidden. */ });
       }
     } catch { onError("Сохранённая карта недоступна: браузер заблокировал локальное хранилище."); }
+  }
+  if (!DEV_TOOLS) {
+    layoutReady = false;
+    void Promise.all(worldAssetLoads).then(async () => {
+      const { createPublishedMap } = await import("./published-map.ts");
+      if (disposed) return;
+      publishedMap = createPublishedMap({
+        scene, sources: editableSources, rendered: editableRendered, labels: editLabels, instanceLabels,
+        npcs: npcs.map((object, i) => ({ id: `npc:${npcStations[i]}`, object,
+          onTransform: e => { setBaseStationOverride(npcStations[i], { x: e.x, z: e.z, deleted: !!e.deleted }); const ring = stationRings.get(npcStations[i]); if (ring) { ring.position.set(e.x, .1, e.z); ring.visible = !e.deleted; } }
+        })),
+        onColliders: setBaseEditorColliders,
+        onFloorVisibility: value => { floorVisible = value; },
+        onMetroTransform: metroOpening.update,
+        onAssetsChanged: () => { renderer.shadowMap.needsUpdate = true; },
+      });
+      await publishedMap.ready;
+      if (disposed) return;
+      layoutReady = true;
+      revealMap();
+    }).catch(() => { if (!disposed) onError("Карта не загрузилась. Перезагрузите страницу для повторной попытки."); });
   }
   // Refuge character selection is independent of the legacy city.
   const character = "NEON SENTINEL";
@@ -644,6 +672,7 @@ export function createBaseScene(
       }
     }
     const time = now / 1000;
+    cityStreet.update(!trafficOn || paused || modalOpen || editor.active ? 0 : dt);
     if (elevatedRail.update(paused || modalOpen || editor.active ? 0 : dt, reducedMotion)
       && !mobile && now - lastRailShadow > 100) {
       renderer.shadowMap.needsUpdate = true;
@@ -755,6 +784,7 @@ export function createBaseScene(
       input.setStick(x, y);
     },
     setRain(value) { rainOn = value; },
+    setTraffic(value) { trafficOn = value; },
     setQuality(value) { quality = initialQuality(mobile, value); if (quality.high) enablePostprocessing(); puddle.visible = quality.high; rainGeometry.setDrawRange(0, quality.high ? rainCount * 2 : Math.min(rainCount, 180) * 2); renderer.shadowMap.needsUpdate = true; resize(); },
     frameCamera() { resetInput(); frameCamera.start(pivot); },
     zoomCamera(delta) { frameCamera.zoomBy(delta); },
@@ -766,9 +796,9 @@ export function createBaseScene(
       disposed = true; clearInput(); frameCamera.dispose(); loop.dispose(); clearTimeout(loadTimeout); observer.disconnect(); draco.dispose();
       window.removeEventListener("keydown", keyDown); window.removeEventListener("keyup", keyUp); window.removeEventListener("blur", clearInput);
       window.removeEventListener("netrunner:input-reset", clearInput); modalObserver.disconnect();
-      editor.dispose(); editableRender?.dispose(); implantsBuilding.dispose(); mediaTower.dispose(); elevatedRail.dispose(); clearBaseEditor();
+      editor.dispose(); editableRender?.dispose(); publishedMap?.dispose(); implantsBuilding.dispose(); mediaTower.dispose(); elevatedRail.dispose(); cityStreet.dispose(); clearBaseEditor();
       // Retained source geometries may be detached by the static merge.
-      if (DEV_TOOLS) for (const object of editableSources) if (!object.parent && object !== implantsBuilding.root && object !== mediaTower.root) scene.add(object);
+      for (const object of editableSources) if (!object.parent && object !== implantsBuilding.root && object !== mediaTower.root) scene.add(object);
       renderer.domElement.removeEventListener("pointermove",onHover);
       renderer.domElement.removeEventListener("pointerdown", onDown); renderer.domElement.removeEventListener("pointerup", onUp);
       renderer.domElement.removeEventListener("pointercancel", clearInput); renderer.domElement.removeEventListener("wheel", wheel);

@@ -2,7 +2,8 @@ import * as T from "three";
 import type { ArchitectureTools } from "./buildings";
 import { FLOOR_EAST, FLOOR_NORTH, FLOOR_SOUTH, FLOOR_WEST } from './layout.ts';
 
-/** Solid city paving. The old metro entrance has moved, so its former pit is sealed. */
+/** Continuous receiver geometry; the live metro opening clips paving and slab
+ * in their materials, so a moved entrance never leaves a hole at the old site. */
 export function courtyardFloorGeometry() {
   const shape = new T.Shape();
   shape.moveTo(FLOOR_WEST, -FLOOR_SOUTH);
@@ -47,6 +48,8 @@ export function buildMetro({box, pipe, sign, light, m, surface}: ArchitectureToo
     const z=-5.77-i*.29, top=.06-i*.205;
     box(7.15,top-.105,z,3.35,.20,.295,concrete);
     box(7.15,top+.009,z+.13,3.32,.022,.035,steel);
+    // Recessed guide strips make the descent readable below the plaza lighting.
+    if (i % 3 === 1) box(7.15,top+.023,z+.13,3.05,.014,.021,cold);
     for(let x=5.62;x<8.7;x+=.09) box(x,top+.022,z+.075,.024,.016,.12,dark);
   }
   // Sloping escalator-like metal cheeks and continuous rubber handrails.
@@ -89,7 +92,7 @@ export function buildMetro({box, pipe, sign, light, m, surface}: ArchitectureToo
   }
   box(8.5,1.40,-10.62,6.25,.14,.17,steel);
   box(8.5,1.36,-10.51,6.0,.065,.035,cold);
-  light(7.2,-.45,-8.8,0x8ed9ca,15,6);
+  light(7.2,-.45,-8.8,0x8ed9ca,22,6);
   light(7.15,1.05,-7.1,0xb2ddd1,24,6);
   light(10.4,2.2,-6.9,0xff8077,9,4);
   light(7.1,2.5,-5.2,0xe79485,8,5);

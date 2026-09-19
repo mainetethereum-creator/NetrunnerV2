@@ -11,7 +11,11 @@ export function parseDocument(text:string,map:MapId,sources:ReadonlySet<string>)
  if(d.version!==1||d.map!==map||!Array.isArray(d.entries)||d.entries.length>500)throw new Error('Неверная версия, карта или лимит объектов');
  const ids=new Set<string>();
  const entries=d.entries.map(raw=>{
-  if(!raw||typeof raw!=='object'||typeof raw.id!=='string'||! /^[a-zA-Z0-9:_-]{1,120}$/.test(raw.id)||ids.has(raw.id)||!sources.has(raw.source))throw new Error('Неизвестный объект или повторяющийся ID');
+  if(!raw||typeof raw!=='object'||typeof raw.id!=='string'||ids.has(raw.id)||!sources.has(raw.source))throw new Error('Неизвестный объект или повторяющийся ID');
+  // Authored wall IDs contain decimal world coordinates. Accept these only
+  // when the ID exactly names a registered source; new prop IDs stay strict.
+  const knownAuthoredId=raw.id===raw.source&&sources.has(raw.id)&&raw.id.length<=120;
+  if(!knownAuthoredId&&!/^[a-zA-Z0-9:_-]{1,120}$/.test(raw.id))throw new Error('Неизвестный объект или повторяющийся ID');
   if(sources.has(raw.id)&&raw.source!==raw.id)throw new Error("Нельзя подменить исходный объект");
   ids.add(raw.id);
   const keys=['x','y','z','rx','rotation','rz','sx','sy','sz'] as const;

@@ -238,3 +238,11 @@ editor gating and reclaims canvas focus for movement keys after ordinary HUD but
 - TypeScript; relative imports inside `src/` use explicit `.ts` extensions so `node:test` can import modules directly (the tests run without a bundler).
 - Readable multi-line formatting; comments explain *why*.
 - When a legacy test asserts exact source text, keep that line intact or change the test deliberately in the same commit.
+
+### Published Base layout (2026-09-19)
+
+Production captures authored render labels and applies `src/assets/base-published-layout.ts`
+through `components/base/published-map.ts`. This reuses the existing render grouping
+and collider transform adapter, loads placed building models, and batches authored
+geometry after hydration. The editor controller, catalogue UI and browser storage
+remain development-only. The scene stays hidden until the complete release map is ready.

@@ -21,6 +21,39 @@ let clock=0;
 const drain=()=>{for(let i=0;i<20&&frames.some(Boolean);i++){clock+=100;const pending=frames.splice(0);for(const callback of pending)callback?.(clock);}};
 const {createWorldEditor}=await import('../components/world-editor/controller.ts');
 const {createBaseMapEditor}=await import('../components/base/base-map-editor.ts');
+const {createPropLibrary}=await import('../components/expedition/prop-assets.ts');
+
+test('burning drums reuse city fire geometry and dispose every shared buffer once',()=>{
+ const library=createPropLibrary(1),a=library.create('burning-drum'),b=library.create('burning-drum');
+ assert.ok(a.getObjectByProperty('isPointLight',true));
+ const geometries=new Map();
+ a.traverse(o=>{if(o.isMesh&&!geometries.has(o.geometry)){
+  const record={disposed:0};geometries.set(o.geometry,record);
+  o.geometry.addEventListener('dispose',()=>record.disposed++);
+ }});
+ const second=new Set();b.traverse(o=>{if(o.isMesh)second.add(o.geometry);});
+ assert.deepEqual(second,new Set(geometries.keys()));
+ a.position.x=10;assert.equal(b.position.x,0);
+ library.dispose();
+ for(const record of geometries.values())assert.equal(record.disposed,1);
+});
+
+test('imported outskirts ground stays non-solid after move, scale and undo',async()=>{
+ const originalLoad=GLTFLoader.prototype.loadAsync,originalStorage=globalThis.localStorage;
+ GLTFLoader.prototype.loadAsync=async()=>({scene:new T.Group().add(new T.Mesh(new T.BoxGeometry(64,.5,26),new T.MeshStandardMaterial()))});
+ globalThis.localStorage={getItem:()=>null,setItem(){}};
+ let colliders=[];
+ const editor=createWorldEditor(new T.Scene(),()=>{},{map:'base',anisotropy:1,height:()=>0,onColliders:r=>colliders=r});
+ try{
+  await editor.importJSON(JSON.stringify({version:1,map:'base',entries:[{id:'prop:ground',source:'outskirts-ground',x:0,y:0,z:0,rx:0,rotation:0,rz:0,sx:1,sy:1,sz:1}]}));
+  drain();assert.deepEqual(colliders,[]);
+  editor.select('prop:ground');editor.change({x:10,sx:2});drain();assert.deepEqual(colliders,[]);
+  editor.undo();drain();assert.deepEqual(colliders,[]);
+ }finally{
+  editor.dispose();GLTFLoader.prototype.loadAsync=originalLoad;
+  if(originalStorage===undefined)delete globalThis.localStorage;else globalThis.localStorage=originalStorage;
+ }
+});
 
 test('selecting and cancelling never republish unchanged pads; a real move publishes once',()=>{
  const scene=new T.Scene(),object=new T.Mesh(new T.BoxGeometry(2,2,2),new T.MeshBasicMaterial());

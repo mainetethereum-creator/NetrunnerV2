@@ -3,9 +3,10 @@ import { Reflector } from "three/examples/jsm/objects/Reflector.js";
 import { WETNESS_GLSL } from "./wetness";
 import { courtyardFloorGeometry } from "./metro";
 import { FLOOR_EAST, FLOOR_NORTH, FLOOR_SOUTH } from './layout.ts';
+import type { MetroOpening } from '../../src/renderer/environment/metro-opening.ts';
 
 /** One bounded planar reflection for the courtyard; patch mask preserves stone. */
-export function createWetFloor(mobile: boolean) {
+export function createWetFloor(mobile: boolean, opening?: MetroOpening) {
   const floor = new Reflector(courtyardFloorGeometry(), {
     color: 0x88969b, textureWidth: mobile ? 384 : 768, textureHeight: mobile ? 384 : 768,
     clipBias: 0.001, multisample: 0,
@@ -13,6 +14,18 @@ export function createWetFloor(mobile: boolean) {
   floor.rotation.x = -Math.PI / 2; floor.position.y = 0.092;
   const mat = floor.material as T.ShaderMaterial;
   mat.transparent = true; mat.depthWrite = false;
+  // Reflector uses a custom shader: opt into the same local clipping planes as
+  // the stone/slab so reflected water cannot seal the stairwell in High mode.
+  if (opening) {
+    opening.apply(mat);
+    mat.clipping = true;
+    mat.vertexShader = mat.vertexShader
+      .replace('#include <logdepthbuf_pars_vertex>', '#include <logdepthbuf_pars_vertex>\n#include <clipping_planes_pars_vertex>')
+      .replace('#include <logdepthbuf_vertex>', '#include <logdepthbuf_vertex>\nvec4 mvPosition = modelViewMatrix * vec4(position, 1.0);\n#include <clipping_planes_vertex>');
+    mat.fragmentShader = mat.fragmentShader
+      .replace('#include <logdepthbuf_pars_fragment>', '#include <logdepthbuf_pars_fragment>\n#include <clipping_planes_pars_fragment>')
+      .replace('#include <logdepthbuf_fragment>', '#include <clipping_planes_fragment>\n#include <logdepthbuf_fragment>');
+  }
   mat.uniforms.waterTime = { value: 0 };
   mat.vertexShader = mat.vertexShader.replace("uniform mat4 textureMatrix;", "varying vec2 floorPoint; uniform mat4 textureMatrix;")
     .replace("vUv = textureMatrix", "floorPoint = position.xy; vUv = textureMatrix");

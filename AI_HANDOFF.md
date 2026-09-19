@@ -1,10 +1,102 @@
 # AI handoff — 2026-09-19
 
 Repository: `mainetethereum-creator/NetrunnerV2`, working branch `feature/ui-kit-3d`.
-Preserve the shared dirty tree. Architecture step 5 is not signed off. No push/deploy
-authorized. Previous detailed handoff: `docs/archive/AI_HANDOFF-before-map-restore-2026-09-18.md`.
+Preserve the shared dirty tree. Architecture step 5 is not signed off. Owner authorized commit, push and Vercel deployment on 2026-09-19. Previous detailed handoff: `docs/archive/AI_HANDOFF-before-map-restore-2026-09-18.md`.
 
-## Latest checkpoint: owner map saved for local Git commit (2026-09-19)
+## Release checkpoint: publish current city (2026-09-19)
+
+Owner explicitly requested Git + deployment and a phone-testing URL. Fresh MASTER
+Save/export still contains exactly 40 entries: `output/map-backups/base-published-2026-09-19.json`.
+Production previously skipped browser editor saves and would show the old map.
+`src/assets/base-published-layout.ts` now carries the release data;
+`components/base/published-map.ts` reuses the renderer's authored grouping,
+restores transforms/deletions, NPC stations, colliders and relocated metro cut,
+and loads just the placed buildings. No editor controller/UI or storage in production.
+Dev continues using the owner's independent browser save. Camera save unchanged.
+215 tests, TypeScript, lint and production build passed. Fresh production origin
+loaded the current city, movement worked, 390×844 view and console checked. The
+physical phone/touch performance check is the owner’s next step. Metro depth
+visually inspected on the live map. Temporary production server will be stopped.
+Git origin/main is an ancestor of the current branch; ordinary fast-forward push
+is planned. Vercel Git integration confirmed by its previous successful commit status.
+Local Vercel CLI token is expired; do not print it. Use the Git deployment path.
+
+## Previous task: reveal the relocated metro stairwell (2026-09-19)
+
+Owner requested a depression at the existing east-side metro entrance. The
+stairs/retaining shell/landing already existed below the continuous city pad.
+`src/renderer/environment/metro-opening.ts` clips the foundation layers, underlying service asphalt and annex ground,
+stone receiver and wet-floor reflection inside the shell. Four shared world
+planes follow the original metro's editor delta, including rotation/scale;
+delete closes the cut and undo restores it. Existing walls, booth and steps
+stay solid. Four recessed tread guide strips and a slightly stronger local
+landing light make the descent visible. Navigation and sealed door unchanged.
+
+The owner's live map had advanced to **40 entries**. Both
+`output/map-backups/base-before-metro-opening-2026-09-19.json` and
+`output/map-backups/base-with-metro-opening-2026-09-19.json` contain that exact
+same layout. Saved/exported through MASTER; a .25 m nudge/Undo round trip
+retained all entries exactly. Original `base:metro`: (25.25, -2.59, -11.5787),
+yaw -360°, scale 1. Keep the owner's newer building/fence edits and camera;
+the 37-entry city save below is historical.
+
+213 tests, lint, TypeScript and production build passed. Tests cover revealed
+steps/landing, unchanged service deck, transformed opening, delete/reset/Undo,
+PBR material ownership and reflection clipping. Notes: `docs/metro-opening.md`.
+Base/server stay open; no new helpers, commit, push or deployment.
+
+## Previous task: city street and moving traffic (2026-09-19)
+
+Owner replaced the abandoned-edge direction with urban infrastructure/traffic.
+Fresh 57-entry live export saved before work:
+`output/map-backups/base-before-city-traffic-2026-09-19.json`.
+Removed only the previous task's 20 scenery IDs; retained the four buildings,
+original owner entries and tall-wall deletion exactly. Current browser save:
+**37 entries**, `output/map-backups/base-with-city-traffic-2026-09-19.json`.
+Do not restore the older 57/32/28-entry checkpoints over it. Camera unchanged.
+
+`src/renderer/environment/city-street.ts` adds a scene-owned street parallel to
+the plaza: two opposing lanes, paving, low divider, two bus shelters and lamps.
+Procedural sedan/taxi/bus batches use the existing frame loop; 24 vehicles on
+desktop, 16 on the touch profile. No navigation extension or boarding/collision
+gameplay. Street/traffic is not a MASTER prop; old outskirts assets stay available.
+Settings → City traffic persists separately in `cyberbase.base.traffic.v1`.
+Reduced-motion defaults it off; explicitly enabled ON in the owner's browser
+for this request, without changing the system preference, rain or train behavior.
+
+210 tests passed; final traffic/settings revision passed 8 affected tests, lint,
+TypeScript and production build. Desktop and 390×844 browser views inspected;
+viewport reset, console clean, traffic preference restored after reload. Walked
+the front plaza east; final reload returned the hero to spawn. Browser
+timer throttling reports ~1 FPS even while document.hidden is false, so this is
+not a foreground-device FPS benchmark. Real phone performance remains unmeasured.
+See `docs/city-street.md`; review images: `output/city-street-review/`.
+Existing dev server and Base tab remain open. No new background helpers, commit,
+push or deployment.
+
+## Previous task: four buildings and first outskirts placed (2026-09-19)
+
+Owner approved two corners / two slender towers and the abandoned-edge reference.
+Seven Blender GLBs and a reused burning-drum composition are in both catalogues.
+Builder: `scripts/build-outskirts-kit.py`; notes: `docs/outskirts-kit.md`.
+
+Live map was **32 entries**, newer than the checkpoint below. Saved before work:
+`output/map-backups/base-before-outskirts-2026-09-19.json`. All 32 entries unchanged.
+Four buildings and 20 scenery objects added; tall front wall hidden and replaced
+by low blocks. Latest saved map: **57 entries**,
+`output/map-backups/base-with-outskirts-2026-09-19.json`. Never restore the older
+28-entry checkpoint. Saved camera unchanged.
+
+Outskirts z 12…38 is scenery. Original walking bounds and east expedition trigger
+remain; no new playable zone. Fire is static in Base, two unshadowed warm lights.
+Resources stay shared/library-owned. Fixed decimal wall ID import and non-solid
+ground policy. 205 tests, lint and TypeScript pass. Blender helpers exited; Base
+tab and existing dev server stay open. No commit, push or deployment.
+Base reload/export confirms all original entries unchanged; walked the plaza to
+the east exit. Both route consoles clean; Expedition catalogue tested and its
+temporary tab closed. Final image: `output/building-models/outskirts-review/base-final.png`.
+
+## Previous checkpoint: owner map saved for local Git commit (2026-09-19)
 
 Saved through MASTER and exported the owner's latest Base layout: **28 entries**.
 Authoritative latest backup: `output/map-backups/base-checkpoint-2026-09-19.json`.

@@ -45,7 +45,7 @@ export function createReferenceBuildingLibrary(anisotropy = 4, load?: LoadModel,
     if (existing) return existing;
     const asset = REFERENCE_BUILDINGS.find(item => item.id === id)!;
     // Public assets have long cache headers in this project. Bump after a rebake.
-    const promise = loadModel(`${asset.url}?v=20260918-8`).then(async ({ scene }) => {
+    const promise = loadModel(`${asset.url}?v=20260919-outskirts-3`).then(async ({ scene }) => {
       if (disposed) {
         disposeObjectTree(scene);
         throw new Error('Reference building library disposed');

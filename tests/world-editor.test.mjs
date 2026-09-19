@@ -6,6 +6,15 @@ import {makeWorld,SOLIDS} from '../components/expedition/world.ts';
 const entry={id:'prop:one',source:'barrel',x:1,y:0,z:2,rx:0,rotation:0,rz:0,sx:1,sy:1,sz:1};
 const sources=new Set(['barrel','authored:0']);
 const encode=(entries=[entry],map='base')=>JSON.stringify({version:1,map,entries});
+
+test('authored decimal-coordinate wall ids survive delete/save/import',()=>{
+ const wall='base:wall:-14.8:11.35:14.8:11.35';
+ const walls=new Set([...sources,wall]);
+ const deleted={...entry,id:wall,source:wall,deleted:true};
+ assert.deepEqual(parseDocument(encode([deleted]),'base',walls).entries,[deleted]);
+ assert.throws(()=>parseDocument(encode([{...deleted,id:'unknown.wall'}]),'base',walls));
+ assert.throws(()=>parseDocument(encode([{...deleted,source:'barrel'}]),'base',walls));
+});
 test('JSON round trip is map scoped and strips unrecognized properties',()=>{
  assert.deepEqual(parseDocument(encode([{...entry,script:'evil',__proto__:{polluted:true}}]),'base',sources).entries,[entry]);
  assert.throws(()=>parseDocument(encode(undefined,'expedition'),'base',sources));

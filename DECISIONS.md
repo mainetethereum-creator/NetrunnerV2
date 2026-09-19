@@ -397,3 +397,33 @@ above administration/metro and its right-hand support positions. Keep only a sma
 bend at the portrait-tower approach, joining the reference main span smoothly. Preserve
 the13.2 m height, saved buildings/camera and V2 train/lighting. Validate actual roof
 clearance instead of moving the whole guideway in front of the buildings.
+
+## ADR-036: Model the building quartet and start the abandoned outskirts
+**Status:** accepted (owner approval of four concepts and attached outskirts image, 2026-09-19).
+**Decision:** model two corner houses and two tall narrow modern buildings, place
+them on suitable side/rear lots, and start a ruined roadside beyond the Base.
+Reuse existing barrels/tires and add wrecks, damaged low blocks, dirt and cracked
+asphalt. Replacing the tall front wall with low damaged blocks supersedes that
+part of ADR-032. Preserve the owner's current map entries and saved camera.
+The first pass is local scenery authoring; navigation and the existing expedition
+interaction remain unchanged. No commit, push or deployment is authorized.
+
+## ADR-037: Replace the outskirts with city frontage and road traffic
+**Status:** accepted (owner correction, 2026-09-19); supersedes ADR-036's outskirts direction.
+**Decision:** retain the four buildings and the owner's saved Base/camera. Replace
+the abandoned road, wrecks, fires and rubble with a city street parallel to the
+front plaza: opposing lanes, sidewalks, low divider, stops and street lighting.
+Add moving sedans, taxis and buses as instanced scenery driven by the existing
+frame loop. Pause with modals/MASTER/hidden pages; keep navigation and expedition
+access unchanged. Provide a persistent City traffic setting so the requested
+motion can be enabled independently of system reduced-motion preferences.
+This is local implementation/preview, without commit, push or deployment.
+
+## ADR-038: Reveal the stairwell beneath the relocated metro entrance
+**Status:** accepted (owner marked the existing east-side entrance, 2026-09-19).
+**Decision:** open the city paving/slab under the owner's relocated metro so its
+existing descending stairs and lower landing are visible. Tie the visual cut
+to the original entrance's saved transform, including delete/undo, and exclude
+wet-floor reflections from the opening. Keep the former entrance location paved
+after relocation. This supersedes ADR-032's fully sealed paving only within the
+current entrance. Preserve the owner's map/camera; no new underground gameplay.

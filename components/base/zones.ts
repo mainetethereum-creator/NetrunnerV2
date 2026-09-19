@@ -2,13 +2,13 @@ import * as T from "three";
 import type { ArchitectureTools } from "./buildings";
 import { BACKGROUND_NORTH } from './layout.ts';
 
-export function buildRefugeZones({ box, cylinder, pipe, sign, light, m, surface, section = (_id, _name, build) => build() }: ArchitectureTools) {
+export function buildRefugeZones({ box, cylinder, pipe, sign, light, m, surface, section = (_id, _name, build) => build(), groundMaterial = material => material }: ArchitectureTools & { groundMaterial?: (material: T.MeshStandardMaterial) => T.MeshStandardMaterial }) {
   section('base:service-street', 'Служебная улица и фон', () => {
   // A service street below the raised refuge, with two restrained background blocks.
   const asphalt = new T.MeshStandardMaterial({ color: "#151d24", roughness: .94, metalness: .02 });
   surface(asphalt, "concrete", .42);
   asphalt.color.set("#182129");
-  box(0, -1.25, -8, 100, .3, 100, asphalt);
+  box(0, -1.25, -8, 100, .3, 100, groundMaterial(asphalt));
   // Low service-wall silhouette closes the view without a distant skyline.
   for (let x = -27; x < 28; x += 3.4) {
     box(x, .1, BACKGROUND_NORTH, 3.32, 2.4, .5, m.dark);

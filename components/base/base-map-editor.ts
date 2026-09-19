@@ -2,6 +2,7 @@ import * as T from 'three';
 import { createEditableRender, type EditableRenderLabel } from './editable-render.ts';
 import { BASE_COLLIDER_OWNERS, bindBaseColliderEdit } from './editor-colliders.ts';
 import { createWorldEditor, type AuthoredObject, type EditorState } from '../world-editor/controller.ts';
+import { bindMetroOpening, type MetroOpening } from '../../src/renderer/environment/metro-opening.ts';
 
 /** Development-only: loaded by MASTER or to restore the owner's saved scenery. */
 export function createBaseMapEditor(options: {
@@ -16,14 +17,18 @@ export function createBaseMapEditor(options: {
   onPan: (x: number, z: number) => void;
   onFocus: (x: number, z: number) => void;
   onFloorVisibility: (visible: boolean) => void;
+  onMetroTransform?: MetroOpening['update'];
 }) {
   const render = createEditableRender(options.scene, options.sources, options.rendered, options.labels, options.instanceLabels);
   render.setActive(true);
   const authored = [
     ...render.authored.map(item => {
       const updateCollider = bindBaseColliderEdit(item.id, item.object);
+      const updateOpening = item.id === 'base:metro' && options.onMetroTransform
+        ? bindMetroOpening(item.object, options.onMetroTransform) : undefined;
       return { ...item, onTransform: (entry: import('../world-editor/document.ts').Entry) => {
         updateCollider(entry);
+        updateOpening?.(!!entry.deleted);
         if (item.id === 'base:floor') options.onFloorVisibility(!entry.deleted);
       } };
     }),

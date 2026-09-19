@@ -93,7 +93,10 @@ justified stopping another session.
 `layout.ts` defines a continuous 64 × 54 m paved area: x −32…32 and z −42…12.
 Foundation, reflection receiver, navigation and minimap use the same rectangle.
 The obsolete opening at the metro's original position is sealed with the same
-stone paving, and the former east annex gap is paved for further construction.
+stone receiver. Since ADR-038, a live material cut exposes the existing stairwell
+at the original metro object's current transform; see `metro-opening.md`. The
+cut closes on delete and follows undo/rotation/scale. The former east annex gap
+remains paved for further construction.
 Only the front concrete fence line at z=11.35 remains; west, east and north runs
 and their rubble are removed. The owner's placed building and metro transforms
 are untouched.
@@ -123,3 +126,13 @@ by click, undid it; closed MASTER and confirmed original scenery remains rendere
 were not saved. Existing server and browser reused, no extra background process started.
 Physical-phone controls/performance and full Hub/Expedition interaction regression remain owed;
 the shared Tactical camera parity and existing navigation tests still pass.
+
+## Published Base checkpoint (2026-09-19)
+
+The 40-entry owner export in `output/map-backups/base-published-2026-09-19.json`
+is mirrored in `src/assets/base-published-layout.ts`. Production applies it with
+`components/base/published-map.ts`, using the same authored render transforms and
+collider ownership without loading the editor controller or reading browser storage.
+Local development continues restoring its independent editor save. To release a
+new layout, save/export the latest live document and update the release data; never
+import an older checkpoint over owner edits.

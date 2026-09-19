@@ -30,6 +30,13 @@ export const ASSET_URLS = {
     cyberbaseTower: "/game/buildings/cyberbase-tower-v1/cyberbase-tower.glb",
     japanesePartsShop: "/game/buildings/japanese-parts-shop-v1/japanese-parts-shop.glb",
     urbanOffice: "/game/buildings/urban-office-v1/urban-office.glb",
+    cornerChamfer: "/game/buildings/corner-chamfer-v1/corner-chamfer.glb",
+    cornerRounded: "/game/buildings/corner-rounded-v1/corner-rounded.glb",
+    slenderGlass: "/game/buildings/slender-glass-v1/slender-glass.glb",
+    slenderTerrace: "/game/buildings/slender-terrace-v1/slender-terrace.glb",
+    outskirtsWreck: "/game/buildings/outskirts-wreck-v1/outskirts-wreck.glb",
+    outskirtsBarrier: "/game/buildings/outskirts-barrier-v1/outskirts-barrier.glb",
+    outskirtsGround: "/game/buildings/outskirts-ground-v1/outskirts-ground.glb",
   },
   /** UI artwork imported from the CyberBase UI kits (`scripts/import-ui-kits.mjs`). Text is never baked in. */
   ui: {

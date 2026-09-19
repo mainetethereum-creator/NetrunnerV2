@@ -1,6 +1,7 @@
 import * as T from 'three';
 import {createEditorStreaming} from './streaming';
 import {createPropLibrary,PROP_ASSETS,type PropId,type PropInstance} from '../expedition/prop-assets';
+import {referenceHasCollision} from '../../src/assets/reference-buildings.ts';
 import {fenceLength,isFence,snapFence,fenceColliders} from '../expedition/fence-layout';
 import {createHistory,emptyDocument,parseDocument,type Entry,type MapId,type Transform,type WorldDocument} from './document';
 import {createThrottledScheduler} from '../expedition/frame-throttle';
@@ -42,6 +43,7 @@ export function createWorldEditor(scene:T.Scene,onChange:(state:EditorState)=>vo
   if(outline.visible&&outlineDirty){outline.setFromObject(obj!);outlineDirty=false;}
  }
  function objectFootprints(id:string,obj:T.Object3D,e:Entry,ground:number):Rect[]{
+  if(!referenceHasCollision(e.source))return [];
   const authoredItem=authored.get(id);
   if(authoredItem&&!authoredItem.collision)return [];
   const c=authoredItem?.collision??additional.get(e.source)?.collision;
