@@ -16,9 +16,11 @@ Dev continues using the owner's independent browser save. Camera save unchanged.
 215 tests, TypeScript, lint and production build passed. Fresh production origin
 loaded the current city, movement worked, 390×844 view and console checked. The
 physical phone/touch performance check is the owner’s next step. Metro depth
-visually inspected on the live map. Temporary production server will be stopped.
-Git origin/main is an ancestor of the current branch; ordinary fast-forward push
-is planned. Vercel Git integration confirmed by its previous successful commit status.
+visually inspected on the live map. Temporary production server on 3001 stopped;
+owner dev server 3000 stays running. Release commit `ee3502a` was fast-forward
+pushed to remote `main`; Vercel reports Production success for that exact SHA.
+Public game: https://netrunner-cyberbase.vercel.app/base (HTTP 200).
+Deployment: https://vercel.com/mainetethereum-creators-projects/netrunner-cyberbase/3RgjiYDbF7mys3FnFytJb7XH8jQR.
 Local Vercel CLI token is expired; do not print it. Use the Git deployment path.
 
 ## Previous task: reveal the relocated metro stairwell (2026-09-19)
