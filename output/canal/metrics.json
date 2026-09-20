@@ -1,0 +1,49 @@
+{
+  "Embankment": {
+    "triangles": 484,
+    "draws": 2
+  },
+  "CanalRailing": {
+    "triangles": 464,
+    "draws": 1
+  },
+  "CanalLantern": {
+    "triangles": 372,
+    "draws": 3
+  },
+  "UnfinishedBridge": {
+    "triangles": 7084,
+    "draws": 3
+  },
+  "ForestGate": {
+    "triangles": 1910,
+    "draws": 5
+  },
+  "ConstructionSupplies": {
+    "triangles": 752,
+    "draws": 5
+  },
+  "IvyDrape": {
+    "triangles": 16,
+    "draws": 1
+  },
+  "CanalReeds": {
+    "triangles": 32,
+    "draws": 1
+  },
+  "BankFern": {
+    "triangles": 48,
+    "draws": 1
+  },
+  "BankRocks": {
+    "triangles": 348,
+    "draws": 1
+  },
+  "NearBank": {
+    "triangles": 56,
+    "draws": 2
+  },
+  "bytes": 15308636,
+  "compressedBytes": 4461080,
+  "waterNormalBytes": 1081320
+}

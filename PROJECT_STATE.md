@@ -1,8 +1,15 @@
 # Project state — Netrunner / CyberBase
 
-Last updated: 2026-09-19 · repository `mainetethereum-creator/NetrunnerV2`; current working branch `feature/ui-kit-3d` · architecture refactor steps 1–4, UI kits and owner-requested Base environment rollback. Uncommitted hero extraction predates this atmosphere task; step 5 is not signed off.
+Last updated: 2026-09-20 · repository `mainetethereum-creator/NetrunnerV2`; current working branch `feature/ui-kit-3d` · architecture refactor steps 1–4 and owner-requested Base environment work. Step 5 is not signed off.
 
 ## Implemented (the working game — must be preserved)
+
+- **Railway fork (2026-09-20, local, owner approved):** live train route continues east away from the garden; old southern branch ends in a fractured Blender stub with torn rails. All four old outer columns retained, three additional supports on the live branch; continuous earth below. New kit 1.25 MB, 13 instanced draws; no extra lights or animation loop. 231 tests, lint, TypeScript and build pass. Owner approved the live result. See `docs/base-elevated-rail.md`. No deployment.
+- **Grounded east district (2026-09-20, local):** continued tile plaza and small garden, two Blender service buildings, damaged fence and OUTLANDS interaction at the closed walking boundary. Railway ground is continuous dirt/greenery, with burning barrels and tires. Nine new roots / 3.23 MB; existing garden meshes and floor reflection are reused. See `docs/east-district.md`. No deployment.
+
+- **Canal / closed Forest bridge (2026-09-20, local):** the approved foreground reference is implemented with animated water, masonry banks, lanterns/ivy, dense planting, mossy boulders and an unfinished timber bridge with a closed gate and construction supplies. 11 Blender model roots / 4.46 MB, instanced resources and shared reflection. Forest is not playable; existing Base boundary remains. See `docs/canal.md`. No deployment.
+
+- **Sakura park experiment (2026-09-20, local):** foreground road/traffic replaced by a walkable Blender garden: ten sakuras, fountain, food stalls, lanterns, planting and three delivery robots. Base-only facade neon, moon fill, rain/lightning and opt-in ambience. 13 textured model roots / 4.67 MB, instancing and mobile density budgets. Map remains 40 entries and camera unchanged. 220 tests, lint, TypeScript and build passed; desktop High 60 FPS. Visual matching stalled at 6.6/10; owner feedback and physical phone check remain. Not deployed. See `docs/sakura-park.md`.
 
 - **Relocated metro opening (2026-09-19):** revealed the existing stairs and 2.4 m lower landing beneath the owner's east-side entrance. Shared clipping planes cut stone, both structural layers and High-mode reflections; cut follows original metro transforms and closes on deletion. Four tread guide lights. Current **40-entry** owner map is preserved exactly in `output/map-backups/base-with-metro-opening-2026-09-19.json`; camera unchanged. Visual entrance only; door/navigation unchanged. See `docs/metro-opening.md` (ADR-038). Earlier map counts below are historical.
 

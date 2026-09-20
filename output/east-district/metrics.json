@@ -1,0 +1,40 @@
+{
+  "Workshop": {
+    "triangles": 4423,
+    "draws": 7
+  },
+  "ServiceAnnex": {
+    "triangles": 1331,
+    "draws": 6
+  },
+  "EastFence": {
+    "triangles": 860,
+    "draws": 2
+  },
+  "ExpeditionBreach": {
+    "triangles": 3996,
+    "draws": 5
+  },
+  "BurnBarrel": {
+    "triangles": 2764,
+    "draws": 4
+  },
+  "TirePile": {
+    "triangles": 5184,
+    "draws": 2
+  },
+  "EastGround": {
+    "triangles": 4150,
+    "draws": 1
+  },
+  "EastRubble": {
+    "triangles": 528,
+    "draws": 1
+  },
+  "EastPlanter": {
+    "triangles": 188,
+    "draws": 2
+  },
+  "bytes": 8896060,
+  "compressedBytes": 3227504
+}

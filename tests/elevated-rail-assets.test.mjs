@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import * as T from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { createElevatedRail } from '../src/renderer/environment/elevated-rail.ts';
-import { ELEVATED_RAIL, sampleRailRoute } from '../src/renderer/environment/elevated-rail-layout.ts';
+import { ELEVATED_RAIL, railSupportPoses, sampleRailRoute } from '../src/renderer/environment/elevated-rail-layout.ts';
 import { ASSET_URLS } from '../src/assets/registry.ts';
 import { disposeObjectTree } from '../src/renderer/three/dispose.ts';
 
@@ -65,7 +65,7 @@ test('Blender railway fits its modular dimensions and renders the full line with
   let sourceTriangles = 0;
   const instanceCounts = {
     RailDeck: ELEVATED_RAIL.deckCentres.length,
-    RailPier: ELEVATED_RAIL.pierCentres.length,
+    RailPier: railSupportPoses().length,
     TrainCar: 2,
     TrainMiddle: 1,
   };
@@ -157,7 +157,8 @@ test('Blender railway fits its modular dimensions and renders the full line with
     assert.ok(allDraws <= 34, `railway including cables, city details and bellows uses ${allDraws} draws`);
     assert.ok(allTriangles < 78000, `complete ${mobile ? 'mobile' : 'desktop'} transit uses ${allTriangles} triangles`);
     assert.ok(lightCount <= (mobile ? 1 : 3), 'dynamic lighting remains within the platform budget');
-    assert.ok(Math.abs(renderedPier.min.y) < 1e-4, 'actual Blender piers stay on the ground');
+    assert.ok(Math.abs(renderedPier.min.y - Math.min(...railSupportPoses().map(p => p.y))) < 1e-4,
+      'actual Blender pier bases follow the lowest terrain support');
     assert.ok(Math.abs(renderedPier.max.y - (ELEVATED_RAIL.deckY - 1.1)) < 1e-4,
       'actual shortened capitals meet the lowered deck');
     rail.dispose();

@@ -30,7 +30,7 @@ export function createRailCityDetails(parent: T.Group, mobile: boolean) {
   // Keep detail on the inhabited portion of the route; distant looping tails stay cheap.
   const nearCity = (distance: number) => {
     const point = sampleRailRoute(distance);
-    return point.x > -40 && point.x < 48 && point.z > -50 && point.z < 14;
+    return point.x > -40 && point.x < 62 && point.z > -50 && point.z < 50;
   };
   const piers = ELEVATED_RAIL.pierCentres.filter(nearCity);
   const spans = ELEVATED_RAIL.deckCentres.filter(nearCity);

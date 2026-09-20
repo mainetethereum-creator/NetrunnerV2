@@ -23,7 +23,7 @@ export function createPublishedMap(options: {
 }) {
   const render = createEditableRender(options.scene, options.sources, options.rendered, options.labels, options.instanceLabels);
   render.setActive(true);
-  const references = createReferenceBuildingLibrary();
+  const references = createReferenceBuildingLibrary(4,undefined,undefined,undefined,true);
   const buildings = createBuildingLibrary(4, options.onAssetsChanged);
   const placements: T.Object3D[] = [];
   let disposed = false;

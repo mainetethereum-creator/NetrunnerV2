@@ -19,8 +19,8 @@ export const PROP_ASSETS=[
 export type PropId=typeof PROP_ASSETS[number]['id'];
 export type PropInstance={id:string;asset:PropId;x:number;z:number;rotation:number;length?:number};
 /** Shared geometries/materials: each prop is batched by material and reused across placements. */
-export function createPropLibrary(anisotropy=4,onTextureReady?:()=>void){
- const references=createReferenceBuildingLibrary(anisotropy);
+export function createPropLibrary(anisotropy=4,onTextureReady?:()=>void,gardenSigns=false){
+ const references=createReferenceBuildingLibrary(anisotropy,undefined,undefined,undefined,gardenSigns);
  const city=createCityLibrary(anisotropy,onTextureReady);
  const buildings=createBuildingLibrary(anisotropy,onTextureReady);
  const texture=new T.TextureLoader().load('/game/props/salvage/material-atlas.webp',loaded=>{maps.forEach(t=>{t.source=loaded.source;t.needsUpdate=true;});onTextureReady?.();});texture.colorSpace=T.SRGBColorSpace;texture.anisotropy=Math.min(8,anisotropy);

@@ -1,6 +1,9 @@
 import { BASE_NORTH, LIMIT } from './layout.ts';
 import { railPierFootprints } from '../../src/renderer/environment/elevated-rail-layout.ts';
 import { BASE_MEDIA_TOWER } from '../../src/assets/media-tower.ts';
+import { SAKURA_PARK, parkObstacles } from '../../src/renderer/environment/sakura-park-layout.ts';
+import { CANAL_SOLIDS } from '../../src/renderer/environment/canal-layout.ts';
+import { EAST_DISTRICT, EAST_EXIT, EAST_OBSTACLES } from '../../src/renderer/environment/east-district-layout.ts';
 export { LIMIT, BASE_NORTH } from './layout.ts';
 export type Point = { x: number; z: number };
 export type Rect = { x: number; z: number; w: number; d: number };
@@ -8,6 +11,7 @@ export type StationId = "smith" | "contracts" | "metro" | "city" | "stash" | "ch
 export const SPAWN: Point = { x: 0, z: 5 };
 export const PLAYER_RADIUS = 0.32;
 const RAIL_PIERS: Rect[] = railPierFootprints();
+const PARK_OBSTACLES: Rect[] = parkObstacles().slice(1);
 export const COLLIDERS: Rect[] = [
   { x: -8.4, z: -8.6, w: 7.2, d: 4.4 },
   { x: 0, z: -9, w: 6.4, d: 4 },
@@ -30,7 +34,7 @@ export const COLLIDERS: Rect[] = [
 ];
 
 export const STATIONS: { id: StationId; name: string; role: string; x: number; z: number; color: string }[] = [
-  { id: "expedition", name: "OUTLANDS", role: "Expedition breach", x: 15.6, z: 7.5, color: "#dbb177" },
+  { id: "expedition", name: "OUTLANDS", role: "Expedition breach", ...EAST_EXIT, color: "#dbb177" },
   { id: "smith", name: "CYBERSMITH", role: "Power & fabrication", x: -7.3, z: -4.6, color: "#edb568" },
   { id: "contracts", name: "CRYPTOMANCER", role: "Contract handler", x: 0, z: -2.4, color: "#78cbbb" },
   { id: "oracle", name: "ORACLE", role: "Classes & abilities", x: 2.1, z: -5.4, color: "#93bfed" },
@@ -57,7 +61,11 @@ export function canStand(p: Point, radius = PLAYER_RADIUS): boolean {
   const inBase = Math.abs(p.x) <= LIMIT.x - radius && p.z >= BASE_NORTH + radius && p.z <= LIMIT.z - radius;
   const inCorridor = p.x >= 13 + radius && p.x <= 24 - radius && p.z >= 4.8 + radius && p.z <= 10.2 - radius;
   const inRoom = p.x >= 23 + radius && p.x <= 29 - radius && p.z >= 4 + radius && p.z <= 11 - radius;
-  if (!inBase && !inCorridor && !inRoom) return false;
+  const inPark = p.x >= SAKURA_PARK.west + .55 + radius && p.x <= SAKURA_PARK.east - .55 - radius
+    && p.z >= SAKURA_PARK.north && p.z <= SAKURA_PARK.south - .55 - radius;
+  const inEast = p.x >= EAST_DISTRICT.west + radius && p.x <= EAST_DISTRICT.east - .32 - radius
+    && p.z >= EAST_DISTRICT.north + radius && p.z <= EAST_DISTRICT.south - .55 - radius;
+  if (!inBase && !inCorridor && !inRoom && !inPark && !inEast) return false;
   const overlaps = (r: Rect) => {
     const nx = Math.max(r.x - r.w / 2, Math.min(p.x, r.x + r.w / 2));
     const nz = Math.max(r.z - r.d / 2, Math.min(p.z, r.z + r.d / 2));
@@ -65,6 +73,10 @@ export function canStand(p: Point, radius = PLAYER_RADIUS): boolean {
   };
   return !COLLIDERS.some((rect, index) => (authoredColliderOverrides.get(index) ?? [rect]).some(overlaps))
     && !RAIL_PIERS.some(overlaps)
+    && !CANAL_SOLIDS.some(overlaps)
+    && !EAST_OBSTACLES.some(overlaps)
+    && !PARK_OBSTACLES.some(overlaps)
+    && Math.hypot(p.x-SAKURA_PARK.fountainX,p.z-SAKURA_PARK.fountainZ)>=2.31*SAKURA_PARK.fountainScale+radius
     && !editorColliders.some(overlaps);
 }
 

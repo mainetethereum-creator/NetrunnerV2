@@ -4,6 +4,7 @@ import { createGltfLoader } from './gltf-loader.ts';
 import { disposeObjectTree } from './dispose.ts';
 import { ASSET_URLS } from '../../assets/registry.ts';
 import { createConcreteMaterial, prepareConcreteUv } from './cold-concrete.ts';
+import { attachGardenSign } from './garden-facade-sign.ts';
 
 type LoadModel = (url: string) => Promise<{ scene: T.Group }>;
 
@@ -12,12 +13,23 @@ type LoadModel = (url: string) => Promise<{ scene: T.Group }>;
  * No placeholder geometry, timers, lights or background catalogue preload.
  */
 export function createReferenceBuildingLibrary(anisotropy = 4, load?: LoadModel,
-  loadAtlas: () => Promise<T.Texture> = () => new T.TextureLoader().loadAsync(ASSET_URLS.buildingAtlas)) {
+  loadAtlas: () => Promise<T.Texture> = () => new T.TextureLoader().loadAsync(ASSET_URLS.buildingAtlas),
+  loadSign: () => Promise<T.Texture> = () => new T.TextureLoader().loadAsync(ASSET_URLS.sakuraSign),
+  gardenSigns = false) {
   const prototypes = new Map<ReferenceBuildingId, T.Group>();
   const pending = new Map<ReferenceBuildingId, Promise<void>>();
   let disposed = false;
   let concrete: T.MeshStandardMaterial | undefined;
   let concretePending: Promise<T.MeshStandardMaterial> | undefined;
+  let gardenSign: Promise<T.MeshStandardMaterial> | undefined;
+  const signedBuildings=new Set(['building-corner-chamfer','building-corner-rounded','building-urban-office']);
+  function disposeUnprepared(scene:T.Group) {
+    // Concrete already belongs to the library while a sign is still loading.
+    scene.traverse(object=>{
+      if(object instanceof T.Mesh && object.material===concrete)object.material=[];
+    });
+    disposeObjectTree(scene);
+  }
   function prepareConcrete() {
     concretePending ??= loadAtlas().then(atlas => {
       if (disposed) { atlas.dispose(); throw new Error('Reference building library disposed'); }
@@ -81,6 +93,17 @@ export function createReferenceBuildingLibrary(anisotropy = 4, load?: LoadModel,
         });
         oldMaterials.forEach(material => material.dispose());
         oldTextures.forEach(texture => texture.dispose());
+      }
+      if (gardenSigns && signedBuildings.has(id) && new T.Box3().setFromObject(scene).max.y>6) {
+        gardenSign ??= loadSign().then(map=>{
+          if(disposed) {map.dispose();throw new Error('Reference building library disposed');}
+          map.colorSpace=T.SRGBColorSpace;map.anisotropy=anisotropy;
+          return new T.MeshStandardMaterial({map,emissiveMap:map,emissive:0xffffff,emissiveIntensity:2.2,roughness:.35,metalness:.25});
+        });
+        let sign:T.MeshStandardMaterial;
+        try {sign=await gardenSign;} catch(error) {gardenSign=undefined;disposeUnprepared(scene);throw error;}
+        if(disposed) {disposeUnprepared(scene);throw new Error('Reference building library disposed');}
+        attachGardenSign(scene,sign);
       }
       scene.name = asset.name;
       scene.traverse(object => {

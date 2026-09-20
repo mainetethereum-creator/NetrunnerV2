@@ -17,6 +17,12 @@ export const ASSET_URLS = {
   /** The one retained building from the district experiment. */
   implantsBuilding: "/base/models/implants-building.glb",
   elevatedRail: "/base/models/elevated-rail-v2.glb",
+  sakuraPark: "/game/park/sakura-v1/sakura-kit.glb",
+  sakuraSign: "/game/park/sakura-v1/neon-sign.webp",
+  canalKit: "/game/canal/v1/canal-kit.glb",
+  canalNormal: "/game/canal/v1/water-normal.webp",
+  eastDistrict: "/game/east-district/v1/east-district.glb",
+  railRuins: "/game/rail-ruins/v1/rail-ruins.glb",
   buildingAtlas: "/game/props/salvage/building-atlas.webp",
   /** Owner-selected v1 concepts, authored in Blender; loaded on catalogue demand. */
   referenceBuildings: {
@@ -84,6 +90,12 @@ export function registeredAssetFiles(): string[] {
     ASSET_URLS.heroModel,
     ASSET_URLS.implantsBuilding,
     ASSET_URLS.elevatedRail,
+    ASSET_URLS.sakuraPark,
+    ASSET_URLS.sakuraSign,
+    ASSET_URLS.canalKit,
+    ASSET_URLS.canalNormal,
+    ASSET_URLS.eastDistrict,
+    ASSET_URLS.railRuins,
     ASSET_URLS.buildingAtlas,
     ...Object.values(ASSET_URLS.referenceBuildings),
     ...REFUGE_BUILDINGS.map(ASSET_URLS.refugeBuilding),

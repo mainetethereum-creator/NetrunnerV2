@@ -1,7 +1,133 @@
-# AI handoff — 2026-09-19
+# AI handoff — 2026-09-20
 
 Repository: `mainetethereum-creator/NetrunnerV2`, working branch `feature/ui-kit-3d`.
 Preserve the shared dirty tree. Architecture step 5 is not signed off. Owner authorized commit, push and Vercel deployment on 2026-09-19. Previous detailed handoff: `docs/archive/AI_HANDOFF-before-map-restore-2026-09-18.md`.
+
+## Current task: rail fork and collapsed southern branch (2026-09-20)
+
+Owner wants the train to leave eastward and the long foreground viaduct removed,
+leaving a short crashed branch and its columns. Implemented a Blender Y junction
+at route stations 60–84, jagged old spur ending at 80, bent rails/rebar/barrier,
+three empty damaged caps and scattered debris. Working route retains its 35°
+exit tangent; all four old southern columns keep their X/Z. Three new grounded
+piers carry the live continuation. Earth/greenery/fence/exit from the east task
+remain. No map/camera mutation or new frame loops/lights. Kit is 1,245,784 bytes.
+Blender source and imagegen target in `output/rail-ruins/`; working scene restored.
+
+Pre-edit MASTER Save/export:
+`output/map-backups/base-before-rail-fork-2026-09-20.json`.
+231 tests, lint, TypeScript and production build pass. Owner reviewed the live
+result and approved it ("все отлично"); stop visual iterations. Live walking and
+empty foreground columns inspected; console clean. Automated world-space rail
+contact checks also pass. No final independent judge or post-edit map comparison
+was completed: owner was actively using MASTER, so do not overwrite their newer
+map/camera state. Pre-edit export is retained. Temporary QA tab was released at
+turn interruption; do not create another. Server exec session 14575 remains
+running on localhost:3000. Browser timer has
+previously been throttled by host visibility; do not claim foreground FPS from it.
+No commit, push or deployment. Details: `docs/base-elevated-rail.md`.
+
+## Previous task: grounded east district implementation (2026-09-20)
+
+Owner approved the reference and requested implementation, correcting the lower
+railway area to continuous earth/greenery. The red fence line is a strict walking
+boundary; its breach offers the existing expedition transition, not free access.
+
+Implemented the tile extension, two Blender service buildings, three garden beds,
+matching reused sakuras/lanterns/benches, broken perimeter fence and OUTLANDS
+interaction at (44.8,25). Railway now follows the outer east edge on grounded
+supports. Beyond the fence: soil, planting, burning drums, tire piles and rubble.
+Original city, park, canal, owner map and camera retained. Nine new Blender roots,
+3.23 MB packed GLB; source `output/east-district/east-district.blend`. Existing
+Blender Scene (3 objects, no filepath) restored and temporary datablocks removed.
+No duplicate Blender/server process. Details: `docs/east-district.md`.
+
+Pre-task MASTER Save/export:
+`output/map-backups/base-before-east-district-2026-09-20.json`.
+228 tests, ESLint, TypeScript and production build pass. Full test output under
+`output/east-district/`. Live visual review, dream-loop judge and final map parity
+are still in progress. Live tab 6, existing localhost:3000 server remain open.
+No commit, push or deployment requested/performed for this implementation.
+
+## Previous task: canal and unfinished forest bridge (2026-09-20, local)
+
+Owner follow-up after round 4: lantern light is too bright; add canal current.
+`canal-water.ts` now advects all ripple scales east at 0.65 m/s and replaces
+fixed-grid glints with smooth moving wavelets; shorter lamp reflection strength
+0.9 → 0.18. Canal paper emission is halved, real lights reduced ~40%; garden
+lamp emission, warm pooled lights and paving glints also reduced. Fountain/city
+lighting unchanged. This is the owner's targeted correction, not another attempt
+to match the previous reference's bright reflections. Existing pause/Lite/reduced
+motion and shared-resource ownership remain. 9 affected tests, lint and TypeScript
+pass. Live High/Lite materials and two sequential current frames inspected;
+390×844 viewport has no horizontal overflow (override reset). Screenshots:
+`output/canal/current-flow-{a,b,mobile}.png`. Final frame cadence is still limited
+by the host's background browser timer, so no new FPS claim. Fresh map backup:
+`output/map-backups/base-before-canal-current-2026-09-20.json` (40 entries).
+Right-side abandoned-city gateway was unimplemented at this checkpoint; see the newer
+reference request above. No new navigation, exit trigger or route implemented.
+
+Owner approved the generated canal reference and requested implementation using
+the garden's imagegen/Blender/dream-loop workflow. Added lowered animated water,
+stone retaining walls, iron railings, lanterns, ivy, planted near bank, textured
+boulders, a timber bridge with missing deck, closed Cyrillic Forest gate and
+construction supplies. Forest remains unavailable; Base navigation still ends
+at z 34. Gate/supplies have matching collisions. No route/gameplay expansion.
+
+11 Blender roots, 4.46 MB GLB plus 1.08 MB water normal. Source:
+`output/canal/canal-kit.blend`; notes: `docs/canal.md`. Shared instances and one
+borrowed courtyard reflection; Lite retains ripples/stylized light spill. The
+old rotated service slab is clipped at the canal without changing its saved
+bounds/pivot or metro cut. Original Blender scene restored; temporary scene IDs
+removed after export. No extra Blender process/server started.
+
+Pre-task fresh MASTER export: `output/map-backups/base-before-canal-2026-09-20.json`
+(40 entries). Final MASTER Save/export:
+`output/map-backups/base-after-canal-2026-09-20.json`; all 40 entries are exactly
+equal before/after. 225 tests, lint, TypeScript and production build pass.
+Park walking and rejection of a canal destination verified in the browser.
+Independent dream-loop rounds: 6.2 → 6.9 → 7.0 → 7.0. Round 4: composition 2.4,
+lighting 1.8, materials 2.1, details 0.7. Major bridge rebuild improved timber
+and planting, but regular stippled water highlights offset those gains. The
+workflow's stalled rule now requires owner visual feedback before more rounds.
+Current screenshot: `output/canal/current.png`; iteration notes:
+`output/canal/iteration-notes.md`. Remaining gaps: water pattern, weak lantern
+bodies, flat supplies silhouette and repeated shallow masonry. No claim of
+pixel parity. Preserve the owner's camera/map saves.
+390×844 viewport inspected at the canal, no horizontal overflow; screenshot:
+`output/canal/mobile-canal-390x844.png`. This is a resized browser check, not a
+physical-phone GPU/touch check. Temporary viewport override removed afterward.
+The initial desktop High check measured 60 FPS / 18 ms p95. Final live capture
+is host-throttled to approximately 1 FPS despite `document.hidden === false`
+(the in-app tab belongs to a hidden Codex task); it is not a GPU benchmark.
+Foreground FPS and physical-phone performance remain unverified for the final kit.
+No commit, push or deploy requested for this extension. Existing dev server
+session 5541 on port 3000 remains the testing handoff.
+
+## Previous task: Blender sakura garden (2026-09-20, local experiment)
+
+Owner requested a living sakura park instead of road/traffic, using dream-loop,
+Blender and matching textured materials. Implemented 13 Blender model roots,
+paths/planting, fountain, two food stalls, lanterns, three delivery robots,
+Base facade neon, moon fill, rain/lightning and opt-in garden ambience. Walking,
+collisions and minimap extend to z 34. Shared instances, one reflection pass,
+mobile density reduction and desktop 60 FPS cap. GLB: 4.67 MB.
+
+Fresh UI export remains 40 entries, exactly equal before/after; backups:
+`output/map-backups/base-{before,after}-sakura-2026-09-20.json`. Published layout and saved
+camera were not edited. Park is scene-owned, not separately editable in MASTER.
+Do not overwrite newer browser saves. Previous road modules remain as source.
+
+220 tests, lint, TypeScript and production build passed. Desktop High measured
+60 FPS / 18 ms p95; 390×844 viewport and park walking inspected. Physical phone
+performance remains unmeasured. Dream-loop reached 6.6/10, unchanged after the
+sixth major revision; its stalled rule now calls for owner visual feedback.
+Remaining gaps: crown shapes, regular water ripples, reflection patch edges.
+Full sources, checks and limitations: `docs/sakura-park.md`.
+
+No commit, push or deployment for this experiment. Dev server 3000 was absent at
+task start; this task started `npm run dev` (exec session 5541), kept for testing.
+Temporary Blender jobs exited; the user's Blender session was untouched.
 
 ## Release checkpoint: publish current city (2026-09-19)
 
@@ -467,3 +593,19 @@ Do not stop user-owned Blender or dev server. Run heavy checks sequentially.
 Feature notes: `docs/base-map-editor.md`, `docs/base-camera.md`, `docs/base-elevated-rail.md`,
 `docs/media-tower.md`, `docs/reference-buildings.md`. Physical-phone performance and older
 architecture checks in ROADMAP TD-02 remain owed.
+
+### Owner preview handoff — 2026-09-20
+Owner interrupted implementation with «открой дев сервер посмотрю изменения».
+The old server was no longer listening; started one `npm run dev` (exec session
+14575), ready at localhost:3000. Opened and verified loaded `/base` in IAB tab 3;
+left it as a deliverable. User is now checking visually; avoid moving their
+character/camera or editing the live layout while they inspect.
+Outstanding visual issue from first scene review: the extended railway's 90°
+turn runs across the foreground and occludes the new fence/soil. Proposed next
+change (NOT implemented): broaden outward continuation toward ~60° rather than
+90°, with continuous flat dirt supporting the shifted piers. Preserve original
+route through 60 m. First screenshot: `output/east-district/round-1.png`.
+Fresh judge `/root/east_judge_1` was dispatched before the interruption; verdict
+may still need retrieval. Runtime entry dialogue/mobile review, final map export
+parity and further visual iterations remain pending. Last quality set to HIGH
+for visual inspection (previously AUTO); camera settings were not changed.

@@ -128,3 +128,17 @@ test('failed model preparation can be retried',async()=>{
  await assert.rejects(library.prepare(REFERENCE_BUILDINGS[0].id),/offline/);
  await library.prepare(REFERENCE_BUILDINGS[0].id);assert.equal(calls,2);library.dispose();
 });
+
+test('garden signs are opt-in and late shared sign loads dispose exactly once',async()=>{
+ const make=()=>{const m=fixture();m.geometry.scale(5,16,4);m.material.name='CBR1_Concrete';return m;};
+ const ordinary=createReferenceBuildingLibrary(4,async()=>make(),async()=>new T.Texture(),async()=>assert.fail('other maps must not request garden signs'));
+ await ordinary.prepare('building-urban-office');
+ assert.equal(ordinary.create('building-urban-office').getObjectByName('Garden district / neon blade'),undefined);ordinary.dispose();
+ let resolveSign,signLoads=0;const atlas=new T.Texture(),sign=new T.Texture(),models=[make(),make()];
+ const library=createReferenceBuildingLibrary(4,async()=>models.shift(),async()=>atlas,()=>{signLoads++;return new Promise(r=>resolveSign=r);},true);
+ let atlasDisposals=0,signDisposals=0;atlas.addEventListener('dispose',()=>atlasDisposals++);sign.addEventListener('dispose',()=>signDisposals++);
+ const pending=[library.prepare('building-urban-office'),library.prepare('building-corner-chamfer')];
+ await new Promise(setImmediate);library.dispose();resolveSign(sign);
+ const outcomes=await Promise.allSettled(pending);
+ assert.ok(outcomes.every(r=>r.status==='rejected'));assert.equal(signLoads,1);assert.equal(signDisposals,1);assert.equal(atlasDisposals,1);
+});

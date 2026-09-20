@@ -1,6 +1,50 @@
 # Base elevated transit · 2026-09-18
 
-## Current alignment: short rear route behind both advertising towers
+## Current alignment: working eastern fork and ruined southern branch (2026-09-20)
+
+Owner requested the train turn away from the garden and the former foreground
+viaduct read as a collapsed branch, retaining its original columns. The live
+route now keeps the 35° exit tangent after the existing bend; trains never sample
+the abandoned alignment. The original four rear piers and four southern columns
+retain their X/Z positions. Three new supports carry the eastern continuation.
+New feet follow `eastGroundHeight`; their capitals still meet the 12.6 m deck.
+
+13 existing 8 m deck modules and one authored 24 m Y junction form the live line.
+The junction replaces stations 60–84 without overlapping duplicate decks. Its
+20 m curved old leg ends in jagged concrete, exposed reinforcement, torn rails
+and a closed red-lit barrier. No foreground deck, suspended service bundle or
+train continues beyond that break. Empty column caps and fallen concrete/rails
+use three instanced Blender roots (10,560 rendered triangles / 13 draws), no
+extra lights or frame loop. Dirt and planting from the east district remain.
+
+Assets: `public/game/rail-ruins/v1/rail-ruins.glb` (1,245,784 bytes); source
+`output/rail-ruins/rail-ruins.blend`. Regenerate in the existing Blender session
+with `scripts/build-rail-ruins.py`, then `node scripts/pack-rail-ruins-textures.mjs`.
+Concrete/steel WebP base-color and normal maps reuse the generated east-district
+surfaces. The user's Blender scene is restored after export. The existing rail
+and new kit retain separate resource ownership; late loads and disposal are tested.
+
+Target and exact prompt: `output/rail-ruins/target.png`, `target-prompt.txt`.
+Owner map saved/exported before editing:
+`output/map-backups/base-before-rail-fork-2026-09-20.json`.
+231 tests, lint, TypeScript and production build pass. Tests raycast both live
+rails along the whole switch, verify the void after the break, keep old column
+coordinates, check the train route, ground/footprints and resource disposal.
+Owner approved the live result ("все отлично"). Stop visual iterations; preserve
+their ongoing MASTER edits. Foreground removal and walking inspected; console
+clean. Final independent judgement and physical-phone performance were not
+measured. No commit, push or deployment.
+
+## Previous alignment: grounded east continuation (2026-09-20)
+
+The owner approved an extension along the outer edge of the new east district.
+The former route remains exact through 60 m, then a second 32 m-radius curve
+turns south along the outside of the fence. It has 18 spans and 8 supports;
+new support feet stand in continuous dirt/greenery. Deck height, original four
+piers, three coaches, articulation, speed and material ownership are unchanged.
+The entire train clears the line before wrapping. See `docs/east-district.md`.
+
+## Previous alignment: short rear route behind both advertising towers
 
 The current owner layout was saved before the rail correction. Its 16 entries include
 the Coinbase tower at (7.3151, -3.67, -18.7692) and the portrait media tower at

@@ -31,7 +31,11 @@ import { adaptMobileBudget, initialMobileBudget, mobileRenderRatio, usesTouchPro
 import { canStand, findPath, moveWithCollision, nearestStation, SPAWN, STATIONS, type Point, type StationId } from "./world";
 import { createImplantsBuilding } from "../../src/renderer/environment/implants-building.ts";
 import { createElevatedRail } from "../../src/renderer/environment/elevated-rail.ts";
-import { createCityStreet } from "../../src/renderer/environment/city-street.ts";
+import { createSakuraPark } from "../../src/renderer/environment/sakura-park.ts";
+import { createCanal } from "../../src/renderer/environment/canal.ts";
+import { createEastDistrict } from "../../src/renderer/environment/east-district.ts";
+import { createRailRuins } from "../../src/renderer/environment/rail-ruins.ts";
+import { createGardenAmbience } from "../../src/audio/garden-ambience.ts";
 import { createMetroOpening } from "../../src/renderer/environment/metro-opening.ts";
 import { createMediaTower } from "../../src/renderer/environment/media-tower.ts";
 import { createReferenceBuildingLibrary } from "../../src/renderer/three/reference-building-library.ts";
@@ -43,6 +47,7 @@ export type BaseEngine = {
   editor:WorldEditor; setMaster(value:boolean):void;
   dispose(): void; setPaused(value: boolean): void; setStick(x: number, y: number): void;
   setRain(value: boolean): void; setTraffic(value: boolean): void; setQuality(value: QualityMode): void;
+  setAmbient(value: boolean): Promise<boolean>;
   resetCamera(): void; goTo(id: StationId): void;
   frameCamera(): void; zoomCamera(delta: number): void; fixCamera(): boolean;
   restoreCameraPreset2(): boolean;
@@ -73,12 +78,12 @@ export function createBaseScene(
   renderer.shadowMap.needsUpdate = true;
   renderer.info.autoReset = false;
   renderer.toneMapping = T.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.12;
+  renderer.toneMappingExposure = 1.22;
   const surfaces = createRefugeMaterials(Math.min(mobile ? 4 : Infinity, renderer.capabilities.getMaxAnisotropy()));
   const pmrem = new T.PMREMGenerator(renderer);
   const environment = pmrem.fromEquirectangular(surfaces.skyTexture);
   scene.environment = environment.texture;
-  scene.environmentIntensity = 0.5;
+  scene.environmentIntensity = 0.6;
   pmrem.dispose();
   renderer.domElement.setAttribute("aria-label", "CyberBase starter refuge. Use WASD or arrow keys to walk, E to interact.");
   renderer.domElement.tabIndex = 0;
@@ -418,7 +423,7 @@ export function createBaseScene(
   targetMarker.rotation.x = -Math.PI / 2; targetMarker.visible = false; scene.add(targetMarker);
 
   let disposed = false, paused = false, ready = false, contextLost = false, rainOn = !reducedMotion, path: Point[] = [];
-  let assetsPending = 7, assetSettledAt = performance.now();
+  let assetsPending = 11, assetSettledAt = performance.now();
   const assetSettled = () => { assetsPending--; assetSettledAt = performance.now(); };
   // Never expose the authored fallback map while the owner's saved layout is loading.
   renderer.domElement.style.visibility = "hidden";
@@ -435,7 +440,7 @@ export function createBaseScene(
   let hero: T.Object3D = fallback, previousWalking = false;
   const { loader, draco } = createGltfLoader();
   const mediaTower = createMediaTower(scene,
-    createReferenceBuildingLibrary(mobile ? 2 : 4, url => loader.loadAsync(url)),
+    createReferenceBuildingLibrary(mobile ? 2 : 4, url => loader.loadAsync(url),undefined,undefined,true),
     onError, () => { assetSettled(); renderer.shadowMap.needsUpdate = true; });
   {
     worldAssetLoads.push(mediaTower.ready);
@@ -447,7 +452,15 @@ export function createBaseScene(
     renderer.shadowMap.needsUpdate = true;
   });
   let lastRailShadow = 0;
-  const cityStreet = createCityStreet(scene, mobile);
+  const sakuraPark = createSakuraPark(scene, loader, mobile, onError);
+  const ambience=createGardenAmbience();ambience.setRain(rainOn);
+  worldAssetLoads.push(sakuraPark.ready.finally(() => { assetSettled(); renderer.shadowMap.needsUpdate = true; }));
+  const canal=createCanal(scene,loader,mobile,puddle,onError);
+  worldAssetLoads.push(canal.ready.finally(()=>{assetSettled();renderer.shadowMap.needsUpdate=true;}));
+  const eastDistrict=createEastDistrict(scene,loader,stone,mobile,onError);
+  worldAssetLoads.push(eastDistrict.ready.finally(()=>{assetSettled();renderer.shadowMap.needsUpdate=true;}));
+  const railRuins=createRailRuins(scene,loader,mobile,onError);
+  worldAssetLoads.push(railRuins.ready.finally(()=>{assetSettled();renderer.shadowMap.needsUpdate=true;}));
   let trafficOn = !reducedMotion;
   const implantsBuilding = createImplantsBuilding(scene, loader, mobile, onError, () => {
     assetSettled();
@@ -561,11 +574,11 @@ export function createBaseScene(
 
   const rainCount = mobile ? 250 : 650, rainPositions = new Float32Array(rainCount * 6);
   for (let i = 0; i < rainCount; i++) {
-    const x = (rand() - 0.5) * 28, y = rand() * 16, z = (rand() - 0.5) * 22;
+    const x = (rand() - 0.5) * 64, y = rand() * 16, z = rand() * 48 - 14;
     rainPositions.set([x, y, z, x - 0.06, y + 0.35, z], i * 6);
   }
   const rainGeometry = new T.BufferGeometry(); rainGeometry.setAttribute("position", new T.BufferAttribute(rainPositions, 3));
-  const rain = new T.LineSegments(rainGeometry, new T.LineBasicMaterial({ color: 0xb9d8d8, transparent: true, opacity: 0.19, depthWrite: false }));
+  const rain = new T.LineSegments(rainGeometry, new T.LineBasicMaterial({ color: 0xb9d8d8, transparent: true, opacity: 0.085, depthWrite: false }));
   rain.frustumCulled = false; scene.add(rain);
   const input = createMovementInput(), moveDirection = { x: 0, z: 0 };
   const pivot = new T.Vector3(SPAWN.x, 1.05, SPAWN.z);
@@ -672,7 +685,9 @@ export function createBaseScene(
       }
     }
     const time = now / 1000;
-    cityStreet.update(!trafficOn || paused || modalOpen || editor.active ? 0 : dt);
+    sakuraPark.update(paused || modalOpen || editor.active ? 0 : dt, trafficOn, rainOn, reducedMotion);
+    canal.update(paused || modalOpen || editor.active ? 0 : dt,quality.high && floorVisible && !editor.active,reducedMotion);
+    eastDistrict.update(paused || modalOpen || editor.active ? 0 : dt,reducedMotion);
     if (elevatedRail.update(paused || modalOpen || editor.active ? 0 : dt, reducedMotion)
       && !mobile && now - lastRailShadow > 100) {
       renderer.shadowMap.needsUpdate = true;
@@ -767,9 +782,10 @@ export function createBaseScene(
   }
   const loop = createFrameLoop({
     startTime: loopStart,
-    targetFps: () => (mobile ? budget.target : null),
+    targetFps: () => (mobile ? budget.target : 60),
     onVisibilityChange(now) {
       resetInput();
+      ambience.setPaused(document.hidden);
       fpsTime = qualityWindow = now; frames = qualityFrames = qualityElapsed = 0; samples = [];
     },
     update: updateFrame,
@@ -783,7 +799,8 @@ export function createBaseScene(
       if (frameCamera.mode === 'free' || editor.active || paused || modalOpen || !ready || document.hidden || contextLost) { input.clearStick(); return; }
       input.setStick(x, y);
     },
-    setRain(value) { rainOn = value; },
+    setRain(value) { rainOn = value; ambience.setRain(value); },
+    setAmbient: value => ambience.setEnabled(value),
     setTraffic(value) { trafficOn = value; },
     setQuality(value) { quality = initialQuality(mobile, value); if (quality.high) enablePostprocessing(); puddle.visible = quality.high; rainGeometry.setDrawRange(0, quality.high ? rainCount * 2 : Math.min(rainCount, 180) * 2); renderer.shadowMap.needsUpdate = true; resize(); },
     frameCamera() { resetInput(); frameCamera.start(pivot); },
@@ -793,10 +810,10 @@ export function createBaseScene(
     resetCamera() { frameCamera.follow(); cameraRig.moveTo(player.position.x, player.position.z); pivot.y = player.position.y + .93; resetInput(); },
     goTo(id) { const station = getBaseStations().find((s) => s.id === id); if (station && ready && !paused && !modalOpen && !editor.active) { path = findPath(player.position, { x: station.x, z: station.z + 1 }); targetMarker.position.set(station.x, 0.1, station.z + 1); targetMarker.visible = path.length > 0; } },
     dispose() {
-      disposed = true; clearInput(); frameCamera.dispose(); loop.dispose(); clearTimeout(loadTimeout); observer.disconnect(); draco.dispose();
+      disposed = true; clearInput(); frameCamera.dispose(); loop.dispose(); ambience.dispose(); clearTimeout(loadTimeout); observer.disconnect(); draco.dispose();
       window.removeEventListener("keydown", keyDown); window.removeEventListener("keyup", keyUp); window.removeEventListener("blur", clearInput);
       window.removeEventListener("netrunner:input-reset", clearInput); modalObserver.disconnect();
-      editor.dispose(); editableRender?.dispose(); publishedMap?.dispose(); implantsBuilding.dispose(); mediaTower.dispose(); elevatedRail.dispose(); cityStreet.dispose(); clearBaseEditor();
+      editor.dispose(); editableRender?.dispose(); publishedMap?.dispose(); implantsBuilding.dispose(); mediaTower.dispose(); elevatedRail.dispose(); sakuraPark.dispose(); canal.dispose(); eastDistrict.dispose(); railRuins.dispose(); clearBaseEditor();
       // Retained source geometries may be detached by the static merge.
       for (const object of editableSources) if (!object.parent && object !== implantsBuilding.root && object !== mediaTower.root) scene.add(object);
       renderer.domElement.removeEventListener("pointermove",onHover);

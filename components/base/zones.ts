@@ -1,6 +1,7 @@
 import * as T from "three";
 import type { ArchitectureTools } from "./buildings";
 import { BACKGROUND_NORTH } from './layout.ts';
+import { CANAL } from '../../src/renderer/environment/canal-layout.ts';
 
 export function buildRefugeZones({ box, cylinder, pipe, sign, light, m, surface, section = (_id, _name, build) => build(), groundMaterial = material => material }: ArchitectureTools & { groundMaterial?: (material: T.MeshStandardMaterial) => T.MeshStandardMaterial }) {
   section('base:service-street', 'Служебная улица и фон', () => {
@@ -8,6 +9,20 @@ export function buildRefugeZones({ box, cylinder, pipe, sign, light, m, surface,
   const asphalt = new T.MeshStandardMaterial({ color: "#151d24", roughness: .94, metalness: .02 });
   surface(asphalt, "concrete", .42);
   asphalt.color.set("#182129");
+  // Clip in world space while retaining the authored bounds/pivot used by saved
+  // MASTER transforms. Resizing this slab would move the saved scenery group.
+  const compileAsphalt=asphalt.onBeforeCompile;
+  asphalt.onBeforeCompile=(shader,renderer)=>{
+    compileAsphalt.call(asphalt,shader,renderer);
+    shader.vertexShader='varying float canalBackdropZ;\n'+shader.vertexShader.replace('#include <project_vertex>',`#include <project_vertex>
+      vec4 canalWorld=vec4(transformed,1.);
+      #ifdef USE_INSTANCING
+        canalWorld=instanceMatrix*canalWorld;
+      #endif
+      canalBackdropZ=(modelMatrix*canalWorld).z;`);
+    shader.fragmentShader='varying float canalBackdropZ;\n'+shader.fragmentShader.replace('#include <clipping_planes_fragment>',`#include <clipping_planes_fragment>
+      if(canalBackdropZ>${CANAL.north})discard;`);
+  };
   box(0, -1.25, -8, 100, .3, 100, groundMaterial(asphalt));
   // Low service-wall silhouette closes the view without a distant skyline.
   for (let x = -27; x < 28; x += 3.4) {

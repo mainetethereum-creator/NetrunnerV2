@@ -5,6 +5,23 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 
 ## Root
 
+Canal / future forest boundary: `src/renderer/environment/canal-layout.ts` [P]
+owns placements/closed-crossing solids; `canal.ts` [3] loads/instances the Blender
+kit and `canal-water.ts` [3] safely shares the courtyard reflection. Base
+`zones.ts` clips the old backdrop without changing saved pivots. Builder:
+`scripts/build-canal-kit.py` → `.blend`/GLB; `scripts/pack-canal-textures.mjs`
+embeds WebP. Notes: `docs/canal.md`; checks: `tests/canal.test.mjs`.
+
+Sakura park (active local Base frontage): `src/renderer/environment/sakura-park.ts`
+[3] owns instanced Blender assets/VFX; `sakura-park-layout.ts` [P] shares paths,
+delivery poses and collision; `park-ground.ts` [3] blends paving/planting and
+reflection coverage. `src/audio/garden-ambience.ts` [S] owns opt-in audio.
+`garden-facade-sign.ts` [3] adds Base-only signs through the reference library.
+Builder: `scripts/build-sakura-park.py` → `.blend`/GLB, then
+`scripts/pack-sakura-textures.mjs`. Notes: `docs/sakura-park.md`;
+checks: `tests/sakura-park.test.mjs`. The road modules below are retained but
+no longer instantiated by the working Base scene.
+
 Movable metro opening: `src/renderer/environment/metro-opening.ts` [3] owns live
 clipping planes/material copies and binds the pristine editor delta. Base scene
 applies them to foundation/stone; `wet-floor.ts` clips the Reflector shader;
@@ -211,6 +228,10 @@ V2 GLB, instanced supports, articulated train, headlight and lifecycle;
 `curved-rail-geometry.ts` bends/merges the deck; `rail-city-details.ts` adds merged cable,
 utility and light fixtures. Blender source: `scripts/build-elevated-rail-v2.py`;
 details and budgets in `docs/base-elevated-rail.md`.
+`rail-ruins.ts` owns the instanced Blender Y junction, broken southern stub and
+column debris. `scripts/build-rail-ruins.py` / `pack-rail-ruins-textures.mjs`
+produce its textured kit; `tests/rail-ruins.test.mjs` verifies live rail continuity,
+the collapsed void, retained column coordinates and disposal.
 
 Shared framing: `src/renderer/camera/frame-camera.ts` owns OrbitControls, saved
 frame validation/persistence and player-relative composition offsets. Base and
@@ -255,3 +276,4 @@ under `output/performance/`; source-model counts are distinct from repeated scen
 - `src/assets/base-published-layout.ts`: immutable 40-entry production Base release data.
 - `components/base/published-map.ts`: release scenery hydration, collision/station transforms and library lifetime; no editor controller.
 - `tests/base-published-map.test.mjs`: export parity, fresh runtime hydration and resource ownership.
+- `src/renderer/environment/east-district{,-layout}.ts`: grounded east service frontage, immutable placements/boundary, Blender kit loading and teardown. `scripts/build-east-district.py` / `pack-east-district-textures.mjs` author/export its assets; `tests/east-district.test.mjs` checks ground, navigation, transition boundary and ownership. See `docs/east-district.md`.

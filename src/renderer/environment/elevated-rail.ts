@@ -4,12 +4,12 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { ASSET_URLS } from '../../assets/registry.ts';
 import { createConcreteMaterial, prepareConcreteUv } from '../three/cold-concrete.ts';
 import { disposeObjectTree } from '../three/dispose.ts';
-import { ELEVATED_RAIL, ELEVATED_RAIL_PERIOD, elevatedTrainX, sampleRailRoute } from './elevated-rail-layout.ts';
+import { ELEVATED_RAIL, ELEVATED_RAIL_PERIOD, elevatedTrainX, sampleRailRoute, railSupportPoses } from './elevated-rail-layout.ts';
 import { curveRailSpans } from './curved-rail-geometry.ts';
 import { createRailCityDetails } from './rail-city-details.ts';
 
 type ModelLoader = Pick<GLTFLoader, 'loadAsync'>;
-type Placement = { x: number; y?: number; z?: number; rotation?: number };
+type Placement = { x: number; y?: number; z?: number; rotation?: number; heightScale?: number };
 
 /** Owns only this scenery's resources. The scene keeps ownership of its loader,
  * frame loop, shadow invalidation and navigation. No timers are added.
@@ -170,6 +170,7 @@ export function createElevatedRail(
         const placement = placements[index];
         position.set(placement.x, placement.y ?? 0, placement.z ?? 0);
         rotation.setFromAxisAngle(up, placement.rotation ?? 0);
+        scale.set(1, placement.heightScale ?? 1, 1);
         matrix.compose(position, rotation, scale);
         mesh.setMatrixAt(index, matrix);
       }
@@ -212,11 +213,10 @@ export function createElevatedRail(
     });
     const [deck, pier, cab, middle] = modules;
     addInstances(deck, root, [], 1, true);
-    addInstances(pier, root, ELEVATED_RAIL.pierCentres.map(distance => {
-      const pose = sampleRailRoute(distance);
-      return { x: pose.x + ELEVATED_RAIL.pierOffsetZ * Math.sin(pose.yaw),
-        z: pose.z + ELEVATED_RAIL.pierOffsetZ * Math.cos(pose.yaw), rotation: pose.yaw };
-    }),
+    addInstances(pier, root, railSupportPoses().map(pose => ({
+      x: pose.x, y: pose.y, z: pose.z, rotation: pose.yaw,
+      heightScale: (ELEVATED_RAIL.deckY - 1.1 - pose.y) / (ELEVATED_RAIL.deckY - 1.1),
+    })),
     (ELEVATED_RAIL.deckY - 1.1) / new T.Box3().setFromObject(pier).getSize(new T.Vector3()).y);
     addInstances(cab, train, [
       { x: 0 },

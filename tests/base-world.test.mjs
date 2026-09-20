@@ -88,6 +88,7 @@ test('quantum annex and wide expedition breach are reachable while their edges r
 
 test('expanded west and east lots are buildable while the outer void stays closed', () => {
   for (const point of [{ x: -30, z: -1.5 }, { x: -20.5, z: -1.5 }, {x:30,z:-20}]) assert.ok(findPath(SPAWN,point).length);
-  for (const point of [{x:-33,z:0},{x:33,z:0},{x:0,z:-43}]) assert.equal(canStand(point),false);
+  assert.ok(canStand({x:33,z:0}), 'east district continues the courtyard');
+  for (const point of [{x:-33,z:0},{x:47,z:0},{x:0,z:-43}]) assert.equal(canStand(point),false);
   assert.deepEqual(STATIONS.map(s => s.id).sort(), ['charge', 'city', 'contracts', 'expedition', 'market', 'metro', 'oracle', 'smith', 'stash']);
 });

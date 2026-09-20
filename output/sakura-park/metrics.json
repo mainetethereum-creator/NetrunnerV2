@@ -1,0 +1,56 @@
+{
+  "SakuraTree": {
+    "triangles": 6032,
+    "drawCalls": 3
+  },
+  "YataiStall": {
+    "triangles": 3912,
+    "drawCalls": 9
+  },
+  "Fountain": {
+    "triangles": 2244,
+    "drawCalls": 4
+  },
+  "DeliveryRobot": {
+    "triangles": 1040,
+    "drawCalls": 4
+  },
+  "Planting": {
+    "triangles": 184,
+    "drawCalls": 2
+  },
+  "FernCluster": {
+    "triangles": 184,
+    "drawCalls": 2
+  },
+  "ForestGrass": {
+    "triangles": 10,
+    "drawCalls": 1
+  },
+  "GardenShrub": {
+    "triangles": 160,
+    "drawCalls": 2
+  },
+  "FountainSpray": {
+    "triangles": 4,
+    "drawCalls": 1
+  },
+  "LanternPost": {
+    "triangles": 236,
+    "drawCalls": 2
+  },
+  "StoneLantern": {
+    "triangles": 404,
+    "drawCalls": 2
+  },
+  "ParkBench": {
+    "triangles": 312,
+    "drawCalls": 2
+  },
+  "GardenSign": {
+    "triangles": 46,
+    "drawCalls": 2
+  },
+  "bytes": 16098780,
+  "compressedBytes": 4674488
+}

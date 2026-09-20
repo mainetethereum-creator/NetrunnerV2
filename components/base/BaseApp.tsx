@@ -6,6 +6,8 @@ import { useAccount, useConnect, useDisconnect } from "wagmi";
 import type { BaseEngine, BaseSnapshot } from "./scene";
 import type { QualityMode } from "./quality";
 import { SPAWN, getBaseStations, BASE_NORTH, LIMIT, type StationId } from "./world";
+import { SAKURA_PARK } from "../../src/renderer/environment/sakura-park-layout.ts";
+import { EAST_DISTRICT } from "../../src/renderer/environment/east-district-layout.ts";
 import GameHud from "../game/GameHud";
 import MovementStick from "../game/MovementStick";
 import LoadingScreen from "../../src/ui/loading/LoadingScreen";
@@ -21,10 +23,10 @@ const MAP_WIDTH = 230;
 const MAP_HEIGHT = 150;
 const MAP_PADDING = 9;
 const MAP_SCALE = Math.min(
-  (MAP_WIDTH - MAP_PADDING * 2) / (LIMIT.x * 2),
-  (MAP_HEIGHT - MAP_PADDING * 2) / (LIMIT.z - BASE_NORTH),
+  (MAP_WIDTH - MAP_PADDING * 2) / (LIMIT.x + EAST_DISTRICT.east),
+  (MAP_HEIGHT - MAP_PADDING * 2) / (SAKURA_PARK.south - BASE_NORTH),
 );
-const mapX = (x: number) => MAP_WIDTH / 2 + x * MAP_SCALE;
+const mapX = (x: number) => MAP_WIDTH / 2 + (x-(EAST_DISTRICT.east-LIMIT.x)/2) * MAP_SCALE;
 const mapY = (z: number) => MAP_PADDING + (z - BASE_NORTH) * MAP_SCALE;
 
 type Quest = { accepted: boolean; visited: StationId[] };
@@ -79,6 +81,7 @@ export default function BaseApp() {
   const [mapOpen, setMapOpen] = useState(false);
   const [rain, setRain] = useState(true), [quality, setQuality] = useState<QualityMode>("auto"), [quest, setQuest] = useState<Quest>(EMPTY_QUEST);
   const [traffic, setTraffic] = useState(false);
+  const [ambient,setAmbient]=useState(false);
   const [showStats, setShowStats] = useState(false);
   const [master,setMaster]=useState(false),[worldEditor,setWorldEditor]=useState<WorldEditor|null>(null);
   const [hideHud, setHideHud] = useState(false);
@@ -126,8 +129,14 @@ export default function BaseApp() {
       try {
         engine.current = createBaseScene(host.current, (name) => { if (!stopped) { setHero(name); setReady(true); } }, (s) => { if (!stopped) setSnapshot(s); }, openDialog, (message) => { if (!stopped) setError(message); });
         setWorldEditor(engine.current.editor);
+        setAmbient(false);
         const motion = matchMedia("(prefers-reduced-motion: reduce)").matches;
-        setRain(!motion);
+        let rainEnabled = !motion;
+        try {
+          const savedRain=localStorage.getItem("cyberbase.base.rain.v1");
+          if(savedRain==="true" || savedRain==="false") rainEnabled=savedRain==="true";
+        } catch { /* Keep the system motion preference. */ }
+        setRain(rainEnabled);engine.current.setRain(rainEnabled);
         let trafficEnabled = !motion;
         try {
           const savedTraffic = localStorage.getItem("cyberbase.base.traffic.v1");
@@ -223,6 +232,9 @@ export default function BaseApp() {
         <div className={styles.mapTitle}><span>REFUGE / 01</span><span>N ↑</span></div>
         <svg viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`} aria-hidden="true">
           <rect x={mapX(-LIMIT.x)} y={mapY(BASE_NORTH)} width={LIMIT.x * MAP_SCALE * 2} height={(LIMIT.z-BASE_NORTH)*MAP_SCALE} fill="#153034" stroke="#496562" strokeWidth="1" />
+          <rect x={mapX(-LIMIT.x)} y={mapY(LIMIT.z)} width={LIMIT.x*MAP_SCALE*2} height={(SAKURA_PARK.south-LIMIT.z)*MAP_SCALE} fill="#243b31" stroke="#496562" strokeWidth="1" />
+          <ellipse cx={mapX(SAKURA_PARK.fountainX)} cy={mapY(SAKURA_PARK.fountainZ)} rx={5*MAP_SCALE} ry={4*MAP_SCALE} fill="#32636b" />
+          <rect x={mapX(EAST_DISTRICT.west)} y={mapY(EAST_DISTRICT.north)} width={(EAST_DISTRICT.east-EAST_DISTRICT.west)*MAP_SCALE} height={(EAST_DISTRICT.south-EAST_DISTRICT.north)*MAP_SCALE} fill="#2b3933" stroke="#736f4b" strokeWidth="1" />
           <path d={`M${mapX(-14.8)} ${mapY(11.35)}H${mapX(14.8)}`} stroke="#736f4b" strokeWidth="3" />
           {getBaseStations().map((s) => <circle key={s.id} cx={mapX(s.x)} cy={mapY(s.z)} r="2.4" fill={s.color} />)}
           <circle cx={mapX(snapshot.x)} cy={mapY(snapshot.z)} r="4" fill="#ebd9b5" stroke="#182c2c" strokeWidth="1.5" />
@@ -269,13 +281,17 @@ export default function BaseApp() {
           {walletError && <p className={styles.notice} role="alert">{walletError}</p>}
         </>}
         {dialog === "settings" && <><h2 id="base-dialog-title">Make yourself comfortable.</h2><div className={styles.settingRows}>
-          <button onClick={() => { setRain(!rain); engine.current?.setRain(!rain); }} aria-pressed={rain}><span>Rain particles</span><strong>{rain ? "ON" : "OFF"}</strong></button>
+          <button onClick={() => {
+            setRain(!rain); engine.current?.setRain(!rain);
+            try {localStorage.setItem("cyberbase.base.rain.v1",String(!rain));} catch { /* Session preference still works. */ }
+          }} aria-pressed={rain}><span>Rain particles</span><strong>{rain ? "ON" : "OFF"}</strong></button>
           <button onClick={() => {
             const enabled = !traffic;
             setTraffic(enabled); engine.current?.setTraffic(enabled);
             try { localStorage.setItem("cyberbase.base.traffic.v1", String(enabled)); }
             catch { setStorageNotice("Traffic preference lasts for this visit only; browser storage is unavailable."); }
-          }} aria-pressed={traffic}><span>City traffic</span><strong>{traffic ? "ON" : "OFF"}</strong></button>
+          }} aria-pressed={traffic}><span>Park deliveries</span><strong>{traffic ? "ON" : "OFF"}</strong></button>
+          <button onClick={async()=>{const enabled=await engine.current?.setAmbient(!ambient);setAmbient(!!enabled);}} aria-pressed={ambient}><span>Garden ambience</span><strong>{ambient ? "ON" : "OFF"}</strong></button>
           <button onClick={() => { const next = quality === "auto" ? "high" : quality === "high" ? "lite" : "auto"; setQuality(next); engine.current?.setQuality(next); }}><span>Graphics quality</span><strong>{quality.toUpperCase()} · {snapshot.high ? "HIGH" : "LITE"}</strong></button>
           <button onClick={() => setShowStats(!showStats)} aria-pressed={showStats}><span>Live performance display</span><strong>{showStats ? "ON" : "OFF"}</strong></button>
           <button onClick={() => engine.current?.resetCamera()}><span>Reset camera</span><span>↺</span></button>

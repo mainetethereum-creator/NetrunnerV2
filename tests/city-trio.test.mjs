@@ -85,7 +85,7 @@ for (const [slug, concept, height] of configs) {
 
   test(`${slug}: lazy shared instances retain independent transforms and dispose once`, async () => {
     let loads = 0;
-    const library = createReferenceBuildingLibrary(4, async () => { loads++; return parse(); }, async () => new T.Texture());
+    const library = createReferenceBuildingLibrary(4, async () => { loads++; return parse(); }, async () => new T.Texture(), async () => new T.Texture(), true);
     await Promise.all([library.prepare(asset.id), library.prepare(asset.id)]);
     assert.equal(loads, 1);
     const a = library.create(asset.id), b = library.create(asset.id);

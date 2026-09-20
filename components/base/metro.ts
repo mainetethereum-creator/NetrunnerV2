@@ -4,10 +4,10 @@ import { FLOOR_EAST, FLOOR_NORTH, FLOOR_SOUTH, FLOOR_WEST } from './layout.ts';
 
 /** Continuous receiver geometry; the live metro opening clips paving and slab
  * in their materials, so a moved entrance never leaves a hole at the old site. */
-export function courtyardFloorGeometry() {
+export function courtyardFloorGeometry(south = FLOOR_SOUTH) {
   const shape = new T.Shape();
-  shape.moveTo(FLOOR_WEST, -FLOOR_SOUTH);
-  shape.lineTo(FLOOR_EAST, -FLOOR_SOUTH);
+  shape.moveTo(FLOOR_WEST, -south);
+  shape.lineTo(FLOOR_EAST, -south);
   shape.lineTo(FLOOR_EAST, -FLOOR_NORTH);
   shape.lineTo(FLOOR_WEST, -FLOOR_NORTH);
   shape.closePath();

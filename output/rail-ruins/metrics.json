@@ -1,0 +1,16 @@
+{
+  "RailJunction": {
+    "triangles": 4656,
+    "draws": 7
+  },
+  "RuinedPierCap": {
+    "triangles": 1092,
+    "draws": 3
+  },
+  "RailCrashDebris": {
+    "triangles": 876,
+    "draws": 3
+  },
+  "bytes": 4012768,
+  "compressedBytes": 1245784
+}

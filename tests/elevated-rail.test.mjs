@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from 'three';
-import { ELEVATED_RAIL, ELEVATED_RAIL_PERIOD, RAIL_BEND, elevatedTrainX, railPierFootprints, sampleRailRoute } from '../src/renderer/environment/elevated-rail-layout.ts';
+import { ELEVATED_RAIL, ELEVATED_RAIL_PERIOD, RAIL_BEND, elevatedTrainX, railPierFootprints, railSupportPoses, sampleRailRoute } from '../src/renderer/environment/elevated-rail-layout.ts';
 import { createElevatedRail } from '../src/renderer/environment/elevated-rail.ts';
 
 function fixture() {
@@ -66,8 +66,8 @@ test('train advances in metres at the same speed across frame rates and wraps ou
   assert.deepEqual(sampleRailRoute(0), { x: -16, z: -28.5, yaw: 0 });
   assert.deepEqual(sampleRailRoute(RAIL_BEND.start), { x: 12, z: -28.5, yaw: 0 });
   assert.equal(sampleRailRoute(RAIL_BEND.end).yaw, -RAIL_BEND.angle);
-  assert.equal(sampleRailRoute(88).yaw, -RAIL_BEND.angle,
-    'the short right tail continues toward the metro without another turn');
+  assert.equal(sampleRailRoute(60).yaw, -RAIL_BEND.angle, 'the saved city alignment remains unchanged');
+  assert.equal(sampleRailRoute(120).yaw, -RAIL_BEND.angle, 'the live extension leaves eastwards, away from the garden');
   for (const join of [RAIL_BEND.start, RAIL_BEND.end]) {
     const before = sampleRailRoute(join - .00001), after = sampleRailRoute(join + .00001);
     assert.ok(Math.hypot(before.x - after.x, before.z - after.z) < .000021);
@@ -81,14 +81,14 @@ test('train advances in metres at the same speed across frame rates and wraps ou
 
 test('curved railway clears the saved buildings and pier rectangles match each local tangent', () => {
   const footprints = railPierFootprints();
-  assert.equal(footprints.length, ELEVATED_RAIL.pierCentres.length);
+  const supports=railSupportPoses();
+  assert.equal(footprints.length, supports.length);
   for (let index = 0; index < footprints.length; index++) {
     const rect = footprints[index];
-    const distance = ELEVATED_RAIL.pierCentres[index];
-    const route = sampleRailRoute(distance);
+    const route = supports[index];
     const rotation = new T.Matrix4().makeRotationY(route.yaw);
     for (const x of [-1.425, 1.425]) for (const z of [-1.5, 1.5]) {
-      const corner = new T.Vector3(x, 0, ELEVATED_RAIL.pierOffsetZ + z).applyMatrix4(rotation);
+      const corner = new T.Vector3(x, 0, z).applyMatrix4(rotation);
       corner.x += route.x;
       corner.z += route.z;
       assert.ok(Math.abs(corner.x - rect.x) <= rect.w / 2 + 1e-10);
@@ -125,8 +125,8 @@ test('curved railway clears the saved buildings and pier rectangles match each l
     assert.ok(separateX || separateZ, `support foot clears ${building.name}`);
   }
   const right = footprints.at(-1);
-  assert.ok(right.x > 35 && right.z < -19,
-    'the last support carries the short exit beyond the towers toward the metro');
+  assert.ok(footprints[3].x > 35 && footprints[3].z < -19, 'original metro support is unchanged');
+  assert.ok(right.x > 55 && right.z > 45, 'new supports stand outside the east fence on the earth shoulder');
 });
 
 test('curved deck stays batched, coaches articulate, and generated resources dispose once', async () => {
@@ -147,7 +147,7 @@ test('curved deck stays batched, coaches articulate, and generated resources dis
   rail.root.traverse(object => { if (object.isInstancedMesh && /^(RailPier|TrainCar|TrainMiddle)/.test(object.name)) instances.push(object); });
   assert.equal(instances.length, 3, 'supports and both car types retain instanced draws');
   assert.deepEqual(instances.map(mesh => mesh.count).sort((a, b) => a - b),
-    [1, 2, ELEVATED_RAIL.pierCentres.length].sort((a, b) => a - b));
+    [1, 2, railSupportPoses().length].sort((a, b) => a - b));
   const pier = instances.find(mesh => mesh.name.startsWith('RailPier'));
   const deck = rail.root.children.find(mesh => mesh.name.startsWith('RailDeck'));
   assert.ok(deck.isMesh && !deck.isInstancedMesh, 'one bent deck mesh instead of disconnected straight spans');
