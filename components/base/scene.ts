@@ -111,7 +111,8 @@ export function createBaseScene(
   sun.shadow.blurSamples = mobile ? 4 : 8;
   scene.add(sun);
   const rim = new T.DirectionalLight(0x86b9cc, .85); rim.position.set(10, 8, -10); scene.add(rim);
-  const courtyardFill = new T.DirectionalLight(0x99bddc, 0.28);
+  // Broad moon bounce keeps wet facades readable without adding more light passes.
+  const courtyardFill = new T.DirectionalLight(0x99bddc, 0.42);
   courtyardFill.position.set(-5, 14, 16); scene.add(courtyardFill);
 
   let seed = 90421;
@@ -167,16 +168,28 @@ export function createBaseScene(
   const light = (x: number, y: number, z: number, color: number, power: number, distance: number) => {
     const lamp = new T.PointLight(color, power, distance, 2); lamp.position.set(x, y, z); scene.add(lamp);
   };
+  const facadeTickers: Array<{ render(offset: number): void; texture: T.CanvasTexture; material: T.MeshStandardMaterial }> = [];
   function sign(text: string, sub: string, x: number, y: number, z: number, width: number, color = "#c0d8d0", rotation = 0) {
     const canvas = document.createElement("canvas"); canvas.width = 1024; canvas.height = 256;
     const ctx = canvas.getContext("2d")!;
-    ctx.fillStyle = "#14282c"; ctx.fillRect(0, 0, 1024, 256);
-    ctx.strokeStyle = "#60746b"; ctx.lineWidth = 5; ctx.strokeRect(14, 14, 996, 228);
-    ctx.fillStyle = color; ctx.font = "bold 69px monospace"; ctx.textAlign = "center";
-    ctx.fillText(text, 512, 114); ctx.font = "25px monospace"; ctx.fillStyle = "#a6b4a8"; ctx.fillText(sub, 512, 177);
     const texture = new T.CanvasTexture(canvas); texture.colorSpace = T.SRGBColorSpace; texture.anisotropy = 4;
-    const mesh = new T.Mesh(new T.PlaneGeometry(width, width / 4), new T.MeshStandardMaterial({ map: texture, emissiveMap: texture, emissive: 0xffffff, emissiveIntensity: 0.32, roughness: 0.7 }));
+    const material = new T.MeshStandardMaterial({ map: texture, emissiveMap: texture, emissive: 0xffffff, emissiveIntensity: 0.62, roughness: 0.58 });
+    const render = (offset: number) => {
+      ctx.fillStyle = "#08191f"; ctx.fillRect(0, 0, 1024, 256);
+      ctx.strokeStyle = color; ctx.globalAlpha = .72; ctx.lineWidth = 5; ctx.strokeRect(14, 14, 996, 228); ctx.globalAlpha = 1;
+      ctx.fillStyle = color; ctx.font = "bold 69px monospace"; ctx.textAlign = "center"; ctx.shadowColor = color; ctx.shadowBlur = 18;
+      ctx.fillText(text, 512, 108); ctx.shadowBlur = 0;
+      ctx.save(); ctx.beginPath(); ctx.rect(26, 142, 972, 72); ctx.clip();
+      ctx.font = "bold 26px monospace"; ctx.textAlign = "left"; ctx.fillStyle = "#d6fff6";
+      const message = `  ${sub}   ◆   DISTRICT ONLINE   ◆   `;
+      const span = Math.max(1, ctx.measureText(message).width);
+      for (let px = -(offset % span) - span; px < 1024 + span; px += span) ctx.fillText(message, px, 187);
+      ctx.restore(); texture.needsUpdate = true;
+    };
+    render(0);
+    const mesh = new T.Mesh(new T.PlaneGeometry(width, width / 4), material);
     mesh.position.set(x, y, z); mesh.rotation.y = rotation; scene.add(mesh);
+    facadeTickers.push({ render, texture, material });
   }
 
   // The metro's live opening clips both structural layers and the paving.
@@ -685,6 +698,16 @@ export function createBaseScene(
       }
     }
     const time = now / 1000;
+    const facadeTime = reducedMotion ? 0 : time;
+    // Canvas uploads are capped at 12 Hz; the scene keeps a continuous ticker
+    // without adding geometry, lights or an independent animation loop.
+    if (Math.floor(now / 84) !== Math.floor((now - frameMs) / 84)) {
+      for (let i = 0; i < facadeTickers.length; i++) {
+        const ticker = facadeTickers[i];
+        ticker.render(facadeTime * (54 + i * 7));
+        ticker.material.emissiveIntensity = reducedMotion ? .66 : .62 + Math.sin(facadeTime * 1.35 + i) * .08;
+      }
+    }
     sakuraPark.update(paused || modalOpen || editor.active ? 0 : dt, trafficOn, rainOn, reducedMotion);
     canal.update(paused || modalOpen || editor.active ? 0 : dt,quality.high && floorVisible && !editor.active,reducedMotion);
     eastDistrict.update(paused || modalOpen || editor.active ? 0 : dt,reducedMotion);

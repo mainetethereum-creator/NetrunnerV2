@@ -609,3 +609,30 @@ Fresh judge `/root/east_judge_1` was dispatched before the interruption; verdict
 may still need retrieval. Runtime entry dialogue/mobile review, final map export
 parity and further visual iterations remain pending. Last quality set to HIGH
 for visual inspection (previously AUTO); camera settings were not changed.
+
+### East expedition approach and cyberpunk facade pass — 2026-09-20
+
+Before this pass, MASTER Save + Export produced the exact live-map backup
+`output/map-backups/base-approved-before-cyberpunk-pass-2026-09-20.json`. A local
+checkpoint commit `b8805ba` (`feat(base): checkpoint sakura district and rail fork`)
+contains the complete approved garden/rail state. The requested push is still pending:
+automatic approval review rejected exporting the repository to the specific GitHub
+origin until the owner explicitly confirms that destination and branch.
+
+The east boundary now uses precast concrete panel courses, posts, tapered feet and
+lifting eyes instead of the iron fence, while preserving the original eight-metre
+Expedition breach and its continuous navigation boundary. Beyond it, a curved gravel
+trail, 34 edge rocks and 78 plants in three low-poly families fill the grounded rail
+shoulder; mobile halves plant density. The existing fire barrels and tires remain.
+
+Night lighting now uses the existing moon/fill lights at .78/.42 intensity. Base-only
+reference-building media, neon and occupied-window materials have stronger emission.
+Existing scene signs keep their title but render the lower line as a moving 12 Hz
+canvas ticker; reduced motion freezes it at a bright static phase. This adds no new
+lights, geometry or independent animation loop. Existing garden/canal lamp levels and
+bloom remain unchanged.
+
+Validation after integration: 232/232 tests, ESLint, TypeScript and production build
+pass. Live `/base` loaded through the existing server with no browser warnings/errors;
+saved Standard 2 was restored after inspection. Exact physical-phone performance and
+a close visual review of the far side of the trail remain owner checks.

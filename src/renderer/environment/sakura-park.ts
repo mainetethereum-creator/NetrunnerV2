@@ -19,7 +19,7 @@ export function createSakuraPark(parent: T.Scene, loader: GLTFLoader, mobile: bo
   const owned = new T.Group(); // Retain uninstanced prototypes for unified resource teardown.
   let droplets: T.Points | undefined, petals: T.Points | undefined, steam:T.Points|undefined;
   const flash = new T.DirectionalLight(0xb4ceff, 0); flash.position.set(-20,35,-15); root.add(flash);
-  const moon = new T.DirectionalLight(0xadcaff, .48); moon.position.set(12,28,24); root.add(moon);
+  const moon = new T.DirectionalLight(0xadcaff, .78); moon.position.set(12,28,24); root.add(moon);
   const gardenFill=new T.DirectionalLight(0xffd5a4,.65);gardenFill.position.set(-20,12,24);root.add(gardenFill);
   const glowTexture = roadGlowTexture();
   const glowMaterial = new T.MeshBasicMaterial({map:glowTexture,color:0xffa047,transparent:true,opacity:.26,depthWrite:false,blending:T.AdditiveBlending});

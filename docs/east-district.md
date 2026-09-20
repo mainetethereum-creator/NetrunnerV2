@@ -10,10 +10,19 @@ expedition dialogue and `/expedition`; it never permits free walking outside.
 - `east-district-layout.ts`: plaza x 30.8–46.5, z −10–34; two service buildings,
   three planted beds and the exit at (44.8, 25). World collision and minimap use
   the same layout. The old saved map and camera are not rewritten.
-- `east-district.ts`: one Blender kit, instanced fences/rubble, tiled extension
-  borrowing the courtyard's material, two burning barrels and tire piles, small
-  warm light pools. Flame animation uses the existing scene clock and respects
-  pause/reduced motion. The kit owns its resources; the courtyard owns paving.
+- `east-district.ts`: one Blender kit, tiled extension borrowing the courtyard's
+  material, two burning barrels and tire piles, small warm light pools. The old
+  iron fence instances are replaced at runtime by the same precast-panel language
+  as the retained front wall: three concrete courses, tapered feet, recessed
+  joints and steel lifting eyes. The original eight-metre damaged breach remains.
+  Collision still closes the entire interaction line, including the visible gap.
+- Beyond the breach, a rain-dark gravel path bends into the grounded railway
+  shoulder. Thirty-four instanced edge stones and 78 deterministic plant
+  placements (ferns, broadleaf shrubs and reed grass; half density on mobile)
+  keep its centre readable while making both banks denser. This adds nine draws,
+  no asset download, no light and no animation loop.
+- Flame animation uses the existing scene clock and respects pause/reduced
+  motion. The kit owns its resources; the courtyard owns paving.
 - `sakura-park.ts`: three additional sakuras, lanterns/benches and ground planting
   reuse the already-loaded park kit and material batches. Mobile lowers planting
   density. Delivery robots keep their existing route.
@@ -40,7 +49,10 @@ embedded WebP base-color/normal maps. Registered as `ASSET_URLS.eastDistrict`.
 
 Pre-change owner map saved/exported through MASTER:
 `output/map-backups/base-before-east-district-2026-09-20.json`.
-228 tests, ESLint, TypeScript and production build pass. New tests cover garden
+The east-boundary update adds targeted checks for the precast section counts,
+old-fence removal, trail endpoints, three plant variants and GPU teardown. All
+232 tests, ESLint and TypeScript pass; the production build remains from the
+original district checkpoint. Tests cover garden
 navigation to the exit, collision with the fence even through its visual breach,
 solid planting/buildings, ground beneath every new support, a physically open
 breach model, and teardown without disposing the borrowed courtyard material.

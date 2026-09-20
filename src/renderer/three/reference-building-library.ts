@@ -108,6 +108,14 @@ export function createReferenceBuildingLibrary(anisotropy = 4, load?: LoadModel,
       scene.name = asset.name;
       scene.traverse(object => {
         if (!(object instanceof T.Mesh)) return;
+        for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
+          if (!(material instanceof T.MeshStandardMaterial) || !gardenSigns) continue;
+          // Base-only facade lighting: retain the approved artwork while making
+          // the media, trim and occupied windows legible in rain and Lite mode.
+          if (material.name.endsWith('_ApprovedMedia')) material.emissiveIntensity = 1.08;
+          else if (material.name.endsWith('_Neon')) material.emissiveIntensity = 1.65;
+          else if (material.name.endsWith('_WarmLight')) material.emissiveIntensity = .72;
+        }
         object.castShadow = true;
         object.receiveShadow = true;
         for (const material of Array.isArray(object.material) ? object.material : [object.material]) {

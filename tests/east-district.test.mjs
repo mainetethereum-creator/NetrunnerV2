@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import * as T from 'three';
 import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js';
 import {createEastDistrict} from '../src/renderer/environment/east-district.ts';
-import {EAST_DISTRICT,EAST_EXIT,EAST_BEDS,EAST_BUILDINGS,eastGroundHeight} from '../src/renderer/environment/east-district-layout.ts';
+import {EAST_DISTRICT,EAST_EXIT,EAST_BEDS,EAST_BOUNDARY_RUNS,EAST_BUILDINGS,EAST_TRAIL_PLANTS,EAST_TRAIL_POINTS,EAST_TRAIL_ROCKS,eastGroundHeight} from '../src/renderer/environment/east-district-layout.ts';
 import {canStand,findPath,moveWithCollision,nearestStation,clearBaseEditor} from '../components/base/world.ts';
 import {railPierFootprints,railSupportPoses} from '../src/renderer/environment/elevated-rail-layout.ts';
 
@@ -44,6 +44,16 @@ test('mapped Blender kit has continuous ground under the railway and a clear phy
   const breach=scene.getObjectByName('ExpeditionBreach');breach.position.set(0,0,0);scene.updateMatrixWorld(true);
   assert.equal(new T.Raycaster(new T.Vector3(0,1,4),new T.Vector3(0,0,-1)).intersectObject(breach,true).length,0);
 });
+test('expedition approach keeps the old breach and frames a clear gravel trail with varied planting',()=>{
+  assert.deepEqual(EAST_BOUNDARY_RUNS,[[-10,21],[29,34]]);
+  assert.deepEqual(EAST_TRAIL_POINTS[0],[EAST_DISTRICT.east+.05,EAST_DISTRICT.breachZ]);
+  assert.ok(EAST_TRAIL_POINTS.at(-1)[0]>63,'trail continues into the grounded shoulder');
+  assert.equal(EAST_TRAIL_ROCKS.length,34);assert.equal(EAST_TRAIL_PLANTS.length,78);
+  assert.deepEqual(new Set(EAST_TRAIL_PLANTS.map(p=>p.variant)),new Set([0,1,2]));
+  assert.ok(EAST_TRAIL_ROCKS.every(p=>p.x>EAST_DISTRICT.east&&p.scale>=.32&&p.scale<.8));
+  assert.ok(EAST_TRAIL_PLANTS.every(p=>p.x>EAST_DISTRICT.east));
+  assert.ok(EAST_TRAIL_PLANTS.some(p=>p.z<23)&&EAST_TRAIL_PLANTS.some(p=>p.z>31),'plants vary across both trail edges');
+});
 test('east kit disposal owns loaded resources but never the borrowed paving',async()=>{
   const source=await model(),resources=new Set();
   source.scene.traverse(o=>{if(o instanceof T.Mesh){resources.add(o.geometry);resources.add(o.material);for(const v of Object.values(o.material))if(v instanceof T.Texture)resources.add(v);}});
@@ -51,7 +61,15 @@ test('east kit disposal owns loaded resources but never the borrowed paving',asy
   const paving=new T.MeshStandardMaterial();let pavingDisposals=0;paving.addEventListener('dispose',()=>pavingDisposals++);
   const scene=new T.Scene(),errors=[];
   const district=createEastDistrict(scene,{loadAsync:async()=>source},paving,false,m=>errors.push(m));await district.ready;
-  assert.deepEqual(errors,[]);district.update(.016,false);district.dispose();district.dispose();
+  assert.deepEqual(errors,[]);
+  const byName=name=>district.root.getObjectByName(name);
+  assert.equal(byName('East / precast concrete panels').count,48);
+  assert.equal(byName('East / precast concrete posts').count,14);
+  assert.equal(byName('East / trail edge stones').count,EAST_TRAIL_ROCKS.length);
+  assert.equal(byName('East / ferns').count+byName('East / broadleaf').count+byName('East / reed grass').count,EAST_TRAIL_PLANTS.length);
+  assert.ok(byName('East / gravel expedition trail'));
+  assert.equal(district.root.children.some(o=>o.name.includes('EastFence')),false,'old iron fence is no longer rendered');
+  district.update(.016,false);district.dispose();district.dispose();
   assert.equal(scene.children.length,0);assert.equal(pavingDisposals,0);
   assert.ok([...counts.values()].every(n=>n===1));paving.dispose();
 });
