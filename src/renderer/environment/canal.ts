@@ -62,7 +62,7 @@ export function createCanal(parent:T.Scene,loader:GLTFLoader,mobile:boolean,refl
       });
     }
     const north:Placement[]=[],south:Placement[]=[],fences:Placement[]=[];
-    for(let x=-46;x<48;x+=4) {
+    for(let x=CANAL.west+2;x<CANAL.east;x+=4) {
       north.push([x,34]);south.push([x,48.7,Math.PI]);
       if(Math.abs(x-CANAL.bridgeX)>4)fences.push([x,33.85],[x,48.95,Math.PI]);
     }
@@ -76,8 +76,9 @@ export function createCanal(parent:T.Scene,loader:GLTFLoader,mobile:boolean,refl
       ...BRIDGE_LANTERNS.map(({x,z,y})=>[x,z,0,1.15,y] as const),
     ]);
     const ivy:Placement[]=[],reeds:Placement[]=[],ferns:Placement[]=[],rocks:Placement[]=[];
-    for(let i=0;i<36;i++) {
-      const x=-47+i*2.7;
+    const bankPlantCount=Math.ceil((CANAL.east-CANAL.west)/2.7);
+    for(let i=0;i<bankPlantCount;i++) {
+      const x=CANAL.west+1+i*2.7;
       if(Math.abs(x-CANAL.bridgeX)>3) {
         if(i%3!==1)ivy.push([x,34.55,0,.6+Math.abs(Math.sin(i*12))*.7,.08]);
         ivy.push([x,48.20,Math.PI,.8,.08]);
@@ -113,7 +114,8 @@ export function createCanal(parent:T.Scene,loader:GLTFLoader,mobile:boolean,refl
       water?.update(time,high,reducedMotion);
       if(mist) {
         const p=mist.geometry.attributes.position;
-        for(let i=0;i<p.count;i++)p.setXYZ(i,-46+(i*4.7+(reducedMotion?0:time*.04))%94,-.9+Math.sin(i*23)*.12,36+(i*2.17)%10);
+        const span=CANAL.east-CANAL.west;
+        for(let i=0;i<p.count;i++)p.setXYZ(i,CANAL.west+2+(i*4.7+(reducedMotion?0:time*.04))%span,-.9+Math.sin(i*23)*.12,36+(i*2.17)%10);
         p.needsUpdate=true;
       }
     },

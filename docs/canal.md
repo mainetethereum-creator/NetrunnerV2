@@ -6,6 +6,10 @@ an unfinished timber bridge with a closed gate hints at a future resource Forest
 The Forest is not a playable route. Existing Base navigation still ends at z 34.
 Gate and construction supplies are solid. The saved city and camera are retained.
 
+The west water, both retaining banks and their vegetation now continue to x = -68,
+twenty metres beyond the earlier edge. A player standing at the western Base limit
+therefore sees continuous river scenery instead of the end of the water plane.
+
 ## Owner follow-up: softer light and visible current
 
 After reviewing the scene, the owner requested lower lantern brightness and

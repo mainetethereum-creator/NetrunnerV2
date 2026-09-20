@@ -50,6 +50,7 @@ test('Blender canal kit embeds mapped materials and a real open deck gap',async(
 
 test('the future forest, bridge gap and water cannot be entered, park routes remain open',()=>{
   assert.equal(CANAL.forestOpen,false);
+  assert.equal(CANAL.west,-68,'water continues beyond the reachable west edge');
   for(const z of [34,35,41,48,51])for(const x of [-30,0,CANAL.bridgeX,30])assert.equal(canStand({x,z}),false);
   for(const solid of CANAL_SOLIDS)assert.equal(canStand(solid),false);
   assert.equal(findPath(SPAWN,{x:CANAL.bridgeX,z:41}).length,0);
@@ -74,6 +75,8 @@ test('canal releases its assets once, retains borrowed reflection, and detaches 
   const old=mirror.onBeforeRender,counts=watch([...model.resources,normal]),borrowed=watch([mirror.getRenderTarget().texture]);
   const errors=[];const canal=createCanal(scene,{loadAsync:async()=>model},false,mirror,e=>errors.push(e),async()=>normal);
   await canal.ready;assert.deepEqual(errors,[]);assert.notEqual(mirror.onBeforeRender,old);
+  const water=canal.root.getObjectByName('Canal / shared-reflection water');water.geometry.computeBoundingBox();
+  assert.equal(water.geometry.boundingBox.min.x,CANAL.west);assert.equal(water.geometry.boundingBox.max.x,CANAL.east);
   let instances=0;canal.root.traverse(o=>{if(o.isInstancedMesh)instances++;});assert.equal(instances,roots.length+9);
   canal.dispose();canal.dispose();assert.ok(counts.every(c=>c.n===1));assert.equal(borrowed[0].n,0);assert.equal(mirror.onBeforeRender,old);assert.equal(scene.children.length,0);
   mirror.dispose();mirror.geometry.dispose();

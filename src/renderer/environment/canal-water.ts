@@ -91,7 +91,7 @@ export function createCanalWater(normalMap:T.Texture, reflection:Reflector, mobi
       }`,
   });
   const geometry=new T.PlaneGeometry(CANAL.east-CANAL.west,CANAL.south-CANAL.north);
-  geometry.rotateX(-Math.PI/2);geometry.translate(0,CANAL.waterY,(CANAL.north+CANAL.south)/2);
+  geometry.rotateX(-Math.PI/2);geometry.translate((CANAL.west+CANAL.east)/2,CANAL.waterY,(CANAL.north+CANAL.south)/2);
   const water=new T.Mesh(geometry,material);water.name='Canal / shared-reflection water';water.renderOrder=2;
   const previous=reflection.onBeforeRender;
   const before:T.Object3D['onBeforeRender']=function(...args) {

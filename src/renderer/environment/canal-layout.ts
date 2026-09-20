@@ -1,6 +1,6 @@
 /** The forest crossing remains closed; this extension is scenery outside Base navigation. */
 export const CANAL = {
-  west:-48,east:48,north:34.35,south:48.35,waterY:-1.70,
+  west:-68,east:48,north:34.35,south:48.35,waterY:-1.70,
   bridgeX:19,bridgeZ:41.1,gateZ:33.9,forestOpen:false,
 } as const;
 export const CANAL_LANTERNS=Array.from({length:13},(_,i)=>({x:-46+i*7.5,z:34.0}));
