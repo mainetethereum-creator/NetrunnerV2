@@ -54,6 +54,7 @@ test('west park paving reaches the armory edge and the marked boundary tree is r
   assert.ok(parkWalkwayContains({x:-41.5,z:29}), 'south park path continues across the former void');
   assert.equal(SAKURA_TREES.some(([x,z])=>x===-29&&z===15),false);
   assert.equal(SAKURA_TREES.some(([x,z])=>x===-21&&z===15.1),false);
+  assert.equal(SAKURA_TREES.some(([x,z])=>x===-9.5&&z===15.6),false);
 });
 
 test('park shares meshes, pauses deliveries and disposes each resource once',async()=>{
