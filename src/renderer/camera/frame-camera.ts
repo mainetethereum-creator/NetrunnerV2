@@ -98,6 +98,13 @@ export function createFrameCamera(camera: T.PerspectiveCamera, canvas: HTMLEleme
         return !!storage;
       } catch { return false; }
     },
+    savePreset2() {
+      if (mode !== 'fixed') return false;
+      try {
+        storage?.setItem(FRAME_CAMERA_PRESET_2_KEY, serializeFrame());
+        return !!storage;
+      } catch { return false; }
+    },
     restorePreset2(pivot = anchor) {
       try {
         const saved = parseCameraFrame(storage?.getItem(FRAME_CAMERA_PRESET_2_KEY) ?? null);

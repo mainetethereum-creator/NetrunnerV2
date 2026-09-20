@@ -50,6 +50,7 @@ export type BaseEngine = {
   setAmbient(value: boolean): Promise<boolean>;
   resetCamera(): void; goTo(id: StationId): void;
   frameCamera(): void; zoomCamera(delta: number): void; fixCamera(): boolean;
+  saveCameraPreset2(): boolean;
   restoreCameraPreset2(): boolean;
 };
 
@@ -829,6 +830,7 @@ export function createBaseScene(
     frameCamera() { resetInput(); frameCamera.start(pivot); },
     zoomCamera(delta) { frameCamera.zoomBy(delta); },
     fixCamera() { resetInput(); return frameCamera.fix(pivot); },
+    saveCameraPreset2() { return frameCamera.savePreset2(); },
     restoreCameraPreset2() { resetInput(); return frameCamera.restorePreset2(pivot); },
     resetCamera() { frameCamera.follow(); cameraRig.moveTo(player.position.x, player.position.z); pivot.y = player.position.y + .93; resetInput(); },
     goTo(id) { const station = getBaseStations().find((s) => s.id === id); if (station && ready && !paused && !modalOpen && !editor.active) { path = findPath(player.position, { x: station.x, z: station.z + 1 }); targetMarker.position.set(station.x, 0.1, station.z + 1); targetMarker.visible = path.length > 0; } },

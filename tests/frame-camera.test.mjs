@@ -77,6 +77,15 @@ test('the first saved composition becomes Standard 2 and survives later camera e
  a.rig.dispose();
 });
 
+test('a fixed composition can explicitly replace the V2 preset',()=>{
+ const a=fixture();a.rig.start(new T.Vector3(0,1,0));
+ a.camera.position.set(13,15,21);a.controls.target.set(2,1,3);a.rig.update(true);a.rig.fix();
+ assert.equal(a.rig.savePreset2(),true);
+ const saved=parseCameraFrame(a.data.get(FRAME_CAMERA_PRESET_2_KEY));
+ assert.ok(new T.Vector3().fromArray(saved.position).distanceTo(new T.Vector3(13,15,21))<1e-9);
+ a.rig.dispose();
+});
+
 test('legacy Base world frame migrates relative to its original spawn without changing its composition',()=>{
  const saved=JSON.stringify({version:1,position:[18,24,36],target:[2,2,-4]});
  const base=fixture(saved,new T.Vector3(0,1.05,5));

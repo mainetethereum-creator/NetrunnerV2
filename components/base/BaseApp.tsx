@@ -209,10 +209,14 @@ export default function BaseApp() {
         <button onClick={()=>{if(engine.current&&!engine.current.fixCamera())setStorageNotice('Кадр зафиксирован на эту сессию; сохранение в браузере недоступно.');}}>Зафиксировать кадр</button>
       </>}
       {snapshot.cameraMode !== 'follow' && <button onClick={()=>engine.current?.resetCamera()}>Стандартный ракурс</button>}
+      {snapshot.cameraMode === 'fixed' && <button onClick={()=>{
+        if(engine.current?.saveCameraPreset2())setStorageNotice('Ракурс «V2» сохранён.');
+        else setStorageNotice('Не удалось сохранить ракурс «V2» в браузере.');
+      }}>Сохранить как V2</button>}
       {snapshot.cameraMode !== 'free' && <button onClick={()=>{
         if(engine.current?.restoreCameraPreset2())setStorageNotice('');
-        else setStorageNotice('Ракурс «Стандарт 2» пока недоступен. Сначала зафиксируйте кадр.');
-      }}>Стандарт 2</button>}
+        else setStorageNotice('Ракурс «V2» пока недоступен. Сначала сохраните текущий кадр.');
+      }}>V2</button>}
       {snapshot.cameraMode === 'fixed' && <small role="status">Ракурс сохранён · следуем за героем</small>}
     </section>}
     {DEV_TOOLS && <button className={styles.editorToggle} disabled={!ready} onClick={()=>{setMaster(!master);engine.current?.setMaster(!master);}}>MASTER · {master?"Закрыть":"Редактор карты"}</button>}
