@@ -1,10 +1,12 @@
 /** Metres in the same world coordinates as the published city. No renderer state. */
-export const SAKURA_PARK = { west: -32, east: 32, north: 11, south: 34, fountainX: 3.2, fountainZ: 20.8, fountainScale: 2.2 } as const;
+export const SAKURA_PARK = { west: -42, east: 32, north: 11, south: 34, fountainX: 3.2, fountainZ: 20.8, fountainScale: 2.2 } as const;
 export const SAKURA_TREES = [
-  [-29,15,1.2],[-21,15.1,1.05],[-9.5,15.6,.92],[10,14,1.15],[19,15,1.15],[29,17,1.1],
+  [-21,15.1,1.05],[-9.5,15.6,.92],[10,14,1.15],[19,15,1.15],[29,17,1.1],
   [-28,28,1.1],[-17,30,1.05],[22,30.5,1.05],[30,29,1.2],
 ] as const;
-export const PARK_BEDS = [...SAKURA_TREES,[-7.5,31,1],[7,31.5,1],[-10,20,1],[15,25,1]] as const;
+// Keep the former west tree bed as low planting so removing its canopy does not
+// disturb the authored rock scatter or close the established walking route.
+export const PARK_BEDS = [[-29,15,1.2],...SAKURA_TREES,[-7.5,31,1],[7,31.5,1],[-10,20,1],[15,25,1]] as const;
 export const PARK_STALLS = [[-16.3,22.5,.28,1.4],[22,15.6,.28,1.4]] as const;
 export const PARK_LANTERNS = [[-26,19],[-21,25],[-11,18],[-7,26],[11.5,19],[8,28],[22,23],[28,25]] as const;
 export const PARK_STONE_LANTERNS = [[-27,23],[-19,28],[-10,16],[5,29.2],[13,16],[27,29]] as const;
@@ -19,12 +21,12 @@ export function deliveryPose(seconds: number, index: number) {
 }
 type GardenPoint = {x:number;z:number};
 const WALK_CURVES = [
-  [[-32,19],[-25,15],[-18,27],[-6,24]],
-  [[-32,13],[-18,14],[-6,17],[3.2,14.8]],
+  [[-42,19],[-31,15],[-18,27],[-6,24]],
+  [[-42,13],[-25,14],[-6,17],[3.2,14.8]],
   [[3.2,14.8],[14,12.5],[18,17],[32,19]],
   [[9,25],[17,26],[22,17],[32,25]],
   [[3.2,28.6],[12,34],[24,26],[32,31]],
-  [[-32,29],[-20,32],[-12,24],[-3,27]],
+  [[-42,29],[-27,32],[-12,24],[-3,27]],
 ] as const;
 export const PARK_WALKS: GardenPoint[][] = WALK_CURVES.map(curve=>Array.from({length:33},(_,i)=>{
   const t=i/32,u=1-t,[a,b,c,d]=curve;

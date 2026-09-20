@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as T from 'three';
 import {createSakuraPark} from '../src/renderer/environment/sakura-park.ts';
-import {deliveryPose,DELIVERY_PERIOD,parkWalkwayContains,SAKURA_PARK,PARK_ROCKS} from '../src/renderer/environment/sakura-park-layout.ts';
+import {deliveryPose,DELIVERY_PERIOD,parkWalkwayContains,SAKURA_PARK,PARK_ROCKS,SAKURA_TREES} from '../src/renderer/environment/sakura-park-layout.ts';
 import {canStand,findPath,SPAWN} from '../components/base/world.ts';
 
 function fixture() {
@@ -46,6 +46,13 @@ test('delivery route is seamless, separated, stays on paving and avoids solid fo
   assert.equal(canStand({x:SAKURA_PARK.fountainX,z:SAKURA_PARK.fountainZ}),false);
   assert.equal(canStand({x:0,z:34}),false,'outer platform edge is solid');
   for(const rock of PARK_ROCKS)assert.equal(canStand(rock),false,'decorative rocks stay solid');
+});
+
+test('west park paving reaches the armory edge and the marked boundary tree is removed',()=>{
+  assert.equal(SAKURA_PARK.west,-42);
+  assert.ok(parkWalkwayContains({x:-41.5,z:19}), 'main park path continues across the former void');
+  assert.ok(parkWalkwayContains({x:-41.5,z:29}), 'south park path continues across the former void');
+  assert.equal(SAKURA_TREES.some(([x,z])=>x===-29&&z===15),false);
 });
 
 test('park shares meshes, pauses deliveries and disposes each resource once',async()=>{

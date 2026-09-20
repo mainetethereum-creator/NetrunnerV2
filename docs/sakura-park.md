@@ -46,6 +46,11 @@ alpha masks. The scene is actual 3D geometry, not a projected concept image.
 `sakura-park-layout.ts` owns pure placement, paths, poses and collision data.
 `sakura-park.ts` instances repeated geometry/material groups in the Base loop.
 `park-ground.ts` shares a path mask between paving, planting and highlights.
+
+The west garden edge now reaches x = -42 beside ARMORY. Its three basalt path
+branches continue across the former black gap, with the ground slab, moss and
+plant scatter extended under them. The large sakura at (-29, 15) was removed at
+the owner's marked sightline; its low planted bed and rock scatter remain.
 The existing planar reflection is extended into the park; no extra reflection
 pass. New point lights do not cast shadows. Mobile reduces light, vegetation and
 particle counts; desktop rendering is capped at 60 FPS.

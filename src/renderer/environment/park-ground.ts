@@ -1,10 +1,11 @@
 import * as T from 'three';
-import { parkWalkwayContains } from './sakura-park-layout.ts';
+import { parkWalkwayContains, SAKURA_PARK } from './sakura-park-layout.ts';
 /** One small cached CPU-generated coverage mask, not a second scene reflection. */
 export function createParkPathMask() {
-  const width=384,height=132,data=new Uint8Array(width*height*4);
+  const spanX=SAKURA_PARK.east-SAKURA_PARK.west,spanZ=SAKURA_PARK.south-12;
+  const width=Math.round(spanX*6),height=Math.round(spanZ*6),data=new Uint8Array(width*height*4);
   for(let y=0;y<height;y++)for(let x=0;x<width;x++) {
-    const paved=parkWalkwayContains({x:-32+(x+.5)/width*64,z:12+(y+.5)/height*22});
+    const paved=parkWalkwayContains({x:SAKURA_PARK.west+(x+.5)/width*spanX,z:12+(y+.5)/height*spanZ});
     data.set([paved?255:0,0,0,255],(y*width+x)*4);
   }
   const texture=new T.DataTexture(data,width,height);texture.magFilter=T.LinearFilter;texture.minFilter=T.LinearFilter;texture.needsUpdate=true;return texture;
@@ -16,7 +17,7 @@ export function gardenGroundMaterial(stone:T.MeshStandardMaterial,moss:T.MeshSta
     shader.vertexShader='varying vec2 gardenXZ;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\ngardenXZ=position.xz;');
     shader.fragmentShader='uniform sampler2D parkMask;uniform sampler2D parkMoss;varying vec2 gardenXZ;\n'+shader.fragmentShader
       .replace('#include <map_fragment>',`#include <map_fragment>
-        float pathCoverage=texture2D(parkMask,vec2((gardenXZ.x+32.)/64.,(gardenXZ.y-12.)/22.)).r;
+        float pathCoverage=texture2D(parkMask,vec2((gardenXZ.x+${(-SAKURA_PARK.west).toFixed(1)})/${(SAKURA_PARK.east-SAKURA_PARK.west).toFixed(1)},(gardenXZ.y-12.)/${(SAKURA_PARK.south-12).toFixed(1)})).r;
         vec3 grass=texture2D(parkMoss,vMapUv*1.7).rgb*vec3(.65,.85,.46);
         diffuseColor.rgb=mix(grass,diffuseColor.rgb,pathCoverage);`)
       .replace('#include <roughnessmap_fragment>',`#include <roughnessmap_fragment>
@@ -44,7 +45,7 @@ export function lanternReflectionMaterial(mask:T.Texture) {
         vec2 slabUv=worldXZ/vec2(1.1,.66);slabUv.x+=mod(floor(slabUv.y),2.)*.5;
         vec2 joint=abs(fract(slabUv)-.5);
         float grout=1.-smoothstep(.46,.49,max(joint.x,joint.y));
-        float path=texture2D(parkMask,vec2((worldXZ.x+32.)/64.,(worldXZ.y-12.)/22.)).r;
+        float path=texture2D(parkMask,vec2((worldXZ.x+${(-SAKURA_PARK.west).toFixed(1)})/${(SAKURA_PARK.east-SAKURA_PARK.west).toFixed(1)},(worldXZ.y-12.)/${(SAKURA_PARK.south-12).toFixed(1)})).r;
         float alpha=taper*smoothstep(.22,.76,broken)*path*grout*.42;
         gl_FragColor=vec4(glowColor*1.1,alpha);
         #include <tonemapping_fragment>

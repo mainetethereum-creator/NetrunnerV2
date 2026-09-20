@@ -91,12 +91,13 @@ export function createSakuraPark(parent: T.Scene, loader: GLTFLoader, mobile: bo
       });
     }
     const pathMask=createParkPathMask();owned.add(new T.Mesh(glowGeometry,new T.MeshBasicMaterial({map:pathMask})));
-    const ground = new T.Mesh(new T.PlaneGeometry(64,22),gardenGroundMaterial(mat('Basalt'),mat('Moss'),pathMask));
-    ground.geometry.rotateX(-Math.PI/2); ground.geometry.translate(0,.08,23);
+    const gardenWidth=SAKURA_PARK.east-SAKURA_PARK.west,gardenCenterX=(SAKURA_PARK.east+SAKURA_PARK.west)/2;
+    const ground = new T.Mesh(new T.PlaneGeometry(gardenWidth,22),gardenGroundMaterial(mat('Basalt'),mat('Moss'),pathMask));
+    ground.geometry.rotateX(-Math.PI/2); ground.geometry.translate(gardenCenterX,.08,23);
     const pos = ground.geometry.attributes.position, uv = ground.geometry.attributes.uv;
     for(let i=0;i<pos.count;i++) uv.setXY(i,pos.getX(i)/4,pos.getZ(i)/4);
     ground.receiveShadow=true;ground.name='Rain-dark basalt garden paths';root.add(ground);
-    const slab = new T.Mesh(new T.BoxGeometry(64,.5,22),mat('Basalt'));slab.position.set(0,-.2,23);root.add(slab);
+    const slab = new T.Mesh(new T.BoxGeometry(gardenWidth,.5,22),mat('Basalt'));slab.position.set(gardenCenterX,-.2,23);root.add(slab);
     const trees:Placement[]=SAKURA_TREES.map(([x,z,s],i)=>[x,z,i*2.39,s*(i===0?1.5:i===4?1.15:1),.095,s*(i===0?1.1:1)]);
     trees.push(...EAST_TREES.map(([x,z,s],i)=>[x,z,i*2.39,s,.20] as Placement));
     instances('SakuraTree',trees);
@@ -113,7 +114,7 @@ export function createSakuraPark(parent: T.Scene, loader: GLTFLoader, mobile: bo
       dummy.position.set(x,.4,z);dummy.rotation.set(.13*j,yaw,.2);
       dummy.scale.set(w,h,d);dummy.updateMatrix();rocks.setMatrixAt(i,dummy.matrix);
     });
-    for(let z=13.5;z<33.5;z+=mobile?1.65:1.25)for(let x=-31;x<32;x+=mobile?1.65:1.25) {
+    for(let z=13.5;z<33.5;z+=mobile?1.65:1.25)for(let x=SAKURA_PARK.west+1;x<SAKURA_PARK.east;x+=mobile?1.65:1.25) {
       const px=x+Math.sin(z*37+x*13)*.35,pz=z+Math.cos(z*19+x*33)*.3;
       if(parkWalkwayContains({x:px,z:pz},.5)||Math.hypot(px-SAKURA_PARK.fountainX,pz-SAKURA_PARK.fountainZ)<5.3)continue;
       plants.push([px,pz,x*z,.85+Math.abs(Math.sin(x*17+z))* .55,.095]);
