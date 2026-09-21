@@ -4,6 +4,34 @@ Last updated: 2026-09-20 · repository `mainetethereum-creator/NetrunnerV2`; cur
 
 ## Implemented (the working game — must be preserved)
 
+- **Base mobile responsiveness (2026-09-21, local):** movement/collision use the
+  shared loop's fixed 60 Hz step with render interpolation. Mobile walking keeps a
+  static city VSM shadow and cheap runner contact shadow instead of refreshing the
+  full atlas at 10 Hz; facade canvas uploads run at 4 Hz. Adaptive resolution may
+  fall to 55% / DPR 0.6 before the stable 30 FPS fallback. Mobile rain, fountain,
+  petals, steam, mist and point lights have lower transparent/fill cost. Desktop lighting and
+  saved V2 / Game POV compositions remain unchanged. Physical-phone profiling is owed.
+
+- **KTX2 asset pilot (2026-09-21, local):** Base loads the canal normal map as
+  mipmapped UASTC KTX2 on desktop and mobile, with a local Basis transcoder and the
+  original WebP as automatic fallback. Transfer is 1,081,320 → 931,734 bytes;
+  common GPU block formats reduce the mip-chain estimate from about 5.33 to 1.33 MiB.
+  `npm run assets:ktx2:canal` reproduces the asset. Physical-phone water parity is
+  required before converting embedded park and building textures.
+
+- **Sakura KTX2 experiment (2026-09-21, disabled):** the mixed KTX2 copy exposed
+  opaque square canopy cards in the owner's garden view. Runtime loads the approved
+  original WebP GLB directly again. The experimental asset remains offline and must
+  not be re-enabled without multi-angle foliage QA.
+
+- **Canal and repeated-building texture pass (2026-09-21, local):** the canal now
+  prefers a mixed KTX2/WebP GLB, preserving its foliage mask and original fallback;
+  estimated kit residency falls from 33.96 to roughly 13–15 MiB. The identical
+  1024 px `surface` map embedded in 17 building assets is replaced at runtime by
+  one shared ETC1S KTX2 GPU texture. For the ten unique published city models this
+  removes roughly 52 MiB of steady-state duplicated mip residency. Embedded JPEGs
+  remain as compatibility fallback, and unique facade artwork is unchanged.
+
 - **Railway fork (2026-09-20, local, owner approved):** live train route continues east away from the garden; old southern branch ends in a fractured Blender stub with torn rails. All four old outer columns retained, three additional supports on the live branch; continuous earth below. New kit 1.25 MB, 13 instanced draws; no extra lights or animation loop. 231 tests, lint, TypeScript and build pass. Owner approved the live result. See `docs/base-elevated-rail.md`. No deployment.
 - **Grounded east district (2026-09-20, local):** continued tile plaza and small garden, two Blender service buildings, damaged fence and OUTLANDS interaction at the closed walking boundary. Railway ground is continuous dirt/greenery, with burning barrels and tires. Nine new roots / 3.23 MB; existing garden meshes and floor reflection are reused. See `docs/east-district.md`. No deployment.
 

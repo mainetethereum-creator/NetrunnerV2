@@ -16,7 +16,11 @@ export function createCanal(parent:T.Scene,loader:GLTFLoader,mobile:boolean,refl
   const owned=new T.Group();let disposed=false,time=0;
   let water:ReturnType<typeof createCanalWater>|undefined;
   let mist:T.Points|undefined;
-  const ready=Promise.allSettled([loader.loadAsync(`${ASSET_URLS.canalKit}?v=20260920-4`),loadNormal()]).then(results=>{
+  const loadKit=()=>loader.loadAsync(`${ASSET_URLS.canalKitKtx2}?v=20260921-1`).catch(error=>{
+    console.warn('KTX2 canal kit unavailable; using WebP fallback.',error);
+    return loader.loadAsync(`${ASSET_URLS.canalKit}?v=20260920-4`);
+  });
+  const ready=Promise.allSettled([loadKit(),loadNormal()]).then(results=>{
     const [modelResult,normalResult]=results;
     if(modelResult.status==='fulfilled')owned.add(modelResult.value.scene);
     if(normalResult.status==='fulfilled')owned.add(new T.Mesh(new T.BufferGeometry(),new T.MeshBasicMaterial({map:normalResult.value})));
@@ -103,10 +107,12 @@ export function createCanal(parent:T.Scene,loader:GLTFLoader,mobile:boolean,refl
       const light=new T.PointLight(0xffb266,13,8,2);light.position.set(x,1.4,49);root.add(light);
     }
     water=createCanalWater(normal,reflection,mobile);root.add(water.water);
-    const mistMap=roadGlowTexture(),mistGeo=new T.BufferGeometry();
-    mistGeo.setAttribute('position',new T.BufferAttribute(new Float32Array(24*3),3));
-    const mistMaterial=new T.PointsMaterial({map:mistMap,color:0x829f9f,size:7,transparent:true,opacity:.065,depthWrite:false});
-    mist=new T.Points(mistGeo,mistMaterial);mist.frustumCulled=false;mist.renderOrder=3;root.add(mist);
+    if(!mobile) {
+      const mistMap=roadGlowTexture(),mistGeo=new T.BufferGeometry();
+      mistGeo.setAttribute('position',new T.BufferAttribute(new Float32Array(24*3),3));
+      const mistMaterial=new T.PointsMaterial({map:mistMap,color:0x829f9f,size:7,transparent:true,opacity:.065,depthWrite:false});
+      mist=new T.Points(mistGeo,mistMaterial);mist.frustumCulled=false;mist.renderOrder=3;root.add(mist);
+    }
   }).catch(error=>{if(!disposed){console.error('Canal load failed',error);onError('Не удалось загрузить набережную. Перезагрузите страницу.');}});
   return {root,ready,
     update(dt:number,high:boolean,reducedMotion:boolean) {

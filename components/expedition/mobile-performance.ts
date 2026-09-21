@@ -1,5 +1,7 @@
 /** Frame cadence (CPU + GPU + scheduling), not a GPU timer. No device FPS promise. */
-export const MOBILE_MIN_SCALE = .72;
+// Keep enough headroom to preserve a responsive 60 Hz presentation before
+// conceding to 30 Hz on thermally constrained phones.
+export const MOBILE_MIN_SCALE = .55;
 /** Match the touch media queries in the HUD/stick styles. A narrow mouse-only
  * window keeps desktop rendering; no-hover phones get an orientation-safe
  * fallback when a browser does not expose a coarse pointer correctly. */
@@ -24,7 +26,7 @@ export function adaptMobileBudget(state:MobileBudget,frameMs:number):MobileBudge
 }
 export function mobileRenderRatio(width:number,height:number,deviceRatio:number,scale:number) {
   const native=Math.max(1,Math.min(deviceRatio||1,1.7,Math.sqrt(1_100_000/Math.max(1,width*height))));
-  return Math.max(.75,native*Math.max(MOBILE_MIN_SCALE,Math.min(1,scale)));
+  return Math.max(.6,native*Math.max(MOBILE_MIN_SCALE,Math.min(1,scale)));
 }
 /** Moved to src/input/touch; re-exported for existing imports. */
 export {stickVector} from '../../src/input/touch/stick-vector.ts';

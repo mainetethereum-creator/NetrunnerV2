@@ -35,6 +35,24 @@ test('Blender park kit has alpha-tested leaves, real PBR textures and bounded tr
   for(const accessor of doc.accessors)for(const value of [...accessor.min??[],...accessor.max??[]])assert.ok(Number.isFinite(value));
 });
 
+test('optimized park preserves scene structure but runtime keeps the approved WebP foliage',()=>{
+  const source=readFileSync('public/game/park/sakura-v1/sakura-kit.glb');
+  const optimized=readFileSync('public/game/park/sakura-v1/sakura-kit-ktx2.glb');
+  const sourceDoc=JSON.parse(source.subarray(20,20+source.readUInt32LE(12)));
+  const optimizedDoc=JSON.parse(optimized.subarray(20,20+optimized.readUInt32LE(12)));
+  assert.ok(optimized.length<5_500_000);
+  assert.deepEqual(optimizedDoc.nodes.map(node=>node.name),sourceDoc.nodes.map(node=>node.name));
+  assert.deepEqual(optimizedDoc.meshes.map(mesh=>mesh.name),sourceDoc.meshes.map(mesh=>mesh.name));
+  assert.deepEqual(optimizedDoc.materials.map(material=>material.name),sourceDoc.materials.map(material=>material.name));
+  assert.equal(optimizedDoc.images.length,14);
+  assert.equal(optimizedDoc.images.filter(image=>image.mimeType==='image/ktx2').length,11);
+  assert.equal(optimizedDoc.images.filter(image=>image.mimeType==='image/webp').length,3);
+  assert.ok(optimizedDoc.extensionsUsed.includes('KHR_texture_basisu'));
+  const runtime=readFileSync('src/renderer/environment/sakura-park.ts','utf8');
+  assert.doesNotMatch(runtime,/loader\.loadAsync\(`\$\{ASSET_URLS\.sakuraParkKtx2\}/);
+  assert.match(runtime,/loader\.loadAsync\(`\$\{ASSET_URLS\.sakuraPark\}/);
+});
+
 test('delivery route is seamless, separated, stays on paving and avoids solid fountain/stalls',()=>{
   for(let t=0;t<DELIVERY_PERIOD;t+=.25) {
     const poses=[0,1,2].map(i=>deliveryPose(t,i));

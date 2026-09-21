@@ -39,6 +39,7 @@ import { createGardenAmbience } from "../../src/audio/garden-ambience.ts";
 import { createMetroOpening } from "../../src/renderer/environment/metro-opening.ts";
 import { createMediaTower } from "../../src/renderer/environment/media-tower.ts";
 import { createReferenceBuildingLibrary } from "../../src/renderer/three/reference-building-library.ts";
+import { createKtx2TextureLoader } from "../../src/renderer/three/ktx2-texture-loader.ts";
 
 const DEV_TOOLS = process.env.CYBERBASE_DEV_TOOLS === "1";
 
@@ -52,6 +53,7 @@ export type BaseEngine = {
   frameCamera(): void; zoomCamera(delta: number): void; fixCamera(): boolean;
   saveCameraPreset2(): boolean;
   restoreCameraPreset2(): boolean;
+  gamePov(): void;
 };
 
 export function createBaseScene(
@@ -424,13 +426,26 @@ export function createBaseScene(
   const puddle = createWetFloor(mobile, metroOpening); puddle.visible = quality.high; scene.add(puddle);
 
   const player = new T.Group(); player.position.set(SPAWN.x, 0.12, SPAWN.z); scene.add(player);
-  // A small, unshadowed fill follows the runner and gently reaches nearby paving.
-  const runnerFill = new T.PointLight(0xc8e4db, 3.2, 4.5, 2);
-  runnerFill.position.set(0.4, 2.8, 1.1); player.add(runnerFill);
+  // Desktop gets a small moving fill. Mobile avoids adding another per-fragment
+  // point-light contribution; its contact shadow keeps the runner grounded.
+  if (!mobile) {
+    const runnerFill = new T.PointLight(0xc8e4db, 3.2, 4.5, 2);
+    runnerFill.position.set(0.4, 2.8, 1.1); player.add(runnerFill);
+  }
   const fallback = npc(0, 0, m.teal, m.edge); scene.remove(fallback); player.add(fallback); fallback.position.set(0, 0, 0);
   const heroVisualScale = 1.4;
   fallback.scale.setScalar(heroVisualScale);
+  if (mobile) fallback.traverse(object => { if (object instanceof T.Mesh) object.castShadow = false; });
   npcs.pop();
+  // Mobile keeps the static city shadow map and uses a cheap contact shadow for
+  // the moving runner. This avoids re-rendering the entire VSM atlas while walking.
+  const runnerShadow = new T.Mesh(
+    new T.CircleGeometry(.48, 24),
+    new T.MeshBasicMaterial({ color: 0x05080b, transparent: true, opacity: mobile ? .3 : 0, depthWrite: false }),
+  );
+  runnerShadow.rotation.x = -Math.PI / 2; runnerShadow.scale.y = .58; runnerShadow.position.y = -.105;
+  runnerShadow.visible = mobile; player.add(runnerShadow);
+  const simulationPrevious = player.position.clone(), simulationCurrent = player.position.clone();
   const marker = new T.Mesh(new T.RingGeometry(0.38, 0.43, 48), new T.MeshBasicMaterial({ color: 0xc8e3d5, transparent: true, opacity: 0.8, depthWrite: false }));
   marker.rotation.x = -Math.PI / 2; marker.position.y = 0.01; player.add(marker);
   const targetMarker = new T.Mesh(new T.RingGeometry(0.23, 0.28, 40), new T.MeshBasicMaterial({ color: 0xb7decf, transparent: true, opacity: 0.8, depthWrite: false }));
@@ -453,8 +468,11 @@ export function createBaseScene(
   const combat = new CombatDriver(() => {}, () => 100);
   let hero: T.Object3D = fallback, previousWalking = false;
   const { loader, draco } = createGltfLoader();
+  const ktx2 = createKtx2TextureLoader(renderer, loader.manager);
+  loader.setKTX2Loader(ktx2);
   const mediaTower = createMediaTower(scene,
-    createReferenceBuildingLibrary(mobile ? 2 : 4, url => loader.loadAsync(url),undefined,undefined,true),
+    createReferenceBuildingLibrary(mobile ? 2 : 4, url => loader.loadAsync(url),undefined,undefined,true,
+      () => ktx2.loadAsync(ASSET_URLS.buildingSurfaceKtx2)),
     onError, () => { assetSettled(); renderer.shadowMap.needsUpdate = true; });
   {
     worldAssetLoads.push(mediaTower.ready);
@@ -469,7 +487,11 @@ export function createBaseScene(
   const sakuraPark = createSakuraPark(scene, loader, mobile, onError);
   const ambience=createGardenAmbience();ambience.setRain(rainOn);
   worldAssetLoads.push(sakuraPark.ready.finally(() => { assetSettled(); renderer.shadowMap.needsUpdate = true; }));
-  const canal=createCanal(scene,loader,mobile,puddle,onError);
+  const canal=createCanal(scene,loader,mobile,puddle,onError,()=>
+    ktx2.loadAsync(ASSET_URLS.canalNormalKtx2).catch(error => {
+      console.warn('KTX2 canal normal unavailable; using WebP fallback.', error);
+      return new T.TextureLoader(loader.manager).loadAsync(ASSET_URLS.canalNormal);
+    }));
   worldAssetLoads.push(canal.ready.finally(()=>{assetSettled();renderer.shadowMap.needsUpdate=true;}));
   const eastDistrict=createEastDistrict(scene,loader,stone,mobile,onError);
   worldAssetLoads.push(eastDistrict.ready.finally(()=>{assetSettled();renderer.shadowMap.needsUpdate=true;}));
@@ -580,13 +602,14 @@ export function createBaseScene(
       fallback.traverse((o) => { if ((o as T.Mesh).isMesh) (o as T.Mesh).geometry.dispose(); });
       hero = new T.Group(); hero.add(root); player.add(hero);
       hero.scale.setScalar(heroVisualScale);
+      if (mobile) root.traverse(object => { if (object instanceof T.Mesh) object.castShadow = false; });
       heroAnimator = createHeroAnimator(root, gltf.animations, { idle: "clip-or-pose", run: /run|walk/i });
       combat.attach(root, heroAnimator.mixer, gltf.animations);
       clearTimeout(loadTimeout); markReady(character.toUpperCase());
       renderer.shadowMap.needsUpdate = true;
     }).catch(() => { clearTimeout(loadTimeout); if (!disposed) { markReady("RUNNER"); onError("Character model unavailable. A service rig is active; the refuge is still playable."); } }).finally(assetSettled);
 
-  const rainCount = mobile ? 250 : 650, rainPositions = new Float32Array(rainCount * 6);
+  const rainCount = mobile ? 160 : 650, rainPositions = new Float32Array(rainCount * 6);
   for (let i = 0; i < rainCount; i++) {
     const x = (rand() - 0.5) * 64, y = rand() * 16, z = rand() * 48 - 14;
     rainPositions.set([x, y, z, x - 0.06, y + 0.35, z], i * 6);
@@ -684,7 +707,31 @@ export function createBaseScene(
 
   // Frame scheduling, hidden-tab handling, the mobile cadence cap and the delta
   // clamp live in the shared loop (src/core/loop); these are the per-frame phases.
-  function updateFrame({ now, frameMs, dt }: FrameTick) {
+  let walking = false, targetYaw = 0;
+  function fixedUpdatePlayer(step: number) {
+    simulationPrevious.copy(simulationCurrent);
+    walking = false;
+    if (ready && !paused && !modalOpen && !editor.active && frameCamera.mode !== 'free') {
+      let dx = 0, dz = 0;
+      const azimuth = frameCamera.mode === 'follow' ? cameraRig.azimuth : frameCamera.azimuth;
+      if (input.resolve(moveDirection, azimuth, 0.12)) {
+        path = []; targetMarker.visible = false;
+        dx = moveDirection.x; dz = moveDirection.z;
+      } else if (path.length) {
+        const p = path[0], distance = Math.hypot(p.x - simulationCurrent.x, p.z - simulationCurrent.z);
+        if (distance < 0.12) path.shift();
+        else { dx = (p.x - simulationCurrent.x) / distance; dz = (p.z - simulationCurrent.z) / distance; }
+        if (!path.length) targetMarker.visible = false;
+      }
+      const speed = input.running ? 5 : 3.1;
+      const next = moveWithCollision(simulationCurrent, dx * speed * step, dz * speed * step);
+      walking = Math.hypot(next.x - simulationCurrent.x, next.z - simulationCurrent.z) > 0.0001;
+      simulationCurrent.x = next.x; simulationCurrent.z = next.z;
+      if (walking) targetYaw = Math.atan2(dx, dz);
+    }
+  }
+
+  function updateFrame({ now, frameMs, dt, alpha }: FrameTick) {
     samples.push(frameMs);
     if (mobile) {
       if (ready && !paused && !modalOpen && (assetsPending === 0 || now - startedAt > 30000) && now - assetSettledAt > 2000 && frameMs > 0 && frameMs < 100) {
@@ -700,9 +747,10 @@ export function createBaseScene(
     }
     const time = now / 1000;
     const facadeTime = reducedMotion ? 0 : time;
-    // Canvas uploads are capped at 12 Hz; the scene keeps a continuous ticker
-    // without adding geometry, lights or an independent animation loop.
-    if (Math.floor(now / 84) !== Math.floor((now - frameMs) / 84)) {
+    // Canvas texture uploads are expensive on tiled mobile GPUs. Four updates per
+    // second retain visible motion there; desktop keeps the original 12 Hz.
+    const tickerInterval = mobile ? 250 : 84;
+    if (Math.floor(now / tickerInterval) !== Math.floor((now - frameMs) / tickerInterval)) {
       for (let i = 0; i < facadeTickers.length; i++) {
         const ticker = facadeTickers[i];
         ticker.render(facadeTime * (54 + i * 7));
@@ -719,32 +767,15 @@ export function createBaseScene(
     }
     surfaceDetails.update(reducedMotion ? 0 : time);
     (puddle.material as T.ShaderMaterial).uniforms.waterTime.value = reducedMotion ? 0 : time;
-    let walking = false;
-    if (ready && !paused && !modalOpen && !editor.active && frameCamera.mode !== 'free') {
-      let dx = 0, dz = 0;
-      const azimuth = frameCamera.mode === 'follow' ? cameraRig.azimuth : frameCamera.azimuth;
-      if (input.resolve(moveDirection, azimuth, 0.12)) {
-        path = []; targetMarker.visible = false;
-        dx = moveDirection.x; dz = moveDirection.z;
-      } else if (path.length) {
-        const p = path[0], distance = Math.hypot(p.x - player.position.x, p.z - player.position.z);
-        if (distance < 0.12) path.shift();
-        else { dx = (p.x - player.position.x) / distance; dz = (p.z - player.position.z) / distance; }
-        if (!path.length) targetMarker.visible = false;
-      }
-      const speed = input.running ? 5 : 3.1;
-      const next = moveWithCollision(player.position, dx * speed * dt, dz * speed * dt);
-      walking = Math.hypot(next.x - player.position.x, next.z - player.position.z) > 0.0001;
-      player.position.x = next.x; player.position.z = next.z;
-      if (walking) {
-        const yaw = Math.atan2(dx, dz), difference = Math.atan2(Math.sin(yaw - hero.rotation.y), Math.cos(yaw - hero.rotation.y));
-        hero.rotation.y += difference * Math.min(1, dt * 14);
-      }
+    player.position.lerpVectors(simulationPrevious, simulationCurrent, alpha);
+    if (walking) {
+      const difference = Math.atan2(Math.sin(targetYaw - hero.rotation.y), Math.cos(targetYaw - hero.rotation.y));
+      hero.rotation.y += difference * Math.min(1, dt * 14);
     }
-    if (walking !== previousWalking) {
+    if (!mobile && walking !== previousWalking) {
       renderer.shadowMap.needsUpdate = true;
-      previousWalking = walking;
     }
+    previousWalking = walking;
     combat.tick(dt, paused || modalOpen || !ready || editor.active || frameCamera.mode === 'free');
     heroAnimator?.update(dt, walking, combat.weight);
     // Keep the original body-pivot damping; saved framing adds its composition offsets.
@@ -775,7 +806,7 @@ export function createBaseScene(
       renderer.shadowMap.needsUpdate = true; lastShadow = now; editorShadowDirty = false;
     }
     // Static lighting is cached; refresh shadows at a bounded rate while moving.
-    if ((walking || (heroAnimator?.locomotionBlend ?? 0) > 0.001) && now - lastShadow > (mobile ? 100 : quality.high ? 33 : 65)) {
+    if (!mobile && (walking || (heroAnimator?.locomotionBlend ?? 0) > 0.001) && now - lastShadow > (quality.high ? 33 : 65)) {
       renderer.shadowMap.needsUpdate = true; lastShadow = now;
     }
   }
@@ -807,6 +838,7 @@ export function createBaseScene(
   const loop = createFrameLoop({
     startTime: loopStart,
     targetFps: () => (mobile ? budget.target : 60),
+    fixedUpdate: fixedUpdatePlayer,
     onVisibilityChange(now) {
       resetInput();
       ambience.setPaused(document.hidden);
@@ -832,10 +864,11 @@ export function createBaseScene(
     fixCamera() { resetInput(); return frameCamera.fix(pivot); },
     saveCameraPreset2() { return frameCamera.savePreset2(); },
     restoreCameraPreset2() { resetInput(); return frameCamera.restorePreset2(pivot); },
+    gamePov() { resetInput(); frameCamera.gamePov(pivot); },
     resetCamera() { frameCamera.follow(); cameraRig.moveTo(player.position.x, player.position.z); pivot.y = player.position.y + .93; resetInput(); },
     goTo(id) { const station = getBaseStations().find((s) => s.id === id); if (station && ready && !paused && !modalOpen && !editor.active) { path = findPath(player.position, { x: station.x, z: station.z + 1 }); targetMarker.position.set(station.x, 0.1, station.z + 1); targetMarker.visible = path.length > 0; } },
     dispose() {
-      disposed = true; clearInput(); frameCamera.dispose(); loop.dispose(); ambience.dispose(); clearTimeout(loadTimeout); observer.disconnect(); draco.dispose();
+      disposed = true; clearInput(); frameCamera.dispose(); loop.dispose(); ambience.dispose(); clearTimeout(loadTimeout); observer.disconnect(); draco.dispose(); ktx2.dispose();
       window.removeEventListener("keydown", keyDown); window.removeEventListener("keyup", keyUp); window.removeEventListener("blur", clearInput);
       window.removeEventListener("netrunner:input-reset", clearInput); modalObserver.disconnect();
       editor.dispose(); editableRender?.dispose(); publishedMap?.dispose(); implantsBuilding.dispose(); mediaTower.dispose(); elevatedRail.dispose(); sakuraPark.dispose(); canal.dispose(); eastDistrict.dispose(); railRuins.dispose(); clearBaseEditor();

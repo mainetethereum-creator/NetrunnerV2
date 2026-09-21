@@ -636,3 +636,78 @@ Validation after integration: 232/232 tests, ESLint, TypeScript and production b
 pass. Live `/base` loaded through the existing server with no browser warnings/errors;
 saved Standard 2 was restored after inspection. Exact physical-phone performance and
 a close visual review of the far side of the trail remain owner checks.
+# Latest task completed: Game POV camera preset
+
+Base camera controls now include **Game POV**, a built-in closer gameplay frame:
+30° azimuth, approximately 46° pitch, about 22 m from its target and 1.6 m of
+forward composition bias. It uses the existing fixed-follow path, persists as the
+active frame and is shared with Expedition. The owner's V2 preset remains intact.
+Implementation is in `src/renderer/camera/frame-camera.ts`; UI/API wiring is in
+`components/base/BaseApp.tsx` and `components/base/scene.ts`.
+
+# Latest task completed: Base mobile responsiveness pass
+
+Base movement/collision now run through `createFrameLoop.fixedUpdate` at 60 Hz;
+the runner and follow pivot consume interpolated render positions. Mobile no longer
+refreshes the full 1024 VSM city shadow during locomotion: hero meshes skip shadow
+casting and use a small contact-shadow mesh while static scenery keeps its cached
+shadow. Mobile facade canvas uploads are reduced from 12 to 4 Hz. Shared adaptive
+resolution can descend to 55% with a DPR floor of 0.6 before choosing the existing
+stable 30 FPS fallback. The mobile effect tier uses 160 rain streaks, 90 fountain
+droplets, 700 settled petals, 30 steam points, one stall light, and no canal mist or
+runner point light. Physical-phone sustained FPS, thermals and touch feel remain
+the required acceptance check.
+
+# Current staged mobile optimization — Stage 1 asset audit
+
+The owner requested that remaining optimization proceed one stage at a time.
+Stage 1 is complete and made no visual, map, camera or runtime asset changes. The
+offline model audit now correctly classifies Sakura, canal, east district and rail
+ruins as always-loaded Base assets. Fresh report:
+`output/performance/model-audit-2026-09-21.json`. Core active GLBs account for about
+22.95 MiB transfer / 173.21 MiB decoded texture estimate. The ten unique reference
+buildings in the published layout account for about 30.71 MiB / 186.64 MiB; after
+deduplicating media tower, the combined texture estimate is about 341.18 MiB before
+external textures and render targets. See `docs/mobile-performance.md` for method
+and limits. Stage 2 is implemented as a reversible KTX2 pilot on the external canal
+normal map. The 1024 px mipmapped UASTC/RDO/Zstd asset is 931,734 bytes versus the
+1,081,320-byte WebP and should occupy about 1.33 MiB in common GPU block formats
+versus 5.33 MiB RGBA8. Base uses it on desktop and mobile through a local three.js
+Basis transcoder; any load/transcode failure logs a warning and falls back to the
+untouched WebP. `npm run assets:ktx2:canal` reproduces the output. Desktop Base
+loaded without console warnings. Physical-phone water parity remains the owner
+check before Stage 3 converts embedded Sakura/canal/building textures.
+
+# Current staged mobile optimization — Stage 3 Sakura textures
+
+Sakura now prefers `sakura-kit-ktx2.glb`, with the original `sakura-kit.glb` retained
+as runtime fallback. Four normal maps use UASTC; seven opaque/display maps use ETC1S;
+the exact `understory`, `water-spray` and `blossoms` WebP alpha maps remain embedded.
+This preserves all 49 nodes / 36 meshes / 17 materials and reduces the estimated
+resident texture cost from 45.96 to about 29 MiB. Transfer rises from 4,674,488 to
+5,356,748 bytes. `npm run assets:ktx2:sakura` reproduces it. The Base GLTFLoader is
+wired to the same scene-owned KTX2Loader as the canal texture. Same-camera browser
+A/B against a forced original-GLB fallback showed the same foreground silhouette;
+the restored KTX2 load added no fallback warning or WebGL error. Physical-phone
+memory/FPS and close foliage inspection remain required before a broader conversion.
+
+Runtime correction: the owner then observed opaque square cards across the garden
+canopies. `createSakuraPark` now loads the approved original WebP GLB directly;
+`sakura-kit-ktx2.glb` is retained only as an offline experiment. Same-camera browser
+verification shows restored pink blossom silhouettes and no console warnings.
+
+# Current staged mobile optimization — Stages 4–5 canal and buildings
+
+The canal kit now prefers `canal-kit-ktx2.glb`: six normals use UASTC, seven opaque
+maps use ETC1S, and the exact foliage WebP remains. Scene structure is unchanged;
+estimated canal-kit residency falls from 33.96 MiB to roughly 13–15 MiB. The source
+GLB remains the automatic fallback. Reference buildings now replace the identical
+embedded `surface` maps with one shared `surface.ktx2` GPU texture. The ten unique
+published buildings therefore retain one compressed surface mip chain instead of
+roughly ten 5.33 MiB RGBA8 chains; unique facade artwork is untouched. Embedded JPEGs
+remain as fallback, so this stage reduces steady-state residency rather than initial
+download/parse cost. Targeted canal/reference/architecture tests, lint and TypeScript
+pass. A clean Base reload fetched both new assets without new warnings; the browser
+log still retains two earlier 404 fallback warnings from a reload that occurred
+before the generated files became visible to the dev server. Physical-phone memory,
+FPS and close canal/building parity remain the owner acceptance check.

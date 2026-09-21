@@ -26,7 +26,9 @@ export function createSakuraPark(parent: T.Scene, loader: GLTFLoader, mobile: bo
   const glowGeometry = new T.PlaneGeometry(5.8,5.8).rotateX(-Math.PI/2);
   // Also retain these when an asset load fails before the glow meshes exist.
   owned.add(new T.Mesh(glowGeometry,glowMaterial));
-  const ready = loader.loadAsync(`${ASSET_URLS.sakuraPark}?v=20260920-10`).then(gltf => {
+  // Keep blossom and foliage cards on the approved WebP source. The mixed KTX2
+  // experiment exposed opaque card quads on real garden views.
+  const ready = loader.loadAsync(`${ASSET_URLS.sakuraPark}?v=20260921-webp-1`).then(gltf => {
     if (disposed) { disposeObjectTree(gltf.scene); return; }
     owned.add(gltf.scene);
     const materials = new Map<string,T.MeshStandardMaterial>();
@@ -135,7 +137,7 @@ export function createSakuraPark(parent: T.Scene, loader: GLTFLoader, mobile: bo
       dummy.position.set(x+1,.102,z+2.7);dummy.rotation.set(0,.35,0);dummy.scale.set(1+i%3*.14,1,1);dummy.updateMatrix();glow.setMatrixAt(i,dummy.matrix);
     });root.add(glow);
     // A handful of pooled real lights, without shadows; the rest use emissive paper and ground spill.
-    for(const [i,[x,z]] of (mobile?[PARK_STALLS[0],PARK_STALLS[1]]:[...PARK_STALLS,[-7,26],[8,28],[-21,17],[17,17]]).entries()) {
+    for(const [i,[x,z]] of (mobile?[PARK_STALLS[0]]:[...PARK_STALLS,[-7,26],[8,28],[-21,17],[17,17]]).entries()) {
       const light = new T.PointLight(0xffae62,i<2?18:26,11,2);light.position.set(x,2.7,z+1);root.add(light);
     }
     const poolLight = new T.PointLight(0x77d6e2,12,9,2);poolLight.position.set(SAKURA_PARK.fountainX,1.1,SAKURA_PARK.fountainZ);root.add(poolLight);
@@ -164,7 +166,7 @@ export function createSakuraPark(parent: T.Scene, loader: GLTFLoader, mobile: bo
           totalEmissiveRadiance+=vec3(.42,.73,.71)*(foam*.8+caustic*.5+ripple*.18);`);
     };
     const pool = new T.Mesh(new T.CircleGeometry(1.8*SAKURA_PARK.fountainScale,64),water);pool.rotation.x=-Math.PI/2;pool.scale.y=.8;pool.position.set(SAKURA_PARK.fountainX,.61,SAKURA_PARK.fountainZ);root.add(pool);
-    const dropGeometry = new T.BufferGeometry();dropGeometry.setAttribute('position',new T.BufferAttribute(new Float32Array((mobile?150:390)*3),3));
+    const dropGeometry = new T.BufferGeometry();dropGeometry.setAttribute('position',new T.BufferAttribute(new Float32Array((mobile?90:390)*3),3));
     droplets=new T.Points(dropGeometry,new T.PointsMaterial({color:0xd7f5ec,map:glowTexture,size:.11,transparent:true,opacity:.9,depthWrite:false,blending:T.AdditiveBlending}));
     droplets.position.set(SAKURA_PARK.fountainX,.61,SAKURA_PARK.fountainZ);droplets.scale.z=.8;droplets.frustumCulled=false;root.add(droplets);
     instances('FountainSpray',[0,1,2,3].map(i=>{
@@ -173,7 +175,7 @@ export function createSakuraPark(parent: T.Scene, loader: GLTFLoader, mobile: bo
     }));
     const poolGlows=new T.InstancedMesh(new T.PlaneGeometry(1.4,1.1).rotateX(-Math.PI/2),new T.MeshBasicMaterial({map:glowTexture,color:0x78eadf,transparent:true,opacity:.48,depthWrite:false,blending:T.AdditiveBlending}),6);
     for(let i=0;i<6;i++) {const a=i*Math.PI/3;dummy.position.set(SAKURA_PARK.fountainX+Math.cos(a)*3.05,.618,SAKURA_PARK.fountainZ+Math.sin(a)*2.44);dummy.rotation.set(0,a,0);dummy.scale.setScalar(1);dummy.updateMatrix();poolGlows.setMatrixAt(i,dummy.matrix);}root.add(poolGlows);
-    const petalCount=mobile?1800:5600, petalPositions=new Float32Array(petalCount*3);
+    const petalCount=mobile?700:5600, petalPositions=new Float32Array(petalCount*3);
     let seed=74129;const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
     for(let i=0;i<petalCount;i++) {
       const [x,z]=SAKURA_TREES[i%SAKURA_TREES.length],a=random()*Math.PI*2,r=Math.sqrt(random())*5;
@@ -183,7 +185,7 @@ export function createSakuraPark(parent: T.Scene, loader: GLTFLoader, mobile: bo
     }
     const petalGeometry=new T.BufferGeometry();petalGeometry.setAttribute('position',new T.BufferAttribute(petalPositions,3));
     petals=new T.Points(petalGeometry,new T.PointsMaterial({map:glowTexture,color:0xe49aaa,size:.11,transparent:true,opacity:.85,depthWrite:false}));root.add(petals);
-    const steamGeometry=new T.BufferGeometry();steamGeometry.setAttribute('position',new T.BufferAttribute(new Float32Array(60*3),3));
+    const steamCount=mobile?30:60,steamGeometry=new T.BufferGeometry();steamGeometry.setAttribute('position',new T.BufferAttribute(new Float32Array(steamCount*3),3));
     steam=new T.Points(steamGeometry,new T.PointsMaterial({map:glowTexture,color:0xb8c4c4,size:.8,opacity:.16,transparent:true,depthWrite:false}));steam.frustumCulled=false;root.add(steam);
     instances('DeliveryRobot',[0,1,2].map(i=>{const p=deliveryPose(0,i);return[p.x,p.z,p.yaw,1.2];}),true);
   }).catch(error=>{if(!disposed) { console.error('Sakura park asset load failed',error);onError('Не удалось загрузить сад сакуры. Перезагрузите страницу.'); }});

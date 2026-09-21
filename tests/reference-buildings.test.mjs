@@ -89,6 +89,23 @@ test('imported concrete uses the legacy shader, metric UVs and one shared atlas 
  library.dispose();library.dispose();assert.equal(materialDisposals,1);assert.equal(atlasDisposals,1);
 });
 
+test('repeated city surface maps share one GPU texture and retain embedded fallback',async()=>{
+ const shared=new T.Texture(),models=[fixture(),fixture()];
+ for(const model of models){model.texture.name='surface';model.material.name='CBJ1_RoofMetal';}
+ let loads=0;
+ const library=createReferenceBuildingLibrary(4,async()=>models.shift(),async()=>new T.Texture(),async()=>new T.Texture(),false,async()=>{loads++;return shared;});
+ await Promise.all(REFERENCE_BUILDINGS.slice(0,2).map(asset=>library.prepare(asset.id)));
+ const a=library.create(REFERENCE_BUILDINGS[0].id).children[0].material;
+ const b=library.create(REFERENCE_BUILDINGS[1].id).children[0].material;
+ assert.equal(loads,1);assert.equal(a.map,shared);assert.equal(b.map,shared);assert.equal(shared.colorSpace,T.SRGBColorSpace);
+ let disposals=0;shared.addEventListener('dispose',()=>disposals++);library.dispose();assert.equal(disposals,1);
+ const fallback=fixture();fallback.texture.name='surface';
+ const compatible=createReferenceBuildingLibrary(4,async()=>fallback,async()=>new T.Texture(),async()=>new T.Texture(),false,async()=>{throw new Error('unsupported');});
+ await compatible.prepare(REFERENCE_BUILDINGS[0].id);
+ assert.equal(compatible.create(REFERENCE_BUILDINGS[0].id).children[0].material.map,fallback.texture);
+ compatible.dispose();
+});
+
 test('disposal during concrete atlas loading releases both the late atlas and parsed GLB',async()=>{
  let resolveAtlas;const model=fixture(),atlas=new T.Texture();model.material.name='CBR1_Concrete';
  const counts=[0,0,0,0];[model.geometry,model.material,model.texture,atlas].forEach((r,i)=>r.addEventListener('dispose',()=>counts[i]++));

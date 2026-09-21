@@ -15,13 +15,16 @@ type LoadModel = (url: string) => Promise<{ scene: T.Group }>;
 export function createReferenceBuildingLibrary(anisotropy = 4, load?: LoadModel,
   loadAtlas: () => Promise<T.Texture> = () => new T.TextureLoader().loadAsync(ASSET_URLS.buildingAtlas),
   loadSign: () => Promise<T.Texture> = () => new T.TextureLoader().loadAsync(ASSET_URLS.sakuraSign),
-  gardenSigns = false) {
+  gardenSigns = false,
+  loadSurface?: () => Promise<T.Texture>) {
   const prototypes = new Map<ReferenceBuildingId, T.Group>();
   const pending = new Map<ReferenceBuildingId, Promise<void>>();
   let disposed = false;
   let concrete: T.MeshStandardMaterial | undefined;
   let concretePending: Promise<T.MeshStandardMaterial> | undefined;
   let gardenSign: Promise<T.MeshStandardMaterial> | undefined;
+  let surface: T.Texture | undefined;
+  let surfacePending: Promise<T.Texture> | undefined;
   const signedBuildings=new Set(['building-corner-chamfer','building-corner-rounded','building-urban-office']);
   function disposeUnprepared(scene:T.Group) {
     // Concrete already belongs to the library while a sign is still loading.
@@ -42,6 +45,18 @@ export function createReferenceBuildingLibrary(anisotropy = 4, load?: LoadModel,
       return concrete;
     }).catch(error => { concretePending = undefined; throw error; });
     return concretePending;
+  }
+  function prepareSurface() {
+    if (!loadSurface) return Promise.reject(new Error('Shared building surface is unavailable'));
+    surfacePending ??= loadSurface().then(texture => {
+      if (disposed) { texture.dispose(); throw new Error('Reference building library disposed'); }
+      texture.name = 'surface/shared';
+      texture.colorSpace = T.SRGBColorSpace;
+      texture.anisotropy = Math.min(8, Math.max(1, anisotropy));
+      surface = texture;
+      return texture;
+    }).catch(error => { surfacePending = undefined; throw error; });
+    return surfacePending;
   }
   // Create the loader only on the first GLB request, and release its Draco worker pool.
   let gltf: ReturnType<typeof createGltfLoader> | undefined;
@@ -93,6 +108,34 @@ export function createReferenceBuildingLibrary(anisotropy = 4, load?: LoadModel,
         });
         oldMaterials.forEach(material => material.dispose());
         oldTextures.forEach(texture => texture.dispose());
+      }
+      const surfaceMaterials = new Set<T.MeshStandardMaterial>();
+      scene.traverse(object => {
+        if (!(object instanceof T.Mesh)) return;
+        for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
+          if (material instanceof T.MeshStandardMaterial && material.map?.name === 'surface') surfaceMaterials.add(material);
+        }
+      });
+      if (surfaceMaterials.size && loadSurface) {
+        try {
+          const replacement = await prepareSurface();
+          const oldTextures = new Set<T.Texture>();
+          for (const material of surfaceMaterials) {
+            if (material.map && material.map !== replacement) oldTextures.add(material.map);
+            material.map = replacement;
+            material.needsUpdate = true;
+          }
+          scene.traverse(object => {
+            if (!(object instanceof T.Mesh)) return;
+            for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
+              for (const value of Object.values(material)) if (value instanceof T.Texture) oldTextures.delete(value);
+            }
+          });
+          oldTextures.forEach(texture => texture.dispose());
+        } catch (error) {
+          // Keep the embedded JPEG maps as the compatibility fallback.
+          console.warn('Shared KTX2 building surface unavailable; keeping embedded maps.', error);
+        }
       }
       if (gardenSigns && signedBuildings.has(id) && new T.Box3().setFromObject(scene).max.y>6) {
         gardenSign ??= loadSign().then(map=>{
@@ -148,11 +191,17 @@ export function createReferenceBuildingLibrary(anisotropy = 4, load?: LoadModel,
       const resources = new T.Group();
       for (const prototype of prototypes.values()) resources.add(prototype);
       let includesConcrete = false;
+      let includesSurface = false;
       resources.traverse(object => {
-        if (object instanceof T.Mesh && object.material === concrete) includesConcrete = true;
+        if (!(object instanceof T.Mesh)) return;
+        for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
+          if (material === concrete) includesConcrete = true;
+          if (material instanceof T.MeshStandardMaterial && material.map === surface) includesSurface = true;
+        }
       });
       disposeObjectTree(resources);
       if (concrete && !includesConcrete) { concrete.map?.dispose(); concrete.dispose(); }
+      if (surface && !includesSurface) surface.dispose();
       prototypes.clear();
     },
   };

@@ -217,6 +217,9 @@ export default function BaseApp() {
         if(engine.current?.restoreCameraPreset2())setStorageNotice('');
         else setStorageNotice('Ракурс «V2» пока недоступен. Сначала сохраните текущий кадр.');
       }}>V2</button>}
+      {snapshot.cameraMode !== 'free' && <button onClick={()=>{
+        engine.current?.gamePov();setStorageNotice('Game POV · игровой ракурс');
+      }}>Game POV</button>}
       {snapshot.cameraMode === 'fixed' && <small role="status">Ракурс сохранён · следуем за героем</small>}
     </section>}
     {DEV_TOOLS && <button className={styles.editorToggle} disabled={!ready} onClick={()=>{setMaster(!master);engine.current?.setMaster(!master);}}>MASTER · {master?"Закрыть":"Редактор карты"}</button>}

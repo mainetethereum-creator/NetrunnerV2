@@ -48,6 +48,20 @@ test('Blender canal kit embeds mapped materials and a real open deck gap',async(
   disposeObjectTree(scene);
 });
 
+test('optimized canal kit preserves structure, keeps the foliage mask and has source fallback',()=>{
+  const source=readFileSync('public/game/canal/v1/canal-kit.glb');
+  const optimized=readFileSync('public/game/canal/v1/canal-kit-ktx2.glb');
+  const json=bytes=>JSON.parse(bytes.subarray(20,20+bytes.readUInt32LE(12)));
+  const a=json(source),b=json(optimized);
+  assert.deepEqual(b.nodes.map(n=>n.name),a.nodes.map(n=>n.name));
+  assert.deepEqual(b.meshes.map(m=>m.name),a.meshes.map(m=>m.name));
+  assert.deepEqual(b.materials.map(m=>m.name),a.materials.map(m=>m.name));
+  assert.ok(b.extensionsUsed.includes('KHR_texture_basisu'));
+  assert.equal(b.images.filter(i=>i.mimeType==='image/ktx2').length,13);
+  assert.equal(b.images.filter(i=>i.mimeType==='image/webp').length,1);
+  assert.match(readFileSync('src/renderer/environment/canal.ts','utf8'),/canalKitKtx2[\s\S]*canalKit/);
+});
+
 test('the future forest, bridge gap and water cannot be entered, park routes remain open',()=>{
   assert.equal(CANAL.forestOpen,false);
   assert.equal(CANAL.west,-68,'water continues beyond the reachable west edge');

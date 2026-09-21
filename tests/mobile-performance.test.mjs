@@ -52,7 +52,7 @@ test('portrait / landscape share a bounded render budget while CSS stays native'
     const ratio=mobileRenderRatio(width,height,3,1),floor=mobileRenderRatio(width,height,3,MOBILE_MIN_SCALE);
     assert.ok(width*height*ratio*ratio<=1_100_001);
     assert.ok(ratio<=1.7);
-    assert.ok(floor>=.75&&floor/ratio>=MOBILE_MIN_SCALE-.001);
+    assert.ok(floor>=.6&&floor/ratio>=MOBILE_MIN_SCALE-.001);
     assert.equal(mobileRenderRatio(height,width,3,1),ratio);
   }
 });

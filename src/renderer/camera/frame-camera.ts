@@ -4,6 +4,9 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 export type FrameCameraMode = 'follow' | 'free' | 'fixed';
 export const FRAME_CAMERA_KEY = 'cyberbase.base.camera-frame.v1';
 export const FRAME_CAMERA_PRESET_2_KEY = 'cyberbase.base.camera-preset-2.v1';
+/** Built-in gameplay composition: 30° azimuth, 46° pitch and a short look-ahead. */
+export const GAME_POV_POSITION_OFFSET = [7.59, 15.83, 11.46] as const;
+export const GAME_POV_TARGET_OFFSET = [0, 0, -1.6] as const;
 type Frame = { version: 1; position: number[]; target: number[]; anchor: number[] };
 // Legacy world-space frames were saved on Base, whose initial body pivot is here.
 const LEGACY_ANCHOR = [0, 1.05, 5];
@@ -116,6 +119,21 @@ export function createFrameCamera(camera: T.PerspectiveCamera, canvas: HTMLEleme
         storage?.setItem(FRAME_CAMERA_KEY, JSON.stringify(saved));
         return true;
       } catch { return false; }
+    },
+    gamePov(pivot = anchor) {
+      anchor.copy(pivot);
+      camera.position.set(
+        anchor.x + GAME_POV_POSITION_OFFSET[0],
+        anchor.y + GAME_POV_POSITION_OFFSET[1],
+        anchor.z + GAME_POV_POSITION_OFFSET[2],
+      );
+      controls.target.set(
+        anchor.x + GAME_POV_TARGET_OFFSET[0],
+        anchor.y + GAME_POV_TARGET_OFFSET[1],
+        anchor.z + GAME_POV_TARGET_OFFSET[2],
+      );
+      captureOffsets(); mode = 'fixed'; controls.enabled = false; camera.lookAt(controls.target);
+      try { storage?.setItem(FRAME_CAMERA_KEY, serializeFrame()); } catch { /* Preset still works for this session. */ }
     },
     follow() {
       mode = 'follow'; controls.enabled = false;

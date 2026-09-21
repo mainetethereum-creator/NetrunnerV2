@@ -22,6 +22,11 @@ camera edits update the active frame without overwriting this preset. Pressing
 **Стандарт 2** restores its angle, distance and pan around the runner and makes it
 the active fixed-follow frame again.
 
+**Game POV** applies a built-in gameplay composition without overwriting V2. It
+uses a 30-degree azimuth, roughly 46-degree pitch, a 22-metre camera distance and
+a 1.6-metre forward look-ahead. The composition becomes the active persisted
+follow frame, so reload and Expedition retain it until another preset is selected.
+
 `src/renderer/camera/frame-camera.ts` owns OrbitControls and frame validation /
 persistence. `components/base/scene.ts` switches between it and the unchanged
 follow rig; it clears movement input during transitions, suppresses gameplay

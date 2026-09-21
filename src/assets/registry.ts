@@ -10,6 +10,8 @@ export type RefugeBuildingModel = "workshop" | "oracle" | "city-gate";
 export const ASSET_URLS = {
   /** Directory with three.js' Draco decoder (draco_wasm_wrapper.js, draco_decoder.wasm, draco_decoder.js). */
   dracoDecoder: "/game/draco/",
+  /** Directory with the three.js Basis Universal transcoder used by KTX2Loader. */
+  basisTranscoder: "/game/basis/",
   /** Neon Sentinel player character (Mixamo rig, Draco geometry, WebP textures). */
   heroModel: "/game/models/mixamo/neon-sentinel-mixamo-test.glb",
   /** Refuge buildings placed by the base scene. */
@@ -18,12 +20,16 @@ export const ASSET_URLS = {
   implantsBuilding: "/base/models/implants-building.glb",
   elevatedRail: "/base/models/elevated-rail-v2.glb",
   sakuraPark: "/game/park/sakura-v1/sakura-kit.glb",
+  sakuraParkKtx2: "/game/park/sakura-v1/sakura-kit-ktx2.glb",
   sakuraSign: "/game/park/sakura-v1/neon-sign.webp",
   canalKit: "/game/canal/v1/canal-kit.glb",
+  canalKitKtx2: "/game/canal/v1/canal-kit-ktx2.glb",
   canalNormal: "/game/canal/v1/water-normal.webp",
+  canalNormalKtx2: "/game/canal/v1/water-normal.ktx2",
   eastDistrict: "/game/east-district/v1/east-district.glb",
   railRuins: "/game/rail-ruins/v1/rail-ruins.glb",
   buildingAtlas: "/game/props/salvage/building-atlas.webp",
+  buildingSurfaceKtx2: "/game/buildings/shared/surface.ktx2",
   /** Owner-selected v1 concepts, authored in Blender; loaded on catalogue demand. */
   referenceBuildings: {
     armory: "/game/buildings/reference-v1/armory.glb",
@@ -87,16 +93,22 @@ export function registeredAssetFiles(): string[] {
     `${ASSET_URLS.dracoDecoder}draco_wasm_wrapper.js`,
     `${ASSET_URLS.dracoDecoder}draco_decoder.wasm`,
     `${ASSET_URLS.dracoDecoder}draco_decoder.js`,
+    `${ASSET_URLS.basisTranscoder}basis_transcoder.js`,
+    `${ASSET_URLS.basisTranscoder}basis_transcoder.wasm`,
     ASSET_URLS.heroModel,
     ASSET_URLS.implantsBuilding,
     ASSET_URLS.elevatedRail,
     ASSET_URLS.sakuraPark,
+    ASSET_URLS.sakuraParkKtx2,
     ASSET_URLS.sakuraSign,
     ASSET_URLS.canalKit,
+    ASSET_URLS.canalKitKtx2,
     ASSET_URLS.canalNormal,
+    ASSET_URLS.canalNormalKtx2,
     ASSET_URLS.eastDistrict,
     ASSET_URLS.railRuins,
     ASSET_URLS.buildingAtlas,
+    ASSET_URLS.buildingSurfaceKtx2,
     ...Object.values(ASSET_URLS.referenceBuildings),
     ...REFUGE_BUILDINGS.map(ASSET_URLS.refugeBuilding),
     ...Object.values(ASSET_URLS.ui.hubBackdrop),

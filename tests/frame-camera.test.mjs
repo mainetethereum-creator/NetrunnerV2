@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from 'three';
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls.js';
-import {createFrameCamera,parseCameraFrame,FRAME_CAMERA_KEY,FRAME_CAMERA_PRESET_2_KEY} from '../src/renderer/camera/frame-camera.ts';
+import {createFrameCamera,parseCameraFrame,FRAME_CAMERA_KEY,FRAME_CAMERA_PRESET_2_KEY,GAME_POV_POSITION_OFFSET,GAME_POV_TARGET_OFFSET} from '../src/renderer/camera/frame-camera.ts';
 
 function fixture(initial,anchor=new T.Vector3(0,1,0)){
  const data=new Map(initial?[[FRAME_CAMERA_KEY,initial]]:[]),camera=new T.PerspectiveCamera(38,1,.15,140);
@@ -83,6 +83,19 @@ test('a fixed composition can explicitly replace the V2 preset',()=>{
  assert.equal(a.rig.savePreset2(),true);
  const saved=parseCameraFrame(a.data.get(FRAME_CAMERA_PRESET_2_KEY));
  assert.ok(new T.Vector3().fromArray(saved.position).distanceTo(new T.Vector3(13,15,21))<1e-9);
+ a.rig.dispose();
+});
+
+test('Game POV activates its built-in gameplay composition without replacing V2',()=>{
+ const original=JSON.stringify({version:1,position:[17,26,32],target:[2,3,-4],anchor:[0,1,0]});
+ const a=fixture(original,new T.Vector3(0,1,0));
+ a.rig.gamePov(new T.Vector3(10,2,20));
+ assert.equal(a.rig.mode,'fixed');assert.equal(a.controls.enabled,false);
+ assert.deepEqual(a.camera.position.toArray(),GAME_POV_POSITION_OFFSET.map((value,index)=>value+[10,2,20][index]));
+ assert.deepEqual(a.controls.target.toArray(),GAME_POV_TARGET_OFFSET.map((value,index)=>value+[10,2,20][index]));
+ assert.equal(a.data.get(FRAME_CAMERA_PRESET_2_KEY),original,'built-in gameplay view keeps V2 untouched');
+ const active=parseCameraFrame(a.data.get(FRAME_CAMERA_KEY));assert.ok(active);
+ assert.deepEqual(active.anchor,[10,2,20]);
  a.rig.dispose();
 });
 
