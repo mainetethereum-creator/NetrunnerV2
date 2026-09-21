@@ -732,6 +732,11 @@ collapsed behind a round bottom-left button and can be closed from the panel, wh
 keeps the view unobstructed during testing. The saved map and camera presets were
 not changed.
 
+Runtime correction: the owner view exposed missing facade advertising and dark
+emissive windows with the unique KTX2 building variants. `USE_KTX2_FACADES` is now
+false, restoring the approved source GLBs. Generated variants remain offline for
+future material-parity work; the Stage 5 shared concrete KTX2 texture stays enabled.
+
 # Latest task completed: persistent runtime asset cache
 
 Production config now gives `/game/*` and `/base/models/*` a one-year immutable

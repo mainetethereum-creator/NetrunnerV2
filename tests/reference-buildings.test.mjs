@@ -73,6 +73,12 @@ test('published city facades have structure-identical opaque KTX2 variants with 
  assert.match(runtime,/optimizedUrl[\s\S]*using source GLB/);
 });
 
+test('runtime keeps approved source facades until emissive KTX2 parity is proven',()=>{
+ const source=readFileSync('src/renderer/three/reference-building-library.ts','utf8');
+ assert.match(source,/const USE_KTX2_FACADES = false/);
+ assert.match(source,/USE_KTX2_FACADES && loadSurface && KTX2_FACADE_IDS\.has\(id\)/);
+});
+
 function fixture(){
  const scene=new T.Group(),geometry=new T.BoxGeometry(),texture=new T.Texture();
  const material=new T.MeshStandardMaterial({map:texture});

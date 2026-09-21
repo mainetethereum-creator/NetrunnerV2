@@ -133,6 +133,12 @@ to the original GLB if loading or transcoding fails. No masked foliage or transp
 artwork is included in this pass. `npm run assets:ktx2:building-facades` reproduces
 all ten variants.
 
+**Runtime correction (2026-09-21):** the optimized facade variants removed visible
+advertising and darkened emissive windows in the owner's night view. Runtime therefore
+uses the approved source GLBs again. The generated KTX2 copies remain offline until
+their emissive and advertising materials pass same-camera visual parity. The shared
+concrete KTX2 texture from Stage 5 remains enabled.
+
 ## Scene work
 
 - Small authored props under 3.5 m retain full geometry within 27 m and use an opaque screen-door detail fade over 27–44 m, then skip their draws. This is a detail-to-culled LOD, not a low-poly replacement for buildings or trees. It preserves silhouette-bearing buildings, fences and containers, plus all close materials. Shader hooks/program keys are composed and material variants reused. No transparent crossfade duplicate is drawn. Frustum culling skips distant authored groups while nearby offscreen shadow casters stay available.
