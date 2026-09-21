@@ -731,3 +731,12 @@ Base shows a small live FPS badge on desktop and mobile. The camera controls are
 collapsed behind a round bottom-left button and can be closed from the panel, which
 keeps the view unobstructed during testing. The saved map and camera presets were
 not changed.
+
+# Latest task completed: persistent runtime asset cache
+
+Production config now gives `/game/*` and `/base/models/*` a one-year immutable
+browser cache. Returning players reuse heavy models, textures, KTX2 and decoder
+files without revalidation. The general static rule now explicitly includes KTX2
+and WASM. Any changed immutable asset must use a new file name, versioned directory
+or query string; browser eviction, private mode and explicit cache clearing can
+still remove local entries.

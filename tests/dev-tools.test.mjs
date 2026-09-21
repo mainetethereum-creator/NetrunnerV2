@@ -18,6 +18,18 @@ test('next.config turns dev tools and development pages on only in development',
   finally{delete process.env.CYBERBASE_DEV_TOOLS;}
 });
 
+test('production caches heavy game assets without repeat downloads',async()=>{
+  const {default:nextConfig}=await import(pathToFileURL(resolve('next.config.ts')).href);
+  const rules=await nextConfig('phase-production-build').headers();
+  for(const source of ['/game/:path*','/base/models/:path*']){
+    const rule=rules.find(candidate=>candidate.source===source);
+    assert.ok(rule,source);
+    assert.deepEqual(rule.headers,[{key:'Cache-Control',value:'public, max-age=31536000, immutable'}]);
+  }
+  assert.match(rules[0].source,/ktx2/);
+  assert.match(rules[0].source,/wasm/);
+});
+
 test('editor pages are development-only page files',()=>{
   for(const dir of ['app/editor/vegetation','app/ui-kit-preview']){
     assert.ok(existsSync(`${dir}/page.dev.tsx`),dir);

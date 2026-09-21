@@ -21,7 +21,22 @@ export default function nextConfig(phase: string): NextConfig {
     turbopack: { root: process.cwd() },
     images: { minimumCacheTTL: 2_678_400 },
     async headers() {
-      return [{ source: "/:path*.:ext(png|jpg|jpeg|webp|gif|svg|avif|ico|glb|woff|woff2|otf)", headers: [{ key: "Cache-Control", value: "public, max-age=2592000, stale-while-revalidate=604800" }] }];
+      return [
+        {
+          source: "/:path*.:ext(png|jpg|jpeg|webp|gif|svg|avif|ico|glb|ktx2|wasm|woff|woff2|otf)",
+          headers: [{ key: "Cache-Control", value: "public, max-age=2592000, stale-while-revalidate=604800" }],
+        },
+        // Runtime game assets are immutable. When bytes change, publish a new file name,
+        // versioned directory or query string so existing players keep a valid cache entry.
+        {
+          source: "/game/:path*",
+          headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+        },
+        {
+          source: "/base/models/:path*",
+          headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+        },
+      ];
     },
   };
 }

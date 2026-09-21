@@ -142,6 +142,18 @@ all ten variants.
 - Keep the existing mobile direct render path (no bloom/postprocess render targets), four local lights, VSM soft shadows at 1024. Refresh mobile shadows at 10 Hz during motion and about 1.4 Hz when stationary. Sun/ambient/emissive lighting and PBR response remain intact.
 - Share one decoded atlas/texture between world vegetation and street litter. Keep trilinear mipmaps and cap anisotropy at 4 on mobile for environment surfaces. Existing prototype geometry/material reuse remains; there are no new per-frame texture uploads or material clones. Transparent fire/glass remains stylistically intact; detail fades add no blending passes.
 
+## Browser asset cache
+
+Production serves `/game/*` and `/base/models/*` with
+`Cache-Control: public, max-age=31536000, immutable`. A browser therefore reuses
+downloaded models, textures and decoder files across visits without a validation
+request for up to one year. Browser storage pressure, private mode and an explicit
+cache clear can still evict them; the application cannot override those browser
+decisions. All changed immutable assets must be published under a new file name,
+versioned directory or query string. Other static artwork keeps the existing
+30-day cache with stale-while-revalidate. KTX2 and WASM are now included in that
+general fallback rule as well.
+
 ## Validation handoff
 
 Implementation agent intentionally did not run validation. `tests/mobile-performance.test.mjs` covers dead zone/diagonal speed, invalid samples, cooldowns, anti-thrashing, gradual recovery, floor/fallback behavior, and phone aspect-ratio budgets.

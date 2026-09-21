@@ -4,6 +4,12 @@ Last updated: 2026-09-20 · repository `mainetethereum-creator/NetrunnerV2`; cur
 
 ## Implemented (the working game — must be preserved)
 
+- **Persistent runtime asset cache (2026-09-21, local):** production marks
+  `/game/*` and `/base/models/*` as immutable for one year, so returning players
+  reuse downloaded models, textures, KTX2 files and decoders without a network
+  validation request. Changed assets must receive a new URL; browser eviction,
+  private mode and manual cache clearing remain outside application control.
+
 - **Base mobile responsiveness (2026-09-21, local):** movement/collision use the
   shared loop's fixed 60 Hz step with render interpolation. Mobile walking keeps a
   static city VSM shadow and cheap runner contact shadow instead of refreshing the
