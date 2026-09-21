@@ -25,8 +25,12 @@ export function adaptMobileBudget(state:MobileBudget,frameMs:number):MobileBudge
   return {...state,slow,fast};
 }
 export function mobileRenderRatio(width:number,height:number,deviceRatio:number,scale:number) {
-  const native=Math.max(1,Math.min(deviceRatio||1,1.7,Math.sqrt(1_100_000/Math.max(1,width*height))));
-  return Math.max(.6,native*Math.max(MOBILE_MIN_SCALE,Math.min(1,scale)));
+  // Mobile browsers expose more CSS pixels after their chrome collapses in
+  // landscape. One shared budget made rotation lower DPR before adaptation.
+  const landscape=width>height;
+  const pixelBudget=landscape?1_450_000:1_100_000;
+  const native=Math.max(1,Math.min(deviceRatio||1,1.7,Math.sqrt(pixelBudget/Math.max(1,width*height))));
+  return Math.max(landscape?1:.6,native*Math.max(MOBILE_MIN_SCALE,Math.min(1,scale)));
 }
 /** Moved to src/input/touch; re-exported for existing imports. */
 export {stickVector} from '../../src/input/touch/stick-vector.ts';

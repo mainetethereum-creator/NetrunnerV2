@@ -11,6 +11,8 @@ Last updated: 2026-09-20 · repository `mainetethereum-creator/NetrunnerV2`; cur
   fall to 55% / DPR 0.6 before the stable 30 FPS fallback. Mobile rain, fountain,
   petals, steam, mist and point lights have lower transparent/fill cost. Desktop lighting and
   saved V2 / Game POV compositions remain unchanged. Physical-phone profiling is owed.
+  Landscape has a 1.45-million-pixel budget and a 1× DPR floor so rotation no
+  longer immediately blurs the scene; portrait keeps the 1.1-million / 0.6 limits.
 
 - **KTX2 asset pilot (2026-09-21, local):** Base loads the canal normal map as
   mipmapped UASTC KTX2 on desktop and mobile, with a local Basis transcoder and the

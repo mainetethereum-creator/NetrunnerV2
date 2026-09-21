@@ -647,6 +647,11 @@ Implementation is in `src/renderer/camera/frame-camera.ts`; UI/API wiring is in
 
 # Latest task completed: Base mobile responsiveness pass
 
+Landscape correction (2026-09-21): mobile landscape has a 1.45-million-pixel
+drawing-buffer budget and a 1× DPR floor; portrait keeps 1.1 million / 0.6. This
+prevents an immediate sharpness collapse after rotation while retaining the 1.7 DPR
+ceiling and the existing adaptive performance system.
+
 Base movement/collision now run through `createFrameLoop.fixedUpdate` at 60 Hz;
 the runner and follow pivot consume interpolated render positions. Mobile no longer
 refreshes the full 1024 VSM city shadow during locomotion: hero meshes skip shadow

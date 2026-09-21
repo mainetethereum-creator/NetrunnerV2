@@ -47,12 +47,15 @@ test('resolution recovery needs 24 seconds of headroom and stays gradual',()=>{
   assert.ok(state.scale>.8&&state.scale<.84);
   assert.ok(state.cooldown>0);
 });
-test('portrait / landscape share a bounded render budget while CSS stays native',()=>{
-  for(const [width,height] of [[390,844],[844,390],[430,932],[932,430]]){
+test('portrait stays bounded while landscape retains at least one device pixel per CSS pixel',()=>{
+  for(const [width,height] of [[390,844],[430,932]]){
     const ratio=mobileRenderRatio(width,height,3,1),floor=mobileRenderRatio(width,height,3,MOBILE_MIN_SCALE);
     assert.ok(width*height*ratio*ratio<=1_100_001);
     assert.ok(ratio<=1.7);
     assert.ok(floor>=.6&&floor/ratio>=MOBILE_MIN_SCALE-.001);
-    assert.equal(mobileRenderRatio(height,width,3,1),ratio);
+    const landscape=mobileRenderRatio(height,width,3,1),landscapeFloor=mobileRenderRatio(height,width,3,MOBILE_MIN_SCALE);
+    assert.ok(height*width*landscape*landscape<=1_450_001);
+    assert.ok(landscape<=1.7&&landscape>=ratio);
+    assert.ok(landscapeFloor>=1);
   }
 });

@@ -45,7 +45,7 @@ Implemented for coarse primary pointers and `any-pointer: coarse` hybrids, inclu
 
 ## Render budget
 
-- Start with DPR capped at 1.7 and about 1.1 million drawing-buffer pixels on common phones. The previous mobile path could reach DPR 2 / 2.8 million pixels.
+- Start with DPR capped at 1.7 and about 1.1 million drawing-buffer pixels in portrait. Landscape receives up to 1.45 million pixels and keeps at least 1× DPR, preventing an immediate sharpness drop when browser chrome collapses after rotation. The previous mobile path could reach DPR 2 / 2.8 million pixels.
 - Every two seconds, sample visible gameplay frame cadence. Exclude loading, the editor, dialogs, and long one-off stalls. This measures scheduling plus rendering, **not GPU timing**.
 - Warmup and cooldown windows suppress load-time reactions. Two slow windows lower target scale by 0.07; actual scale moves only 0.025 per 600 ms. Floor: 55% of initial resolution, with an absolute DPR floor of 0.6. This gives the 60 FPS target more headroom before the stable 30 FPS fallback. Materials, lighting, fog, tone mapping, near geometry and texture source resolution are preserved.
 - Recovery requires twelve healthy windows (24 seconds) and adds only 0.035. Sustained load at the floor eventually selects a 30 fps presentation cadence for the rest of that visit. This deliberately avoids repeated thermal recovery/overload cycles. Hidden documents cancel animation frames entirely, then reset timing/input before resuming.
