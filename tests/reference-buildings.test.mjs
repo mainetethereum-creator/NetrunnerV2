@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import * as T from 'three';
 import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js';
 import {REFERENCE_BUILDINGS} from '../src/assets/reference-buildings.ts';
+import {ASSET_URLS} from '../src/assets/registry.ts';
 import {createReferenceBuildingLibrary} from '../src/renderer/three/reference-building-library.ts';
 import {createConcreteMaterial} from '../src/renderer/three/cold-concrete.ts';
 
@@ -52,6 +53,24 @@ test('three reference GLBs are grounded, complete, textured and inside the low-p
   assert.ok(concrete.pbrMetallicRoughness.baseColorTexture);
   assert.ok(concrete.pbrMetallicRoughness.baseColorFactor[0]<.5,'Blender tint survives export');
  }
+});
+
+test('published city facades have structure-identical opaque KTX2 variants with source fallback',()=>{
+ const ids=['japaneseCafe','glassCorner','japanesePartsShop','walletTower','cyberbaseTower','mediaTower','slenderGlass','slenderTerrace','cornerChamfer','cornerRounded'];
+ for(const id of ids){
+  const url=ASSET_URLS.referenceBuildings[id];
+  const source=readFileSync(new URL('../public'+url,import.meta.url));
+  const optimized=readFileSync(new URL('../public'+url.replace(/\.glb$/,'-ktx2.glb'),import.meta.url));
+  const parse=file=>JSON.parse(file.subarray(20,20+file.readUInt32LE(12)));
+  const a=parse(source),b=parse(optimized);
+  assert.deepEqual(b.nodes.map(n=>n.name),a.nodes.map(n=>n.name));
+  assert.deepEqual(b.meshes.map(m=>m.name),a.meshes.map(m=>m.name));
+  assert.deepEqual(b.materials.map(m=>m.name),a.materials.map(m=>m.name));
+  assert.equal(b.images.filter(image=>image.mimeType==='image/ktx2').length,1);
+  assert.ok(b.extensionsUsed.includes('KHR_texture_basisu'));
+ }
+ const runtime=readFileSync('src/renderer/three/reference-building-library.ts','utf8');
+ assert.match(runtime,/optimizedUrl[\s\S]*using source GLB/);
 });
 
 function fixture(){

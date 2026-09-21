@@ -86,6 +86,7 @@ export const ASSET_URLS = {
 } as const;
 
 const REFUGE_BUILDINGS: readonly RefugeBuildingModel[] = ["workshop", "oracle", "city-gate"];
+const KTX2_REFERENCE_BUILDINGS = ["japaneseCafe","glassCorner","japanesePartsShop","walletTower","cyberbaseTower","mediaTower","slenderGlass","slenderTerrace","cornerChamfer","cornerRounded"] as const;
 
 /** Every concrete file behind the registry, for existence checks. */
 export function registeredAssetFiles(): string[] {
@@ -110,6 +111,7 @@ export function registeredAssetFiles(): string[] {
     ASSET_URLS.buildingAtlas,
     ASSET_URLS.buildingSurfaceKtx2,
     ...Object.values(ASSET_URLS.referenceBuildings),
+    ...KTX2_REFERENCE_BUILDINGS.map(key => ASSET_URLS.referenceBuildings[key].replace(/\.glb$/, "-ktx2.glb")),
     ...REFUGE_BUILDINGS.map(ASSET_URLS.refugeBuilding),
     ...Object.values(ASSET_URLS.ui.hubBackdrop),
     ASSET_URLS.ui.hubCharacter,

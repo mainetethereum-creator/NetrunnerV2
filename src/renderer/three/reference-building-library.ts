@@ -7,6 +7,11 @@ import { createConcreteMaterial, prepareConcreteUv } from './cold-concrete.ts';
 import { attachGardenSign } from './garden-facade-sign.ts';
 
 type LoadModel = (url: string) => Promise<{ scene: T.Group }>;
+const KTX2_FACADE_IDS = new Set<ReferenceBuildingId>([
+  'building-japanese-cafe','building-glass-corner','building-japanese-parts-shop',
+  'building-wallet-tower','building-cyberbase-tower','building-media-tower',
+  'building-slender-glass','building-slender-terrace','building-corner-chamfer','building-corner-rounded',
+]);
 
 /** Explicit asynchronous preparation keeps placement/ghost/undo synchronous.
  * Each library owns its loaded resources; placements share those resources.
@@ -72,7 +77,12 @@ export function createReferenceBuildingLibrary(anisotropy = 4, load?: LoadModel,
     if (existing) return existing;
     const asset = REFERENCE_BUILDINGS.find(item => item.id === id)!;
     // Public assets have long cache headers in this project. Bump after a rebake.
-    const promise = loadModel(`${asset.url}?v=20260919-outskirts-3`).then(async ({ scene }) => {
+    const sourceUrl=`${asset.url}?v=20260919-outskirts-3`;
+    const optimizedUrl=`${asset.url.replace(/\.glb$/, '-ktx2.glb')}?v=20260921-1`;
+    const request=loadSurface && KTX2_FACADE_IDS.has(id)
+      ? loadModel(optimizedUrl).catch(error=>{console.warn(`KTX2 facade unavailable for ${id}; using source GLB.`,error);return loadModel(sourceUrl);})
+      : loadModel(sourceUrl);
+    const promise = request.then(async ({ scene }) => {
       if (disposed) {
         disposeObjectTree(scene);
         throw new Error('Reference building library disposed');

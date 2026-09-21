@@ -12,6 +12,7 @@
     "assets:ktx2:canal": "node scripts/encode-canal-normal-ktx2.mjs",
     "assets:ktx2:canal-kit": "node scripts/encode-canal-kit-ktx2.mjs",
     "assets:ktx2:building-surface": "node scripts/encode-building-surface-ktx2.mjs",
+    "assets:ktx2:building-facades": "node scripts/encode-building-facades-ktx2.mjs",
     "assets:ktx2:sakura": "node scripts/encode-sakura-ktx2.mjs"
   },
   "dependencies": {

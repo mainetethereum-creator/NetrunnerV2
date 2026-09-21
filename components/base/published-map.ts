@@ -20,10 +20,12 @@ export function createPublishedMap(options: {
   onFloorVisibility: (visible: boolean) => void;
   onMetroTransform: MetroOpening['update'];
   onAssetsChanged: () => void;
+  loadReference?: (url: string) => Promise<{ scene: T.Group }>;
+  loadBuildingSurface?: () => Promise<T.Texture>;
 }) {
   const render = createEditableRender(options.scene, options.sources, options.rendered, options.labels, options.instanceLabels);
   render.setActive(true);
-  const references = createReferenceBuildingLibrary(4,undefined,undefined,undefined,true);
+  const references = createReferenceBuildingLibrary(4,options.loadReference,undefined,undefined,true,options.loadBuildingSurface);
   const buildings = createBuildingLibrary(4, options.onAssetsChanged);
   const placements: T.Object3D[] = [];
   let disposed = false;

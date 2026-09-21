@@ -83,6 +83,7 @@ export default function BaseApp() {
   const [traffic, setTraffic] = useState(false);
   const [ambient,setAmbient]=useState(false);
   const [showStats, setShowStats] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
   const [master,setMaster]=useState(false),[worldEditor,setWorldEditor]=useState<WorldEditor|null>(null);
   const [hideHud, setHideHud] = useState(false);
   useEffect(() => {
@@ -197,7 +198,10 @@ export default function BaseApp() {
   return <main className={`${styles.root} ${hideHud ? styles.hideHud : ""}`}>
     <button className={styles.hudToggle} onClick={() => setHideHud(!hideHud)} aria-label={hideHud ? "Show interface" : "Hide interface"}>{hideHud ? "H · Show interface" : "H · Hide interface"}</button>
     <div ref={host} className={styles.viewport} />
-    {ready && !dialog && <section className={styles.cameraPanel} aria-label="Настройка камеры">
+    {ready && !dialog && <div className={styles.cameraControl}>
+      <button className={styles.cameraToggle} aria-label={cameraOpen ? "Закрыть настройки камеры" : "Открыть настройки камеры"} aria-expanded={cameraOpen} onClick={()=>setCameraOpen(value=>!value)}>◉</button>
+      {cameraOpen && <section className={styles.cameraPanel} aria-label="Настройка камеры">
+      <div className={styles.cameraPanelTop}><strong>КАМЕРА</strong><button aria-label="Закрыть настройки камеры" onClick={()=>setCameraOpen(false)}>×</button></div>
       {snapshot.cameraMode !== 'free' ? <button onClick={()=>{setMaster(false);engine.current?.setMaster(false);engine.current?.frameCamera();}}>Камера · {snapshot.cameraMode === 'fixed' ? 'Изменить кадр' : 'Выбрать кадр'}</button> : <>
         <strong>Свободная камера</strong>
         <p>ЛКМ — вращать · ПКМ — сдвигать<br/>Колесо или кнопки − / + — масштаб<br/>На экране: один палец — вращение, два — масштаб и сдвиг.</p>
@@ -221,7 +225,8 @@ export default function BaseApp() {
         engine.current?.gamePov();setStorageNotice('Game POV · игровой ракурс');
       }}>Game POV</button>}
       {snapshot.cameraMode === 'fixed' && <small role="status">Ракурс сохранён · следуем за героем</small>}
-    </section>}
+      </section>}
+    </div>}
     {DEV_TOOLS && <button className={styles.editorToggle} disabled={!ready} onClick={()=>{setMaster(!master);engine.current?.setMaster(!master);}}>MASTER · {master?"Закрыть":"Редактор карты"}</button>}
     {DEV_TOOLS&&master&&worldEditor&&ready&&<aside className={styles.editorPanel}><BaseEditorPanel editor={worldEditor}/></aside>}
     <div className={styles.vignette} />
@@ -257,6 +262,7 @@ export default function BaseApp() {
     <MovementStick onMove={moveStick} disabled={!ready || dialog !== null || master || snapshot.cameraMode === 'free'} />
 
     <GameHud hidden={hideHud || !ready} onSettings={() => setDialog("settings")} onQuest={() => openDialog("contracts")} />
+    {ready && <output className={styles.fpsBadge} aria-label={`Частота кадров ${snapshot.fps} FPS`}>{snapshot.fps}<small>FPS</small></output>}
     {showStats && <div className={styles.performance} aria-label="Live graphics performance"><strong>{snapshot.fps} FPS{snapshot.timingLimited ? "*" : ""}</strong><span>{snapshot.p95} ms p95 · {snapshot.high ? "HIGH" : "LITE"}</span><span>{snapshot.submitMs} ms CPU submit</span><span>{snapshot.draws} draws · {Math.round(snapshot.triangles / 1000)}k triangles</span><span>DPR {snapshot.ratio.toFixed(2)} · scale {snapshot.scale.toFixed(2)}</span><span>Target {snapshot.target} FPS · {quality.toUpperCase()}</span>{snapshot.timingLimited && <span>* Possible browser timer limit</span>}</div>}
 
     <LoadingScreen ready={ready} key={sceneVersion} status="Establishing refuge link" error={ready ? "" : error} retryLabel="Reload refuge" />

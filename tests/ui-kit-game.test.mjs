@@ -53,3 +53,11 @@ test('kit tokens stay scoped to the kit class so the hub and HUD skin keep their
   assert.match(css,/\.kit \{/);
   for(const file of ['src/ui/dialogue/NpcDialogue.tsx','src/ui/character/RunnerPanel.tsx'])assert.match(readFileSync(file,'utf8'),/aria-modal="true"/,file);
 });
+
+test('base test HUD keeps FPS visible and camera controls collapsible',()=>{
+  const base=readFileSync('components/base/BaseApp.tsx','utf8');
+  assert.match(base,/styles\.fpsBadge/);
+  assert.match(base,/styles\.cameraToggle/);
+  assert.match(base,/aria-expanded=\{cameraOpen\}/);
+  assert.match(base,/cameraOpen &&/);
+});

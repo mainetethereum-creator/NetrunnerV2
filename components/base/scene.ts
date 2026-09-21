@@ -572,6 +572,8 @@ export function createBaseScene(
         onFloorVisibility: value => { floorVisible = value; },
         onMetroTransform: metroOpening.update,
         onAssetsChanged: () => { renderer.shadowMap.needsUpdate = true; },
+        loadReference: url => loader.loadAsync(url),
+        loadBuildingSurface: () => ktx2.loadAsync(ASSET_URLS.buildingSurfaceKtx2),
       });
       await publishedMap.ready;
       if (disposed) return;

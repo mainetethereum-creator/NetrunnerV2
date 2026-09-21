@@ -716,3 +716,18 @@ pass. A clean Base reload fetched both new assets without new warnings; the brow
 log still retains two earlier 404 fallback warnings from a reload that occurred
 before the generated files became visible to the dev server. Physical-phone memory,
 FPS and close canal/building parity remain the owner acceptance check.
+
+# Current staged mobile optimization — Stage 6 unique facades and test controls
+
+The ten unique opaque facade images in the published Base building set now ship in
+structure-identical `*-ktx2.glb` variants. Their aggregate transfer is 32,198,512 →
+12,807,612 bytes, a 19,390,900-byte reduction. Only the unique facade is converted
+to mipmapped ETC1S; shared concrete and source GLBs remain as automatic fallbacks.
+Published-map loading now receives the scene-owned GLTF/KTX2 loader instead of
+creating an incompatible default loader. `npm run assets:ktx2:building-facades`
+reproduces the set.
+
+Base shows a small live FPS badge on desktop and mobile. The camera controls are
+collapsed behind a round bottom-left button and can be closed from the panel, which
+keeps the view unobstructed during testing. The saved map and camera presets were
+not changed.

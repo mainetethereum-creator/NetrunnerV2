@@ -34,6 +34,13 @@ Last updated: 2026-09-20 · repository `mainetethereum-creator/NetrunnerV2`; cur
   removes roughly 52 MiB of steady-state duplicated mip residency. Embedded JPEGs
   remain as compatibility fallback, and unique facade artwork is unchanged.
 
+- **Unique facade texture pass and test HUD (2026-09-21, local):** the ten opaque
+  published-building facade maps now have structure-identical ETC1S KTX2 model
+  variants with automatic source-GLB fallback. Their combined transfer falls from
+  32.20 to 12.81 MB, saving 19.39 MB (about 60%). A compact FPS badge is always
+  visible on desktop and mobile; camera presets now live behind a small round toggle
+  so the panel does not cover the scene during testing.
+
 - **Railway fork (2026-09-20, local, owner approved):** live train route continues east away from the garden; old southern branch ends in a fractured Blender stub with torn rails. All four old outer columns retained, three additional supports on the live branch; continuous earth below. New kit 1.25 MB, 13 instanced draws; no extra lights or animation loop. 231 tests, lint, TypeScript and build pass. Owner approved the live result. See `docs/base-elevated-rail.md`. No deployment.
 - **Grounded east district (2026-09-20, local):** continued tile plaza and small garden, two Blender service buildings, damaged fence and OUTLANDS interaction at the closed walking boundary. Railway ground is continuous dirt/greenery, with burning barrels and tires. Nine new roots / 3.23 MB; existing garden meshes and floor reflection are reused. See `docs/east-district.md`. No deployment.
 

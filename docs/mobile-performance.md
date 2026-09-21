@@ -123,6 +123,16 @@ from roughly ten RGBA8 mip chains (about 53.3 MiB) to one compressed mip chain
 (about 0.7 MiB on ETC-capable targets). Unique facade artwork, signs and emission
 maps are unchanged. `npm run assets:ktx2:building-surface` reproduces the shared map.
 
+Stage 6 compresses the ten unique, fully opaque facade images used by the published
+Base layout. Each generated `*-ktx2.glb` preserves the source model's node, mesh and
+material order, keeps the existing shared concrete fallback, and replaces only its
+unique facade image with a mipmapped maximum-quality ETC1S payload. Combined model
+transfer falls from 32,198,512 to 12,807,612 bytes, saving 19,390,900 bytes (about
+60%). Base uses the KTX2 copies only with its scene-owned KTX2 loader and falls back
+to the original GLB if loading or transcoding fails. No masked foliage or transparent
+artwork is included in this pass. `npm run assets:ktx2:building-facades` reproduces
+all ten variants.
+
 ## Scene work
 
 - Small authored props under 3.5 m retain full geometry within 27 m and use an opaque screen-door detail fade over 27–44 m, then skip their draws. This is a detail-to-culled LOD, not a low-poly replacement for buildings or trees. It preserves silhouette-bearing buildings, fences and containers, plus all close materials. Shader hooks/program keys are composed and material variants reused. No transparent crossfade duplicate is drawn. Frustum culling skips distant authored groups while nearby offscreen shadow casters stay available.
