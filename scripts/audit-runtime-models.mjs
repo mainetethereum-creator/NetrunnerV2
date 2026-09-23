@@ -10,7 +10,7 @@ import { ASSET_URLS, registeredAssetFiles } from '../src/assets/registry.ts';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const publicRoot = join(root, 'public');
-const output = resolve(root, process.argv[2] ?? 'output/performance/model-audit-2026-09-18.json');
+const output = resolve(root, process.argv[2] ?? 'output/performance/model-audit-2026-09-24.json');
 const registry = new Set(registeredAssetFiles());
 const components = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4, MAT2: 4, MAT3: 9, MAT4: 16 };
 const sizes = { 5120: 1, 5121: 1, 5122: 2, 5123: 2, 5125: 4, 5126: 4 };
@@ -18,7 +18,9 @@ const usage = new Map([
   [ASSET_URLS.heroModel, { category: 'base-and-expedition-active', routes: ['base', 'expedition'], mode: 'default animated player', evidence: ['components/base/scene.ts', 'components/expedition/scene.ts'], defaultSceneCopies: 1 }],
   [ASSET_URLS.elevatedRail, { category: 'base-active', routes: ['base'], mode: 'default scenery; prototypes repeated and deck subdivided in runtime', evidence: ['src/renderer/environment/elevated-rail.ts'], defaultSceneCopies: null }],
   [ASSET_URLS.sakuraPark, { category: 'base-active', routes: ['base'], mode: 'default Sakura park scenery', evidence: ['components/base/scene.ts', 'src/renderer/environment/sakura-park.ts'], defaultSceneCopies: 1 }],
-  [ASSET_URLS.canalKit, { category: 'base-active', routes: ['base'], mode: 'default canal scenery', evidence: ['components/base/scene.ts', 'src/renderer/environment/canal.ts'], defaultSceneCopies: 1 }],
+  [ASSET_URLS.canalKit, { category: 'base-fallback', routes: ['base'], mode: 'original canal kit loaded if the preferred KTX2 model fails', evidence: ['src/renderer/environment/canal.ts'], defaultSceneCopies: 0 }],
+  [ASSET_URLS.canalKitKtx2, { category: 'base-active-preferred', routes: ['base'], mode: 'preferred canal kit; mixed KTX2 with original foliage mask', evidence: ['src/renderer/environment/canal.ts'], defaultSceneCopies: 1 }],
+  [ASSET_URLS.sakuraParkKtx2, { category: 'disabled-variant', routes: [], mode: 'generated experiment; disabled after owner observed opaque canopy cards', evidence: ['src/renderer/environment/sakura-park.ts', 'docs/mobile-performance.md'], defaultSceneCopies: 0 }],
   [ASSET_URLS.eastDistrict, { category: 'base-active', routes: ['base'], mode: 'default east district and expedition transition scenery', evidence: ['components/base/scene.ts', 'src/renderer/environment/east-district.ts'], defaultSceneCopies: 1 }],
   [ASSET_URLS.railRuins, { category: 'base-active', routes: ['base'], mode: 'default ruined railway scenery', evidence: ['components/base/scene.ts', 'src/renderer/environment/rail-ruins.ts'], defaultSceneCopies: 1 }],
   [ASSET_URLS.implantsBuilding, { category: 'base-active', routes: ['base'], mode: 'loads by default, hidden/deleted by current owner map', evidence: ['components/base/scene.ts', 'src/renderer/environment/implants-building.ts'], defaultSceneCopies: 1 }],
@@ -90,6 +92,7 @@ function readUri(uri, directory) {
     return Buffer.from(uri.slice(comma + 1), uri.slice(0, comma).includes(';base64') ? 'base64' : 'utf8');
   }
   if (/^https?:/.test(uri)) throw new Error('Audit never downloads model dependencies');
+  if (uri.startsWith('/')) return readFileSync(join(publicRoot, uri.slice(1)));
   return readFileSync(resolve(directory, decodeURIComponent(uri)));
 }
 
@@ -190,6 +193,19 @@ function audit(path) {
 }
 
 const models = walk(publicRoot).map(audit).sort((a, b) => b.fileBytes - a.fileBytes);
+const referenceSourceUsage = new Map([...usage].filter(([url]) => Object.values(ASSET_URLS.referenceBuildings).includes(url)));
+for (const model of models) {
+  const sourceUrl = model.url.replace(/-shared\.glb$/, '.glb');
+  if (model.url.endsWith('-shared.glb') && referenceSourceUsage.has(sourceUrl)) {
+    const source = referenceSourceUsage.get(sourceUrl);
+    model.usage = { ...source, mode: `preferred exact-byte external-image variant; ${source.mode}`, evidence: [...source.evidence, 'scripts/externalize-building-images.mjs'] };
+  } else if (referenceSourceUsage.has(model.url)) {
+    model.usage = { category: 'reference-source-fallback', routes: ['base', 'expedition catalogue'], mode: 'original GLB fallback if shared variant or JPEG fails', evidence: ['src/renderer/three/reference-building-library.ts'], defaultSceneCopies: 0 };
+  }
+  if (model.url.endsWith('-ktx2.glb') && model.usage.category === 'reserve-unreferenced') {
+    model.usage = { category: 'disabled-variant', routes: [], mode: 'generated facade experiment disabled after visual parity failure', evidence: ['src/renderer/three/reference-building-library.ts', 'docs/mobile-performance.md'], defaultSceneCopies: 0 };
+  }
+}
 const hashes = new Map();
 for (const model of models) for (const image of model.images) {
   const entry = hashes.get(image.sha256) ?? { bytes: image.bytes, width: image.width, height: image.height, sha256: image.sha256, occurrences: [] };
@@ -208,13 +224,17 @@ const report = {
   limitations: [
     'Source scene draws exclude shadow/depth/reflection/postprocess passes and runtime clones, visibility, procedural scenery and particles.',
     'File bytes are uncompressed HTTP payload sizes, not downloaded bytes or GPU allocation.',
-    'RGBA8 + full mip estimates are per source image; runtime replacement/disposal, GPU texture compression, source reuse and color-space duplicates can change actual memory.',
+    'RGBA8 + full mip estimates are per source image, not a valid KTX2 GPU estimate; runtime replacement/disposal, GPU compression, source reuse and color-space duplicates can change actual memory.',
     'Runtime reference-aligned railway repeats/subdivides prototypes: full desktop assembly measured separately at 70,150 triangles / 32 draws; mobile 69,526 / 32. See current AI_HANDOFF.md; the rejected broad curve had different counts.',
     'Authored map placement counts are not inferred from old backups; this report does not read or change browser saves.',
   ],
   summary: {
     files: models.length, totalPublicBytes: models.reduce((sum, model) => sum + model.fileBytes, 0),
-    activeOrOnDemandBytes: models.filter(model => model.usage.category !== 'reserve-unreferenced').reduce((sum, model) => sum + model.fileBytes, 0),
+    activeOrOnDemandBytes: models.filter(model => !['reserve-unreferenced', 'disabled-variant', 'base-fallback', 'reference-source-fallback'].includes(model.usage.category)).reduce((sum, model) => sum + model.fileBytes, 0),
+    losslessVariantBytes: models.filter(model => model.url.endsWith('-shared.glb')).reduce((sum, model) => sum + model.fileBytes, 0),
+    fallbackBytes: models.filter(model => model.usage.category === 'base-fallback').reduce((sum, model) => sum + model.fileBytes, 0),
+    referenceSourceFallbackBytes: models.filter(model => model.usage.category === 'reference-source-fallback').reduce((sum, model) => sum + model.fileBytes, 0),
+    disabledVariantBytes: models.filter(model => model.usage.category === 'disabled-variant').reduce((sum, model) => sum + model.fileBytes, 0),
     reserveBytes: models.filter(model => model.usage.category === 'reserve-unreferenced').reduce((sum, model) => sum + model.fileBytes, 0),
   },
   models,
@@ -238,7 +258,7 @@ const report = {
     },
     {
       topic: 'Repeated surface payloads',
-      finding: 'Five active/on-demand GLBs embed the same 284,227-byte surface JPEG and 205,702-byte concrete JPEG. Loading all five repeats 1,959,716 bytes beyond one copy. Reference-building concrete is already replaced and its unused embedded texture disposed; it is incorrect to sum all embedded concrete maps as live GPU memory. Metal surfaces still remain in separate model material resources.',
+      finding: 'The 17 reference-building source GLBs embed the same 284,227-byte surface JPEG; 16 also embed the same 205,702-byte concrete JPEG. Loading all 17 transfers 7,633,162 bytes of redundant source image payloads beyond one copy each. Runtime shares a compressed surface after load and disposes unused concrete; those source payloads are transfer and decode overhead, not persistent GPU memory.',
       recommendation: 'A future external/shared surface texture resource could preserve all pixels and avoid redundant transfer and uploads. Keep independent model lifetimes correct; verify actual retained textures before claiming memory savings.',
     },
     {

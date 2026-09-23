@@ -156,6 +156,26 @@ test('GLB preparation coalesces requests and placements share resources without 
  assert.throws(()=>library.create(id),/disposed/);
 });
 
+test('static building parts keep authored transforms while cloned placement roots remain editable',async()=>{
+ const model=fixture();const part=model.scene.children[0],floor=new T.Group();
+ floor.position.set(2,3,-1);floor.rotation.y=.4;part.position.set(-.5,1,.8);
+ model.scene.remove(part);floor.add(part);model.scene.add(floor);
+ const library=createReferenceBuildingLibrary(4,async()=>model);
+ const id=REFERENCE_BUILDINGS[0].id;await library.prepare(id);
+ const placed=library.create(id),other=library.create(id);
+ assert.equal(placed.matrixAutoUpdate,true);
+ assert.equal(placed.children[0].matrixAutoUpdate,false);
+ assert.equal(placed.children[0].children[0].matrixAutoUpdate,false);
+ placed.position.set(8,0,4);placed.rotation.y=-.6;placed.updateMatrixWorld(true);
+ other.updateMatrixWorld(true);
+ const expected=model.scene.clone(true);expected.traverse(object=>object.matrixAutoUpdate=true);
+ expected.position.copy(placed.position);expected.rotation.copy(placed.rotation);expected.updateMatrixWorld(true);
+ const actualMesh=placed.children[0].children[0],expectedMesh=expected.children[0].children[0];
+ assert.ok(actualMesh.matrixWorld.equals(expectedMesh.matrixWorld));
+ assert.notDeepEqual(actualMesh.getWorldPosition(new T.Vector3()).toArray(),other.children[0].children[0].getWorldPosition(new T.Vector3()).toArray());
+ library.dispose();
+});
+
 test('late GLB completion after disposal releases resources and never creates a prototype',async()=>{
  let resolve;const model=fixture(),counts=[0,0,0];
  [model.geometry,model.material,model.texture].forEach((r,i)=>r.addEventListener('dispose',()=>counts[i]++));
@@ -166,9 +186,36 @@ test('late GLB completion after disposal releases resources and never creates a 
 });
 
 test('failed model preparation can be retried',async()=>{
- let calls=0;const library=createReferenceBuildingLibrary(4,()=>++calls===1?Promise.reject(new Error('offline')):Promise.resolve(fixture()));
+ let calls=0;const library=createReferenceBuildingLibrary(4,()=>++calls<=2?Promise.reject(new Error('offline')):Promise.resolve(fixture()));
  await assert.rejects(library.prepare(REFERENCE_BUILDINGS[0].id),/offline/);
- await library.prepare(REFERENCE_BUILDINGS[0].id);assert.equal(calls,2);library.dispose();
+ await library.prepare(REFERENCE_BUILDINGS[0].id);assert.equal(calls,3);library.dispose();
+});
+
+test('shared-image variant loads first and source GLB remains the failure fallback',async()=>{
+ const asset=REFERENCE_BUILDINGS[0],urls=[];
+ const library=createReferenceBuildingLibrary(4,url=>{
+  urls.push(url);
+  return url.includes('-shared.glb')?Promise.reject(new Error('shared image offline')):Promise.resolve(fixture());
+ });
+ await library.prepare(asset.id);
+ assert.deepEqual(urls,[`${ASSET_URLS.referenceBuildingShared(asset.url)}?v=20260924-3`,`${asset.url}?v=20260919-outskirts-3`]);
+ library.dispose();
+});
+
+test('shared variant with a silently missing texture falls back to source',async()=>{
+ const asset=REFERENCE_BUILDINGS[0],bad=fixture(),good=fixture(),urls=[];
+ bad.material.name='SharedMetal';bad.material.map=null;
+ const parsed={...bad,parser:{json:{
+  images:[{uri:'../../textures/building-shared-v1/surface-e3b7c430.jpg'}],
+  textures:[{source:0}],materials:[{name:'SharedMetal',pbrMetallicRoughness:{baseColorTexture:{index:0}}}],
+ }}};
+ let disposed=0;bad.geometry.addEventListener('dispose',()=>disposed++);
+ const library=createReferenceBuildingLibrary(4,async url=>{urls.push(url);return urls.length===1?parsed:good;});
+ await library.prepare(asset.id);
+ assert.equal(disposed,1,'invalid parsed model resources released');
+ assert.equal(urls.length,2,'source requested after silent missing image');
+ assert.equal(library.create(asset.id).children[0].material,good.material);
+ library.dispose();
 });
 
 test('garden signs are opt-in and late shared sign loads dispose exactly once',async()=>{

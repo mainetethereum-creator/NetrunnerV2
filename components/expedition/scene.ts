@@ -1,4 +1,5 @@
 import type {EditorState} from './prop-editor';
+import type {CinemaHook} from '../cinema/capture-types';
 import {createLazyEditor} from '../world-editor/lazy-editor';
 import * as T from 'three';
 import { createGltfLoader } from '../../src/renderer/three/gltf-loader';
@@ -16,13 +17,14 @@ import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { createHeroAnimator, loadHero, type HeroAnimator } from '../../src/renderer/animations/hero/hero.ts';
 import { CombatDriver } from '../game/combat-driver';
 import { buildEnvironment } from './environment';
+import { createExpeditionHorizon } from './horizon';
 import { findRoute, move, makeWorld, DEFAULT_VEGETATION_TREES, type Point } from './world';
 import { ExpeditionSession } from './session';
 import { POIS, EXTRACTIONS, EXPEDITION_ENEMIES_ENABLED, RULES, sectorAt } from './config';
 import {adaptMobileBudget,initialMobileBudget,mobileRenderRatio,usesTouchProfile} from './mobile-performance';
 
 export type Snapshot=Point & {room:string;fps:number;draws:number;near:string|null;ready:boolean;hp:number;bag:ExpeditionSession['bag'];status:ExpeditionSession['status'];message:string;discovered:string[];activeNPC:number;chunks:number;extraction:number;kills:number;performance:{ratio:number;scale:number;target:number;frameMs:number;triangles:number;textures:number;geometries:number;detailCulled:number}};
-export function createExpedition(host:HTMLElement,onState:(s:Snapshot)=>void,onError:(s:string)=>void,onEditor:(s:EditorState)=>void=()=>{},onTreeEditor:(s:EditorState)=>void=()=>{}) {
+export function createExpedition(host:HTMLElement,onState:(s:Snapshot)=>void,onError:(s:string)=>void,onEditor:(s:EditorState)=>void=()=>{},onTreeEditor:(s:EditorState)=>void=()=>{},onCinema?:CinemaHook) {
   const session=new ExpeditionSession(Math.random,EXPEDITION_ENEMIES_ENABLED); let debug=false,autoFire=false,landscapeMode=false,treeMode=false,masterActive=false;
   const world=makeWorld(),elevationAt=world.elevationAt,scene=new T.Scene();scene.background=new T.Color('#111b2b');scene.fog=new T.FogExp2('#192738',.014);
   scene.matrixAutoUpdate=false;
@@ -34,13 +36,16 @@ export function createExpedition(host:HTMLElement,onState:(s:Snapshot)=>void,onE
   renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.VSMShadowMap;renderer.shadowMap.autoUpdate=false;
   renderer.info.autoReset=false;
   renderer.domElement.tabIndex=0;renderer.domElement.setAttribute('aria-label','Expedition. Click to move, WASD to walk, Space to fire, E to interact.');host.appendChild(renderer.domElement);
-  const camera=new T.PerspectiveCamera(38,1,.15,130);
+  const camera=new T.PerspectiveCamera(38,1,.15,500);
   const composer=mobile?undefined:new EffectComposer(renderer,new T.WebGLRenderTarget(1,1,{type:T.HalfFloatType,samples:Math.min(4,renderer.capabilities.maxSamples)}));
   composer?.addPass(new RenderPass(scene,camera));
   const bloom=mobile?undefined:new UnrealBloomPass(new T.Vector2(800,600),.24,.6,1.1);if(bloom)composer?.addPass(bloom);
   const output=mobile?undefined:new OutputPass();if(output)composer?.addPass(output);
   const anisotropy=Math.min(mobile?4:8,renderer.capabilities.getMaxAnisotropy());
   const env=buildEnvironment(scene,world,1,anisotropy);
+  const horizon=createExpeditionHorizon(scene,world.terrainHeight,onError);
+  let horizonReady=false;
+  void horizon.ready.then(()=>{horizonReady=true;});
   // The normal gameplay path never creates the authoring library, drafts, ghosts or outline.
   const editor=createLazyEditor(()=>import('./prop-editor').then(({createPropEditor})=>()=>createPropEditor(scene,onEditor,renderer.capabilities.getMaxAnisotropy(),elevationAt,pads=>{world.landscape.setEditorPads(pads);env.landscape.studio.refreshPads();},colliders=>world.setEditorColliders(colliders),env.editable,colliders=>world.setAuthoredColliders(colliders),(x,z)=>cameraRig.nudge(x,z),(x,z)=>cameraRig.moveTo(x,z))),()=>onError('Не удалось загрузить MASTER. Повторите попытку.'),value=>env.landscape.studio.setActive(value&&landscapeMode));
   const treeEditor=createLazyEditor(()=>import('./tree-editor').then(({prepareTreeEditor})=>prepareTreeEditor(scene,onTreeEditor,DEFAULT_VEGETATION_TREES,elevationAt,world.canStand,trees=>env.vegetation.replaceTrees(trees),colliders=>world.setTreeColliders(colliders),(x,z)=>cameraRig.nudge(x,z),(x,z)=>cameraRig.moveTo(x,z))),()=>onError('Не удалось загрузить редактор деревьев.'),value=>env.vegetation.setEditorActive(value));
@@ -146,5 +151,36 @@ export function createExpedition(host:HTMLElement,onState:(s:Snapshot)=>void,onE
     render:renderFrame,
   });
   loop.start();
-  return {editor,treeEditor,landscape:env.landscape.studio,setLandscapeMode(value:boolean){landscapeMode=value;treeMode=false;treeEditor.setActive(false);editor.cancel();env.landscape.studio.setActive(value&&editor.active);},setTreeMode(value:boolean){treeMode=value;landscapeMode=false;env.landscape.studio.setActive(false);editor.cancel();treeEditor.setActive(value&&masterActive);},setMaster(value:boolean){masterActive=value;reset();editor.setActive(value);treeEditor.setActive(value&&treeMode)},setAutoFire(value:boolean){autoFire=value;},interact(){session.interact(player.position);},attack(){fire();},setDebug(value:boolean){debug=value;},teleport(p:Point){if(world.canStand(p)){player.position.set(p.x,.09,p.z);reset();}},setStick(x:number,z:number){if(modalOpen||editor.active||session.status!=='active'){input.clearStick();return;}input.setStick(x,z);},dispose(){disposed=true;frameCamera.dispose();loop.dispose();observer.disconnect();window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',reset);window.removeEventListener('netrunner:input-reset',reset);modalObserver.disconnect();renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointerup',up);renderer.domElement.removeEventListener('webglcontextlost',lost);renderer.domElement.removeEventListener('pointermove',hover);renderer.domElement.removeEventListener('wheel',wheel);editor.dispose();treeEditor.dispose();combat.dispose();env.dispose();heroAnimator?.mixer.stopAllAction();disposeObjectTree(scene);env.surfaces.dispose();environment.dispose();draco.dispose();bloom?.dispose();output?.dispose();composer?.dispose();renderer.dispose();renderer.domElement.remove();}};
+  if (process.env.CYBERBASE_DEV_TOOLS === '1' && onCinema) onCinema({
+    scene,
+    ready: () => ready && horizonReady,
+    prepare(width, height) {
+      loop.stop(); observer.disconnect(); reset();
+      renderer.setPixelRatio(1); composer?.setPixelRatio(1);
+      renderer.setSize(width, height, false); composer?.setSize(width, height);
+      camera.aspect = width / height; renderer.toneMappingExposure = 1.12;
+      keyLight.intensity = 2.6;
+      if (scene.fog instanceof T.FogExp2) scene.fog.density = .024;
+      player.visible = false; destination.visible = false; beam.visible = false;
+      enemyPool.forEach(enemy => { enemy.visible = false; });
+    },
+    frame(pose, seconds, dt) {
+      camera.position.fromArray(pose.position); camera.fov = pose.fov;
+      camera.updateProjectionMatrix(); camera.lookAt(...pose.target); camera.updateMatrixWorld();
+      const focus = new T.Vector3(...pose.target);
+      env.landscape.studio.update(seconds, focus, camera.position);
+      env.stream(focus, false, false, camera); env.update(seconds);
+      // Environment labels are interaction markers, excluded from location footage.
+      scene.traverse(object => { if (object instanceof T.Sprite) object.visible = false; });
+      selected.length = 0;
+      selected.push(...env.lightSources.filter(source => source.p.distanceToSquared(focus) < 42 * 42)
+        .sort((a, b) => a.p.distanceToSquared(focus) - b.p.distanceToSquared(focus)).slice(0, lights.length));
+      lights.forEach((light, i) => { const source = selected[i]; light.intensity = source?.power ?? 0; if (source) { light.position.copy(source.p); light.color.copy(source.color); } });
+      keyLight.position.set(focus.x - 16, 32, focus.z + 12); keyLight.target.position.copy(focus);
+      renderer.shadowMap.needsUpdate = true;
+      if (composer) composer.render(dt); else renderer.render(scene, camera);
+      return renderer.domElement;
+    },
+  });
+  return {editor,treeEditor,landscape:env.landscape.studio,setLandscapeMode(value:boolean){landscapeMode=value;treeMode=false;treeEditor.setActive(false);editor.cancel();env.landscape.studio.setActive(value&&editor.active);},setTreeMode(value:boolean){treeMode=value;landscapeMode=false;env.landscape.studio.setActive(false);editor.cancel();treeEditor.setActive(value&&masterActive);},setMaster(value:boolean){masterActive=value;reset();editor.setActive(value);treeEditor.setActive(value&&treeMode)},setAutoFire(value:boolean){autoFire=value;},interact(){session.interact(player.position);},attack(){fire();},setDebug(value:boolean){debug=value;},teleport(p:Point){if(world.canStand(p)){player.position.set(p.x,.09,p.z);reset();}},setStick(x:number,z:number){if(modalOpen||editor.active||session.status!=='active'){input.clearStick();return;}input.setStick(x,z);},dispose(){disposed=true;frameCamera.dispose();loop.dispose();observer.disconnect();window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',reset);window.removeEventListener('netrunner:input-reset',reset);modalObserver.disconnect();renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointerup',up);renderer.domElement.removeEventListener('webglcontextlost',lost);renderer.domElement.removeEventListener('pointermove',hover);renderer.domElement.removeEventListener('wheel',wheel);editor.dispose();treeEditor.dispose();combat.dispose();horizon.dispose();env.dispose();heroAnimator?.mixer.stopAllAction();disposeObjectTree(scene);env.surfaces.dispose();environment.dispose();draco.dispose();bloom?.dispose();output?.dispose();composer?.dispose();renderer.dispose();renderer.domElement.remove();}};
 }

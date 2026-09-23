@@ -153,7 +153,7 @@ export function createElevatedRail(
         geometries.add(geometry);
         const mesh = new T.Mesh(geometry, material);
         mesh.name = `${prototype.name} / ${object.name}`;
-        mesh.castShadow = !mobile;
+        mesh.castShadow = !mobile && parent !== train;
         mesh.receiveShadow = true;
         mesh.matrixAutoUpdate = false;
         parent.add(mesh);
@@ -163,7 +163,7 @@ export function createElevatedRail(
       const mesh = new T.InstancedMesh(geometry, material, placements.length);
       instances.add(mesh);
       mesh.name = `${prototype.name} / ${object.name}`;
-      mesh.castShadow = !mobile;
+      mesh.castShadow = !mobile && parent !== train;
       mesh.receiveShadow = true;
       mesh.matrixAutoUpdate = false;
       for (let index = 0; index < placements.length; index++) {
@@ -248,6 +248,7 @@ export function createElevatedRail(
     root,
     ready,
     /** Returns true when shadows may need updating. The scene may throttle it. */
+    seek(seconds: number) { elapsed = Math.max(0, seconds) % ELEVATED_RAIL_PERIOD; },
     update(dt: number, reducedMotion: boolean): boolean {
       if (disposed || !loaded) return false;
       if (!reducedMotion && Number.isFinite(dt) && dt > 0) {

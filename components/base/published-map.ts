@@ -2,11 +2,29 @@ import * as T from 'three';
 import { createEditableRender, type EditableRenderLabel } from './editable-render.ts';
 import { bindBaseColliderEdit } from './editor-colliders.ts';
 import { bindMetroOpening, type MetroOpening } from '../../src/renderer/environment/metro-opening.ts';
-import { createReferenceBuildingLibrary } from '../../src/renderer/three/reference-building-library.ts';
-import { REFERENCE_BUILDINGS } from '../../src/assets/reference-buildings.ts';
+import { createReferenceBuildingLibrary, type ReferenceBuildingLibrary } from '../../src/renderer/three/reference-building-library.ts';
+import { REFERENCE_BUILDINGS, type ReferenceBuildingId } from '../../src/assets/reference-buildings.ts';
 import { createBuildingLibrary, BUILDING_PROPS } from '../expedition/building-props.ts';
 import { BASE_PUBLISHED_LAYOUT } from '../../src/assets/base-published-layout.ts';
 import type { Entry } from '../world-editor/document.ts';
+
+/** Finish active loads before reporting an error, so failed setup has no late placement work. */
+export async function preparePublishedReferences(ids: readonly ReferenceBuildingId[],
+  references: Pick<ReferenceBuildingLibrary, 'prepare'>, concurrency: 1 | 2,
+  isDisposed: () => boolean) {
+  const unique = [...new Set(ids)];
+  let next = 0;
+  let failure: { reason: unknown } | undefined;
+  const workers = Array.from({ length: Math.min(concurrency, unique.length) }, async () => {
+    while (!isDisposed() && !failure && next < unique.length) {
+      const id = unique[next++];
+      try { await references.prepare(id); }
+      catch (reason) { failure = { reason }; }
+    }
+  });
+  await Promise.all(workers);
+  if (failure) throw failure.reason;
+}
 
 /** Immutable release scenery. No editor controller, catalogue UI or browser storage. */
 export function createPublishedMap(options: {
@@ -22,10 +40,12 @@ export function createPublishedMap(options: {
   onAssetsChanged: () => void;
   loadReference?: (url: string) => Promise<{ scene: T.Group }>;
   loadBuildingSurface?: () => Promise<T.Texture>;
+  referenceLibrary?: ReferenceBuildingLibrary;
+  referenceLoadConcurrency?: 1 | 2;
 }) {
   const render = createEditableRender(options.scene, options.sources, options.rendered, options.labels, options.instanceLabels);
   render.setActive(true);
-  const references = createReferenceBuildingLibrary(4,options.loadReference,undefined,undefined,true,options.loadBuildingSurface);
+  const references = options.referenceLibrary ?? createReferenceBuildingLibrary(4,options.loadReference,undefined,undefined,true,options.loadBuildingSurface);
   const buildings = createBuildingLibrary(4, options.onAssetsChanged);
   const placements: T.Object3D[] = [];
   let disposed = false;
@@ -51,7 +71,14 @@ export function createPublishedMap(options: {
   }
   const ready = (async () => {
     const rects: { x: number; z: number; w: number; d: number }[] = [];
-    // Sequential preparation limits peak decode/geometry work on phones.
+    // Fetch/decode distinct reference assets with a small fixed concurrency.
+    // Placement remains in saved order, so collision and render ordering do not
+    // depend on which GLB happens to finish first.
+    const referenceIds = BASE_PUBLISHED_LAYOUT.entries
+      .filter(entry => !entry.deleted && REFERENCE_BUILDINGS.some(asset => asset.id === entry.source))
+      .map(entry => entry.source) as ReferenceBuildingId[];
+    await preparePublishedReferences(referenceIds, references, options.referenceLoadConcurrency === 1 ? 1 : 2, () => disposed);
+    if (disposed) return;
     for (const entry of BASE_PUBLISHED_LAYOUT.entries) {
       if (disposed) return;
       const original = authored.get(entry.id);
@@ -65,8 +92,6 @@ export function createPublishedMap(options: {
       const building = BUILDING_PROPS.find(asset => asset.id === entry.source);
       let object: T.Object3D;
       if (reference) {
-        await references.prepare(reference.id);
-        if (disposed) return;
         object = references.create(reference.id);
       } else if (building) object = buildings.create(building.id);
       else throw new Error(`Unknown published Base object: ${entry.id} (${entry.source})`);
@@ -89,7 +114,7 @@ export function createPublishedMap(options: {
     disposed = true;
     placements.forEach(object => object.removeFromParent());
     render.dispose();
-    references.dispose();
+    if (!options.referenceLibrary) references.dispose();
     buildings.dispose();
   } };
 }

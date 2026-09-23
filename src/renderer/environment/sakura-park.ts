@@ -6,12 +6,17 @@ import { roadGlowTexture } from './city-street-geometry.ts';
 import { deliveryPose, parkWalkwayContains, PARK_ROCKS, PARK_BENCHES, PARK_LANTERNS, PARK_STALLS, PARK_STONE_LANTERNS, SAKURA_PARK, SAKURA_TREES } from './sakura-park-layout.ts';
 import { createParkPathMask, gardenGroundMaterial, lanternReflectionMaterial } from './park-ground.ts';
 import { EAST_BEDS, EAST_TREES, EAST_LANTERNS, EAST_BENCHES, eastGroundHeight } from './east-district-layout.ts';
+import { partitionSpatialInstances } from './spatial-instances.ts';
 
 type Placement = readonly [x: number, z: number, yaw?: number, scale?: number, y?: number, heightScale?: number, depthScale?:number];
+const SPATIAL_CELL_SIZE = 16;
+const DENSE_FOLIAGE = new Set(['ForestGrass', 'FernCluster', 'GardenShrub']);
 /** One Blender kit; repeated objects share mesh buffers, textures and instanced draws.
  * Animation uses the scene's clock. No timers, secondary render loop or shadow lights. */
-export function createSakuraPark(parent: T.Scene, loader: GLTFLoader, mobile: boolean, onError: (message: string) => void) {
+export function createSakuraPark(parent: T.Scene, loader: GLTFLoader, mobile: boolean, onError: (message: string) => void, spatialBatches = false) {
   const root = new T.Group(); root.name = 'Sakura garden'; parent.add(root);
+  const spatialStats = { enabled: spatialBatches, cellSize: SPATIAL_CELL_SIZE, sourceMeshes: 0, batchedMeshes: 0, instances: 0, cells: 0 };
+  root.userData.spatialBatches = spatialStats;
   let disposed = false, time = 0, deliveryTime = 0;
   const matrix = new T.Matrix4(), dummy = new T.Object3D();
   const moving: { mesh: T.InstancedMesh; local: T.Matrix4 }[] = [];
@@ -81,15 +86,27 @@ export function createSakuraPark(parent: T.Scene, loader: GLTFLoader, mobile: bo
           }
           material=foliageMaterials.get(name)!;
         }
-        const mesh = new T.InstancedMesh(o.geometry,material,placements.length);
-        mesh.name = `Park / ${o.name}`; mesh.castShadow = !animated; mesh.receiveShadow = true;
-        for (let i=0;i<placements.length;i++) {
-          const [x,z,yaw=0,scale=1,y=.095,heightScale=scale,depthScale=scale] = placements[i];
-          dummy.position.set(x,y,z); dummy.rotation.set(0,yaw,0); dummy.scale.set(scale,heightScale,depthScale); dummy.updateMatrix();
-          mesh.setMatrixAt(i,matrix.multiplyMatrices(dummy.matrix,local));
+        const spatial = spatialBatches && !animated && placements.length >= 32 && DENSE_FOLIAGE.has(name);
+        const cells = spatial ? partitionSpatialInstances(placements, SPATIAL_CELL_SIZE) : [];
+        const sourceGeometry = o.geometry;
+        const sourceName = o.name;
+        if (spatial) { spatialStats.sourceMeshes++; spatialStats.cells += cells.length; }
+        function addBatch(indices?: readonly number[], suffix = '') {
+          const mesh = new T.InstancedMesh(sourceGeometry,material,indices?.length ?? placements.length);
+          mesh.name = `Park / ${sourceName}${suffix}`; mesh.castShadow = !animated; mesh.receiveShadow = true;
+          for (let i=0;i<mesh.count;i++) {
+            const [x,z,yaw=0,scale=1,y=.095,heightScale=scale,depthScale=scale] = placements[indices?.[i] ?? i];
+            dummy.position.set(x,y,z); dummy.rotation.set(0,yaw,0); dummy.scale.set(scale,heightScale,depthScale); dummy.updateMatrix();
+            mesh.setMatrixAt(i,matrix.multiplyMatrices(dummy.matrix,local));
+          }
+          // Three computes this from the real source geometry and every full
+          // instance matrix, including meshes extending beyond their cell.
+          mesh.computeBoundingSphere(); root.add(mesh);
+          if (spatial) { spatialStats.batchedMeshes++; spatialStats.instances += mesh.count; }
+          if (animated) { mesh.instanceMatrix.setUsage(T.DynamicDrawUsage); mesh.frustumCulled=false; moving.push({mesh,local}); }
         }
-        mesh.computeBoundingSphere(); root.add(mesh);
-        if (animated) { mesh.instanceMatrix.setUsage(T.DynamicDrawUsage); mesh.frustumCulled=false; moving.push({mesh,local}); }
+        if (spatial) for (const cell of cells) addBatch(cell.indices,` / cell ${cell.xCell},${cell.zCell}`);
+        else addBatch();
       });
     }
     const pathMask=createParkPathMask();owned.add(new T.Mesh(glowGeometry,new T.MeshBasicMaterial({map:pathMask})));

@@ -5,6 +5,17 @@ Layer tags: **[R]** React UI · **[3]** Three.js · **[P]** pure logic (no three
 
 ## Root
 
+Desktop graphics/loading audit: `docs/graphics-performance-audit-2026-09-24.md`.
+`src/renderer/three/frame-probe.ts` [3/S] is the development-only frame/GPU/network
+probe. `scene-warmup.ts` [P] defers GPU disposal while async shader compilation is
+pending. `facade-ticker.ts` [3/S] scrolls static captions with shader uniforms;
+`src/renderer/environment/ambient-rain.ts` [3] moves streaks on the GPU.
+`spatial-instances.ts` [P] and `three/local-light-cost.ts` [3] support opt-in
+profiling experiments, disabled by default. Shared-image model generation:
+`scripts/externalize-building-images.mjs`; Base reference library owns resources
+borrowed by media tower/published map/editor. `published-map.ts` prepares unique
+reference models with bounded concurrency before deterministic placement.
+
 Canal / future forest boundary: `src/renderer/environment/canal-layout.ts` [P]
 owns placements/closed-crossing solids; `canal.ts` [3] loads/instances the Blender
 kit and `canal-water.ts` [3] safely shares the courtyard reflection. Base

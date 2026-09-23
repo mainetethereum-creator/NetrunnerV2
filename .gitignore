@@ -10,3 +10,4 @@ tsconfig.tsbuildinfo
 .cache/
 __pycache__/
 *.py[cod]
+output/trailer/

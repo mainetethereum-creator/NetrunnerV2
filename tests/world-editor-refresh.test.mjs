@@ -23,6 +23,25 @@ const {createWorldEditor}=await import('../components/world-editor/controller.ts
 const {createBaseMapEditor}=await import('../components/base/base-map-editor.ts');
 const {createPropLibrary}=await import('../components/expedition/prop-assets.ts');
 
+test('Base editor borrows injected reference assets through its prop catalogue',async()=>{
+ const originalStorage=globalThis.localStorage;
+ globalThis.localStorage={getItem:()=>null,setItem(){}};
+ const geometry=new T.BoxGeometry(2,2,2),material=new T.MeshStandardMaterial();
+ const calls={prepare:0,create:0,dispose:0};
+ const references={async prepare(){calls.prepare++;},isReady(){return calls.prepare>0;},create(){calls.create++;return new T.Group().add(new T.Mesh(geometry,material));},dispose(){calls.dispose++;}};
+ const editor=createWorldEditor(new T.Scene(),()=>{},{map:'base',anisotropy:1,height:()=>0,referenceLibrary:references});
+ try{
+  await editor.importJSON(JSON.stringify({version:1,map:'base',entries:[{id:'prop:shared',source:'building-corner-chamfer',x:3,y:0,z:4,rx:0,rotation:0,rz:0,sx:1,sy:1,sz:1}]}));
+  drain();
+  assert.equal(calls.prepare,1);assert.ok(calls.create>0);
+ }finally{
+  editor.dispose();
+  assert.equal(calls.dispose,0);
+  references.dispose();geometry.dispose();material.dispose();
+  if(originalStorage===undefined)delete globalThis.localStorage;else globalThis.localStorage=originalStorage;
+ }
+});
+
 test('burning drums reuse city fire geometry and dispose every shared buffer once',()=>{
  const library=createPropLibrary(1),a=library.create('burning-drum'),b=library.create('burning-drum');
  assert.ok(a.getObjectByProperty('isPointLight',true));
@@ -214,13 +233,21 @@ test('an explicit reset supersedes initial restoration before its model arrives'
 
 test('failed restoration rejects ready and protects storage until a successful retry',async()=>{
  const originalLoad=GLTFLoader.prototype.loadAsync,originalStorage=globalThis.localStorage;
- const saved=savedBuildingDocument(),text=JSON.stringify(saved);let stored=text,rejectModel,writes=0;
- GLTFLoader.prototype.loadAsync=()=>new Promise((_resolve,reject)=>rejectModel=reject);
+ const saved=savedBuildingDocument(),text=JSON.stringify(saved);let stored=text,writes=0;
+ const rejectLoads=[];
+ GLTFLoader.prototype.loadAsync=()=>new Promise((_resolve,reject)=>rejectLoads.push(reject));
  globalThis.localStorage={getItem:()=>stored,setItem:(_key,value)=>{stored=value;writes++;}};
  const editor=createWorldEditor(new T.Scene(),()=>{},{map:'base',anisotropy:1,height:()=>0});
  try{
   const rejected=assert.rejects(editor.ready,/offline/);
-  rejectModel(new Error('offline'));await rejected;
+  // The shared-image request falls back to the source GLB. Both must fail to
+  // exercise the editor's failed-restoration save guard.
+  assert.equal(rejectLoads.length,1);
+  rejectLoads.shift()(new Error('offline'));
+  await new Promise(setImmediate);
+  assert.equal(rejectLoads.length,1,'source fallback requested after shared-image failure');
+  rejectLoads.shift()(new Error('offline'));
+  await rejected;
   assert.equal(editor.getSnapshot().loading,false);assert.equal(editor.getSnapshot().canSave,false);
   editor.setActive(false);editor.select(null);editor.cancel();editor.save();
   assert.equal(writes,0,'closing or selection cannot remove a failed-restore save guard');

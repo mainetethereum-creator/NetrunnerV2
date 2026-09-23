@@ -16,9 +16,26 @@ export function createWetFloor(mobile: boolean, opening?: MetroOpening) {
   extension.translate((EAST_DISTRICT.east+FLOOR_EAST)/2,-(EAST_DISTRICT.south+EAST_DISTRICT.north)/2,0);
   const geometry=mergeGeometries([courtyard,extension]);courtyard.dispose();extension.dispose();
   const floor = new Reflector(geometry, {
-    color: 0x88969b, textureWidth: mobile ? 384 : 768, textureHeight: mobile ? 384 : 768,
+    // The floor covers a large area, but the rain-wet reflection is soft and
+    // low contrast. A half-size desktop capture is visually close while greatly
+    // reducing the extra scene render's fill cost.
+    color: 0x88969b, textureWidth: mobile ? 384 : 512, textureHeight: mobile ? 384 : 512,
     clipBias: 0.001, multisample: 0,
   });
+  // Reflector renders the visible scene into a second target from its reflected
+  // camera in onBeforeRender. Refresh it at 25 Hz for gameplay; the main scene
+  // still renders every frame and samples the last completed reflection.
+  // Cinematic capture opts out below so offline frame sequences stay exact.
+  const renderReflection = floor.onBeforeRender.bind(floor);
+  let lastReflectionAt = Number.NEGATIVE_INFINITY;
+  floor.userData.reflectionIntervalMs = mobile ? 0 : 40;
+  floor.userData.forceReflectionUpdate = false;
+  floor.onBeforeRender = (renderer, scene, camera, renderGeometry, renderMaterial, group) => {
+    const now = performance.now();
+    if (!floor.userData.forceReflectionUpdate && now - lastReflectionAt < floor.userData.reflectionIntervalMs) return;
+    renderReflection(renderer, scene, camera, renderGeometry, renderMaterial, group);
+    lastReflectionAt = now;
+  };
   floor.rotation.x = -Math.PI / 2; floor.position.y = 0.092;
   const mat = floor.material as T.ShaderMaterial;
   mat.transparent = true; mat.depthWrite = false;

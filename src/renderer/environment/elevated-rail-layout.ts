@@ -7,8 +7,10 @@ const EXIT_ANGLE = 35 * Math.PI / 180;
 export const RAIL_BEND = {
   radius: 32,
   angle: EXIT_ANGLE,
-  start: 28,
-  end: 28 + 32 * EXIT_ANGLE,
+  // Delay the bend by 8 m so the full-width deck and coaches clear the east
+  // portrait tower, including its rear facade at z=-24.04.
+  start: 36,
+  end: 36 + 32 * EXIT_ANGLE,
 } as const;
 export const EAST_RAIL_BEND = { start: 60, radius: 32, end: 60 + 32 * (Math.PI / 2 - EXIT_ANGLE) } as const;
 export const RAIL_FORK = { start: 60, end: 84, brokenEnd: 80, abandonedPiers: [78, 96, 114, 132] } as const;

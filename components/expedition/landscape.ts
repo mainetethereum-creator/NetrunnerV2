@@ -44,8 +44,8 @@ export function buildLandscape(scene:T.Scene,metal:T.Material,concrete:T.Materia
   // Broken embankments hide the rectangular engine bounds behind a natural skyline.
   for(let x=-10;x<156;x+=3.2)for(const side of [-1,1]){const z=side<0?northEdge(x)-2.5:southEdge(x)+2.5;pieces.push({x,y:terrainHeight({x,z})+.45,z,w:2+(x%3+3)*.3,h:1.1+Math.abs(Math.sin(x))*1.4,d:2.8,turn:x*.7});}
   const stones=new T.InstancedMesh(rock,groundMaterial(false),pieces.length),dummy=new T.Object3D();pieces.forEach((p,i)=>{dummy.position.set(p.x,p.y,p.z);dummy.scale.set(p.w,p.h,p.d);dummy.rotation.set(.12,p.turn,.1);dummy.updateMatrix();stones.setMatrixAt(i,dummy.matrix);});stones.castShadow=true;stones.receiveShadow=true;stones.computeBoundingSphere();scene.add(stones);
-  // Distant low-cost buildings are a backdrop, not explorable interiors.
-  const silhouettes=new T.InstancedMesh(box,dark,36);for(let i=0;i<36;i++){const x=(i%18)*10-10,z=i<18?-14:87,h=5+(i*7%9);dummy.position.set(x,terrainHeight({x,z})+h/2,z);dummy.scale.set(6+i%3,h,6);dummy.rotation.set(0,(i%3-1)*.07,0);dummy.updateMatrix();silhouettes.setMatrixAt(i,dummy.matrix);}silhouettes.computeBoundingSphere();scene.add(silhouettes);
+  // The distant ruined settlement is supplied by the horizon panorama. The old
+  // blank box silhouettes obscured it and read as unfinished map geometry.
   // A single hero ruin gives the outskirts a readable landmark. It is built
   // from shared box geometry so it adds visual weight without a new asset.
   const archParts:T.BufferGeometry[]=[];

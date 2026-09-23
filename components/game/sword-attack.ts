@@ -550,10 +550,31 @@ function mountTwoHandedSword(
   };
   setMount(DEFAULT_TWO_HANDED_SWORD_MOUNT);
 
+  const setBackMount = () => {
+    const spine = rigObject(targetRoot, "Spine2") ?? rigObject(targetRoot, "Spine1") ?? rigObject(targetRoot, "Spine");
+    const hips = rigObject(targetRoot, "Hips"), head = rigObject(targetRoot, "Head");
+    const right = rigObject(targetRoot, "RightArm"), left = rigObject(targetRoot, "LeftArm");
+    if (!spine || !hips || !head || !right || !left) return;
+    targetRoot.updateMatrixWorld(true);
+    const up = head.getWorldPosition(new THREE.Vector3()).sub(hips.getWorldPosition(new THREE.Vector3())).normalize();
+    const across = right.getWorldPosition(new THREE.Vector3()).sub(left.getWorldPosition(new THREE.Vector3())).normalize();
+    across.addScaledVector(up, -across.dot(up)).normalize();
+    const back = new THREE.Vector3().crossVectors(across, up).normalize();
+    const position = head.getWorldPosition(new THREE.Vector3()).addScaledVector(up, -.18).addScaledVector(back, .23).addScaledVector(across, .18);
+    const orientation = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(across, up, back));
+    orientation.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), THREE.MathUtils.degToRad(155)));
+    spine.add(group);
+    group.position.copy(spine.worldToLocal(position));
+    group.quaternion.copy(spine.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(orientation));
+    const scale = spine.getWorldScale(new THREE.Vector3());
+    group.scale.set(1 / scale.x, 1 / scale.y, 1 / scale.z);
+  };
+
   return {
     group,
     setVisible(v: boolean) { group.visible = v; },
     setMount,
+    setBackMount,
     update() { /* the hand bone supplies the complete weapon transform */ },
     dispose() {
       group.parent?.remove(group);

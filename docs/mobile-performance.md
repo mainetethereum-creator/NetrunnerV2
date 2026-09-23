@@ -1,5 +1,22 @@
 # Expedition mobile rendering and controls
 
+## High-quality Base rendering (2026-09-24)
+
+Base desktop High previously refreshed its planar wet-floor reflection on every
+visible frame. That callback renders the scene again from the reflected camera.
+The desktop reflection target is now 512 × 512 (previously 768 × 768) and refreshes
+no faster than 25 Hz. The main scene, lighting, bloom, rain, and reflection material
+remain active. Cinematic frame capture forces a fresh reflection for each frame.
+The High bloom compositor now uses 2× MSAA instead of 4×. These savings apply
+while High is active; Auto's existing fallback policy is unchanged. Actual GPU/FPS
+impact still needs a foreground comparison on game hardware.
+
+The 2048 VSM atlas now contains static environment shadows only. The moving hero
+uses a soft contact shadow on desktop and mobile, and the moving train no longer
+casts into the atlas. Walking and train motion therefore do not trigger repeated
+whole-scene shadow renders; asset loads, editor changes and quality changes still
+invalidate the static atlas when needed.
+
 ## Base page (`/`)
 
 The base reuses `MovementStick`, the compact `GameHud`, and the same touch-profile,
@@ -149,6 +166,12 @@ concrete KTX2 texture from Stage 5 remains enabled.
 - Share one decoded atlas/texture between world vegetation and street litter. Keep trilinear mipmaps and cap anisotropy at 4 on mobile for environment surfaces. Existing prototype geometry/material reuse remains; there are no new per-frame texture uploads or material clones. Transparent fire/glass remains stylistically intact; detail fades add no blending passes.
 
 ## Browser asset cache
+
+The 2026-09-24 desktop pass also externalizes repeated JPEGs losslessly and shares
+one reference library in Base. It preserves the mobile loading limit of one model
+preparation at a time, while desktop permits two. Both profiles now use GPU rain
+and uniform-scrolled captions. See `graphics-performance-audit-2026-09-24.md` for
+measured results; physical phone acceptance remains outstanding.
 
 Production serves `/game/*` and `/base/models/*` with
 `Cache-Control: public, max-age=31536000, immutable`. A browser therefore reuses

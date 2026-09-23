@@ -3,6 +3,7 @@ import { createEditableRender, type EditableRenderLabel } from './editable-rende
 import { BASE_COLLIDER_OWNERS, bindBaseColliderEdit } from './editor-colliders.ts';
 import { createWorldEditor, type AuthoredObject, type EditorState } from '../world-editor/controller.ts';
 import { bindMetroOpening, type MetroOpening } from '../../src/renderer/environment/metro-opening.ts';
+import type { ReferenceBuildingLibrary } from '../../src/renderer/three/reference-building-library.ts';
 
 /** Development-only: loaded by MASTER or to restore the owner's saved scenery. */
 export function createBaseMapEditor(options: {
@@ -18,6 +19,7 @@ export function createBaseMapEditor(options: {
   onFocus: (x: number, z: number) => void;
   onFloorVisibility: (visible: boolean) => void;
   onMetroTransform?: MetroOpening['update'];
+  referenceLibrary?: ReferenceBuildingLibrary;
 }) {
   const render = createEditableRender(options.scene, options.sources, options.rendered, options.labels, options.instanceLabels);
   render.setActive(true);
@@ -48,6 +50,7 @@ export function createBaseMapEditor(options: {
   });
   const editor = createWorldEditor(options.scene, options.onEditor, {
     map: 'base', anisotropy: 4, height: () => .08, authored, additionalAssets,
+    referenceLibrary: options.referenceLibrary,
     onColliders: options.onColliders, onPan: options.onPan, onFocus: options.onFocus,
     onResolved: () => { if (!render.active) render.refresh(); },
   });

@@ -1,5 +1,12 @@
 # Base elevated transit · 2026-09-18
 
+## Tower clearance correction (2026-09-22)
+
+The shared circular bend now starts at station 36 (world X 20), eight metres
+later than before. Radius 32 and 35-degree exit tangent are retained. Decks,
+train sampling and live supports use the shared alignment. Clearance tests now
+include both the eastern portrait tower and the Directorate rear facade.
+
 ## Current alignment: working eastern fork and ruined southern branch (2026-09-20)
 
 Owner requested the train turn away from the garden and the former foreground

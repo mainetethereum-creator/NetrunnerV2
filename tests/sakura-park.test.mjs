@@ -87,6 +87,43 @@ test('park shares meshes, pauses deliveries and disposes each resource once',asy
   park.dispose();park.dispose();assert.ok(counts.every(c=>c.value===1));assert.ok(gpuCounts.every(c=>c.value===1));assert.equal(scene.children.length,0);
 });
 
+test('spatial foliage batches preserve every transform and conservatively bound their geometry',async()=>{
+  async function build(spatial) {
+    const park=createSakuraPark(new T.Scene(),{loadAsync:async()=>fixture()},false,()=>assert.fail('park load'),spatial);
+    await park.ready;
+    return park;
+  }
+  const original=await build(false),split=await build(true);
+  const names=['ForestGrass','FernCluster','GardenShrub'];
+  const transforms=(root,name)=>{
+    const found=[];
+    root.traverse(object=>{
+      if(!object.isInstancedMesh||!object.name.startsWith(`Park / ${name}_`))return;
+      const matrix=new T.Matrix4();
+      for(let i=0;i<object.count;i++){
+        object.getMatrixAt(i,matrix);
+        found.push(matrix.elements.map(value=>value.toFixed(5)).join(','));
+      }
+    });
+    return found.sort();
+  };
+  for(const name of names)assert.deepEqual(transforms(split.root,name),transforms(original.root,name),name);
+  assert.equal(original.root.userData.spatialBatches.batchedMeshes,0);
+  assert.ok(split.root.userData.spatialBatches.batchedMeshes>split.root.userData.spatialBatches.sourceMeshes);
+  split.root.traverse(object=>{
+    if(!object.isInstancedMesh||!object.name.includes(' / cell '))return;
+    const sourceSphere=object.geometry.boundingSphere??(object.geometry.computeBoundingSphere(),object.geometry.boundingSphere);
+    const matrix=new T.Matrix4();
+    for(let i=0;i<object.count;i++){
+      object.getMatrixAt(i,matrix);
+      const bound=sourceSphere.clone().applyMatrix4(matrix);
+      assert.ok(object.boundingSphere.containsPoint(bound.center));
+      assert.ok(object.boundingSphere.radius+1e-5>=object.boundingSphere.center.distanceTo(bound.center)+bound.radius);
+    }
+  });
+  original.dispose();split.dispose();
+});
+
 test('late GLB after unmount releases resources without reattaching scenery',async()=>{
   let finish;const promise=new Promise(resolve=>finish=resolve),source=fixture(),counts=watch(source.resources),scene=new T.Scene();
   const park=createSakuraPark(scene,{loadAsync:()=>promise},true,()=>assert.fail('unmounted error'));

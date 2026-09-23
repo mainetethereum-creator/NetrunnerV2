@@ -1,4 +1,9 @@
 import * as T from "three";
+import { createFrameProbe } from '../../src/renderer/three/frame-probe.ts';
+import { createFacadeTicker } from '../../src/renderer/three/facade-ticker.ts';
+import { createAmbientRain } from '../../src/renderer/environment/ambient-rain.ts';
+import { createCityBackdrop } from '../../src/renderer/environment/city-backdrop.ts';
+import type { CinemaHook } from '../cinema/capture-types';
 import {createRefugeNpc,isEditableNpcBatch} from "./npc";
 import type {WorldEditor,EditorState} from "../world-editor/controller";
 import {createLazyEditor} from "../world-editor/lazy-editor";
@@ -39,6 +44,8 @@ import { createGardenAmbience } from "../../src/audio/garden-ambience.ts";
 import { createMetroOpening } from "../../src/renderer/environment/metro-opening.ts";
 import { createMediaTower } from "../../src/renderer/environment/media-tower.ts";
 import { createReferenceBuildingLibrary } from "../../src/renderer/three/reference-building-library.ts";
+import { createLocalLightOptimizer } from "../../src/renderer/three/local-light-cost.ts";
+import { createSceneWarmup } from "../../src/renderer/three/scene-warmup.ts";
 import { createKtx2TextureLoader } from "../../src/renderer/three/ktx2-texture-loader.ts";
 
 const DEV_TOOLS = process.env.CYBERBASE_DEV_TOOLS === "1";
@@ -63,15 +70,21 @@ export function createBaseScene(
   onInteract: (id: StationId) => void,
   onError: (message: string) => void,
   onEditor: (state:EditorState) => void = () => {},
+  onCinema?: CinemaHook,
 ): BaseEngine {
   const scene = new T.Scene();
   scene.background = new T.Color("#101b23");
   scene.fog = new T.FogExp2("#101d28", 0.014);
+  const cityBackdrop = createCityBackdrop(scene, onError);
   const mobile = usesTouchProfile({ pointerCoarse: matchMedia("(pointer:coarse)").matches, anyPointerCoarse: matchMedia("(any-pointer:coarse)").matches, hoverNone: matchMedia("(hover:none)").matches, width: window.innerWidth, height: window.innerHeight });
   let quality = initialQuality(mobile);
   let budget = initialMobileBudget(), resolutionScale = 1;
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const renderer = new T.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+  const profileOptions = DEV_TOOLS ? new URLSearchParams(location.search) : null;
+  const profiling = profileOptions?.get('perf') === '1';
+  const frameProbe = profiling ? createFrameProbe(renderer, scene) : undefined;
+  const localLightOptimizer = profileOptions?.get('perfLights') === '1' ? createLocalLightOptimizer() : undefined;
   renderer.localClippingEnabled = true;
   const metroOpening = createMetroOpening();
   renderer.setPixelRatio(mobile ? mobileRenderRatio(host.clientWidth, host.clientHeight, devicePixelRatio, resolutionScale) : renderRatio(host.clientWidth, host.clientHeight, devicePixelRatio, quality));
@@ -91,7 +104,7 @@ export function createBaseScene(
   renderer.domElement.setAttribute("aria-label", "CyberBase starter refuge. Use WASD or arrow keys to walk, E to interact.");
   renderer.domElement.tabIndex = 0;
   host.appendChild(renderer.domElement);
-  const camera = new T.PerspectiveCamera(38, 1, 0.15, 140);
+  const camera = new T.PerspectiveCamera(38, 1, 0.15, 500);
   // Canvas antialiasing does not apply to the composer's offscreen scene.
   // Resolve MSAA before bloom so window slats and facade edges stay smooth at rest.
   // Touch Auto/Lite never allocate postprocessing buffers. Explicit High still
@@ -99,7 +112,7 @@ export function createBaseScene(
   let composer: EffectComposer | undefined, bloom: UnrealBloomPass | undefined, output: OutputPass | undefined;
   const enablePostprocessing = () => {
     if (composer) return;
-    composer = new EffectComposer(renderer, new T.WebGLRenderTarget(1, 1, { type: T.HalfFloatType, samples: Math.min(mobile ? 2 : 4, renderer.capabilities.maxSamples) }));
+    composer = new EffectComposer(renderer, new T.WebGLRenderTarget(1, 1, { type: T.HalfFloatType, samples: Math.min(2, renderer.capabilities.maxSamples) }));
     composer.addPass(new RenderPass(scene, camera));
     bloom = new UnrealBloomPass(new T.Vector2(800, 600), 0.32, 0.65, 1.05); composer.addPass(bloom);
     output = new OutputPass(); composer.addPass(output);
@@ -171,28 +184,12 @@ export function createBaseScene(
   const light = (x: number, y: number, z: number, color: number, power: number, distance: number) => {
     const lamp = new T.PointLight(color, power, distance, 2); lamp.position.set(x, y, z); scene.add(lamp);
   };
-  const facadeTickers: Array<{ render(offset: number): void; texture: T.CanvasTexture; material: T.MeshStandardMaterial }> = [];
+  const facadeTickers: ReturnType<typeof createFacadeTicker>[] = [];
   function sign(text: string, sub: string, x: number, y: number, z: number, width: number, color = "#c0d8d0", rotation = 0) {
-    const canvas = document.createElement("canvas"); canvas.width = 1024; canvas.height = 256;
-    const ctx = canvas.getContext("2d")!;
-    const texture = new T.CanvasTexture(canvas); texture.colorSpace = T.SRGBColorSpace; texture.anisotropy = 4;
-    const material = new T.MeshStandardMaterial({ map: texture, emissiveMap: texture, emissive: 0xffffff, emissiveIntensity: 0.62, roughness: 0.58 });
-    const render = (offset: number) => {
-      ctx.fillStyle = "#08191f"; ctx.fillRect(0, 0, 1024, 256);
-      ctx.strokeStyle = color; ctx.globalAlpha = .72; ctx.lineWidth = 5; ctx.strokeRect(14, 14, 996, 228); ctx.globalAlpha = 1;
-      ctx.fillStyle = color; ctx.font = "bold 69px monospace"; ctx.textAlign = "center"; ctx.shadowColor = color; ctx.shadowBlur = 18;
-      ctx.fillText(text, 512, 108); ctx.shadowBlur = 0;
-      ctx.save(); ctx.beginPath(); ctx.rect(26, 142, 972, 72); ctx.clip();
-      ctx.font = "bold 26px monospace"; ctx.textAlign = "left"; ctx.fillStyle = "#d6fff6";
-      const message = `  ${sub}   ◆   DISTRICT ONLINE   ◆   `;
-      const span = Math.max(1, ctx.measureText(message).width);
-      for (let px = -(offset % span) - span; px < 1024 + span; px += span) ctx.fillText(message, px, 187);
-      ctx.restore(); texture.needsUpdate = true;
-    };
-    render(0);
-    const mesh = new T.Mesh(new T.PlaneGeometry(width, width / 4), material);
+    const ticker = createFacadeTicker(text, sub, color);
+    const mesh = new T.Mesh(new T.PlaneGeometry(width, width / 4), ticker.material);
     mesh.position.set(x, y, z); mesh.rotation.y = rotation; scene.add(mesh);
-    facadeTickers.push({ render, texture, material });
+    facadeTickers.push(ticker);
   }
 
   // The metro's live opening clips both structural layers and the paving.
@@ -356,7 +353,7 @@ export function createBaseScene(
     scene.add(mesh);
   }
 
-  const excludedEditorObjects = new Set<T.Object3D>([hemi, sun, rim, courtyardFill, ...npcs, ...stationRings.values()]);
+  const excludedEditorObjects = new Set<T.Object3D>([cityBackdrop.root, hemi, sun, rim, courtyardFill, ...npcs, ...stationRings.values()]);
   const editableSources = scene.children.filter(object => !excludedEditorObjects.has(object));
   editableSources.forEach((object, i) => {
     if (!editLabels.has(object)) editLabels.set(object, { id: `base:surface:${i}`, name: object.name || `Поверхность / ${i + 1}` });
@@ -384,12 +381,12 @@ export function createBaseScene(
   const npcStations=["smith","contracts","metro","oracle","market"] as const;
   let editableRender: import("./editable-render").EditableRender | undefined;
   let editorShadowDirty = false;
-  const worldAssetLoads: Promise<unknown>[] = [];
+  const worldAssetLoads: Promise<unknown>[] = [cityBackdrop.ready];
   const editor=createLazyEditor(()=>import("./base-map-editor").then(async ({createBaseMapEditor}) => {
     await Promise.allSettled(worldAssetLoads);
     return () => {
       const result = createBaseMapEditor({
-        scene, sources: editableSources, rendered: editableRendered, labels: editLabels, instanceLabels,
+        scene, sources: editableSources, rendered: editableRendered, labels: editLabels, instanceLabels, referenceLibrary,
         npcs: npcs.map((object, i) => ({ id: `npc:${npcStations[i]}`, name: npcStations[i], object,
           onTransform: e => { setBaseStationOverride(npcStations[i],{x:e.x,z:e.z,deleted:!!e.deleted}); const ring=stationRings.get(npcStations[i]); if(ring){ring.position.set(e.x,.1,e.z);ring.visible=!e.deleted;} }
         })),
@@ -435,16 +432,16 @@ export function createBaseScene(
   const fallback = npc(0, 0, m.teal, m.edge); scene.remove(fallback); player.add(fallback); fallback.position.set(0, 0, 0);
   const heroVisualScale = 1.4;
   fallback.scale.setScalar(heroVisualScale);
-  if (mobile) fallback.traverse(object => { if (object instanceof T.Mesh) object.castShadow = false; });
+  fallback.traverse(object => { if (object instanceof T.Mesh) object.castShadow = false; });
   npcs.pop();
-  // Mobile keeps the static city shadow map and uses a cheap contact shadow for
-  // the moving runner. This avoids re-rendering the entire VSM atlas while walking.
+  // Keep the static city shadow map and use a cheap contact shadow for the moving
+  // runner. This avoids re-rendering the entire VSM atlas while walking.
   const runnerShadow = new T.Mesh(
     new T.CircleGeometry(.48, 24),
-    new T.MeshBasicMaterial({ color: 0x05080b, transparent: true, opacity: mobile ? .3 : 0, depthWrite: false }),
+    new T.MeshBasicMaterial({ color: 0x05080b, transparent: true, opacity: mobile ? .3 : .22, depthWrite: false }),
   );
   runnerShadow.rotation.x = -Math.PI / 2; runnerShadow.scale.y = .58; runnerShadow.position.y = -.105;
-  runnerShadow.visible = mobile; player.add(runnerShadow);
+  runnerShadow.visible = true; player.add(runnerShadow);
   const simulationPrevious = player.position.clone(), simulationCurrent = player.position.clone();
   const marker = new T.Mesh(new T.RingGeometry(0.38, 0.43, 48), new T.MeshBasicMaterial({ color: 0xc8e3d5, transparent: true, opacity: 0.8, depthWrite: false }));
   marker.rotation.x = -Math.PI / 2; marker.position.y = 0.01; player.add(marker);
@@ -456,23 +453,43 @@ export function createBaseScene(
   const assetSettled = () => { assetsPending--; assetSettledAt = performance.now(); };
   // Never expose the authored fallback map while the owner's saved layout is loading.
   renderer.domElement.style.visibility = "hidden";
-  let layoutReady = true, heroReadyName: string | undefined;
+  let layoutReady = true, worldReady = false, scenePrepared = false, heroReadyName: string | undefined;
+  const shaderWarmup = createSceneWarmup(
+    () => {
+      // Compile the same linear output variant as RenderPass, not an unused
+      // direct-to-screen sRGB variant. Exclude hidden editor/source objects.
+      const visible = new T.Group();
+      scene.traverseVisible(object => {
+        if (object instanceof T.Mesh || object instanceof T.Points || object instanceof T.Line || object instanceof T.Sprite) {
+          visible.add(object.clone(false));
+        }
+      });
+      const previousTarget = renderer.getRenderTarget();
+      if (quality.high && composer) renderer.setRenderTarget(composer.readBuffer);
+      try { return renderer.compileAsync(visible, camera, scene).finally(() => visible.clear()); }
+      finally { renderer.setRenderTarget(previousTarget); }
+    },
+    () => { scenePrepared = true; },
+    error => { console.warn('Shader warmup unavailable; compiling on first render.', error); scenePrepared = true; },
+  );
   const revealMap = () => {
-    if (disposed || !layoutReady || !heroReadyName) return;
-    ready = true;
-    renderer.domElement.style.visibility = "visible";
-    onReady(heroReadyName);
+    if (disposed || !layoutReady || !worldReady || !heroReadyName) return;
+    localLightOptimizer?.apply(scene);
+    void shaderWarmup.start();
+    if (ready) onReady(heroReadyName);
   };
   const markReady = (name: string) => { heroReadyName = name; revealMap(); };
   let heroAnimator: HeroAnimator | null = null;
   const combat = new CombatDriver(() => {}, () => 100);
-  let hero: T.Object3D = fallback, previousWalking = false;
+  let hero: T.Object3D = fallback;
   const { loader, draco } = createGltfLoader();
   const ktx2 = createKtx2TextureLoader(renderer, loader.manager);
   loader.setKTX2Loader(ktx2);
+  // The media tower, placed buildings and editor borrow one resource owner.
+  const referenceLibrary = createReferenceBuildingLibrary(mobile ? 2 : 4, url => loader.loadAsync(url),undefined,undefined,true,
+    () => ktx2.loadAsync(ASSET_URLS.buildingSurfaceKtx2));
   const mediaTower = createMediaTower(scene,
-    createReferenceBuildingLibrary(mobile ? 2 : 4, url => loader.loadAsync(url),undefined,undefined,true,
-      () => ktx2.loadAsync(ASSET_URLS.buildingSurfaceKtx2)),
+    { prepare: referenceLibrary.prepare, create: referenceLibrary.create, dispose() {} },
     onError, () => { assetSettled(); renderer.shadowMap.needsUpdate = true; });
   {
     worldAssetLoads.push(mediaTower.ready);
@@ -483,8 +500,10 @@ export function createBaseScene(
     assetSettled();
     renderer.shadowMap.needsUpdate = true;
   });
-  let lastRailShadow = 0;
-  const sakuraPark = createSakuraPark(scene, loader, mobile, onError);
+  worldAssetLoads.push(elevatedRail.ready);
+  // Small cells trade triangles for additional draws; keep the measured baseline
+  // until the optional spatial experiment also wins in the wide garden camera.
+  const sakuraPark = createSakuraPark(scene, loader, mobile, onError, profileOptions?.get('perfSectors') === '1');
   const ambience=createGardenAmbience();ambience.setRain(rainOn);
   worldAssetLoads.push(sakuraPark.ready.finally(() => { assetSettled(); renderer.shadowMap.needsUpdate = true; }));
   const canal=createCanal(scene,loader,mobile,puddle,onError,()=>
@@ -544,6 +563,13 @@ export function createBaseScene(
     }).catch(() => { if (!disposed) onError(`The ${file} building could not load. Reload to retry.`); }).finally(assetSettled);
     worldAssetLoads.push(load);
   }
+  // Render only the assembled world: rendering each partial load compiles a new
+  // family of shaders whenever another group of local lights appears.
+  void Promise.allSettled(worldAssetLoads).then(() => {
+    if (disposed) return;
+    worldReady = true;
+    revealMap();
+  });
   // The editor remains a development-only dynamic import. Restore saved scenery even
   // when MASTER is closed; its document readiness includes all placed model loads.
   if (DEV_TOOLS) {
@@ -564,7 +590,7 @@ export function createBaseScene(
       const { createPublishedMap } = await import("./published-map.ts");
       if (disposed) return;
       publishedMap = createPublishedMap({
-        scene, sources: editableSources, rendered: editableRendered, labels: editLabels, instanceLabels,
+        scene, sources: editableSources, rendered: editableRendered, labels: editLabels, instanceLabels, referenceLibrary,
         npcs: npcs.map((object, i) => ({ id: `npc:${npcStations[i]}`, object,
           onTransform: e => { setBaseStationOverride(npcStations[i], { x: e.x, z: e.z, deleted: !!e.deleted }); const ring = stationRings.get(npcStations[i]); if (ring) { ring.position.set(e.x, .1, e.z); ring.visible = !e.deleted; } }
         })),
@@ -573,6 +599,7 @@ export function createBaseScene(
         onMetroTransform: metroOpening.update,
         onAssetsChanged: () => { renderer.shadowMap.needsUpdate = true; },
         loadReference: url => loader.loadAsync(url),
+        referenceLoadConcurrency: mobile ? 1 : 2,
         loadBuildingSurface: () => ktx2.loadAsync(ASSET_URLS.buildingSurfaceKtx2),
       });
       await publishedMap.ready;
@@ -604,21 +631,17 @@ export function createBaseScene(
       fallback.traverse((o) => { if ((o as T.Mesh).isMesh) (o as T.Mesh).geometry.dispose(); });
       hero = new T.Group(); hero.add(root); player.add(hero);
       hero.scale.setScalar(heroVisualScale);
-      if (mobile) root.traverse(object => { if (object instanceof T.Mesh) object.castShadow = false; });
+      root.traverse(object => { if (object instanceof T.Mesh) object.castShadow = false; });
       heroAnimator = createHeroAnimator(root, gltf.animations, { idle: "clip-or-pose", run: /run|walk/i });
       combat.attach(root, heroAnimator.mixer, gltf.animations);
       clearTimeout(loadTimeout); markReady(character.toUpperCase());
       renderer.shadowMap.needsUpdate = true;
     }).catch(() => { clearTimeout(loadTimeout); if (!disposed) { markReady("RUNNER"); onError("Character model unavailable. A service rig is active; the refuge is still playable."); } }).finally(assetSettled);
 
-  const rainCount = mobile ? 160 : 650, rainPositions = new Float32Array(rainCount * 6);
-  for (let i = 0; i < rainCount; i++) {
-    const x = (rand() - 0.5) * 64, y = rand() * 16, z = rand() * 48 - 14;
-    rainPositions.set([x, y, z, x - 0.06, y + 0.35, z], i * 6);
-  }
-  const rainGeometry = new T.BufferGeometry(); rainGeometry.setAttribute("position", new T.BufferAttribute(rainPositions, 3));
-  const rain = new T.LineSegments(rainGeometry, new T.LineBasicMaterial({ color: 0xb9d8d8, transparent: true, opacity: 0.085, depthWrite: false }));
-  rain.frustumCulled = false; scene.add(rain);
+  const rainCount = mobile ? 160 : 650;
+  const ambientRain = createAmbientRain(rainCount, rand);
+  const { mesh: rain, geometry: rainGeometry } = ambientRain;
+  scene.add(rain);
   const input = createMovementInput(), moveDirection = { x: 0, z: 0 };
   const pivot = new T.Vector3(SPAWN.x, 1.05, SPAWN.z);
   const cameraRig = createFollowCamera(BASE_CAMERA, pivot);
@@ -749,24 +772,16 @@ export function createBaseScene(
     }
     const time = now / 1000;
     const facadeTime = reducedMotion ? 0 : time;
-    // Canvas texture uploads are expensive on tiled mobile GPUs. Four updates per
-    // second retain visible motion there; desktop keeps the original 12 Hz.
-    const tickerInterval = mobile ? 250 : 84;
-    if (Math.floor(now / tickerInterval) !== Math.floor((now - frameMs) / tickerInterval)) {
-      for (let i = 0; i < facadeTickers.length; i++) {
-        const ticker = facadeTickers[i];
-        ticker.render(facadeTime * (54 + i * 7));
-        ticker.material.emissiveIntensity = reducedMotion ? .66 : .62 + Math.sin(facadeTime * 1.35 + i) * .08;
-      }
+    // Scrolling changes a shader uniform; the sign textures are uploaded once.
+    for (let i = 0; i < facadeTickers.length; i++) {
+      const ticker = facadeTickers[i];
+      ticker.render(facadeTime * (54 + i * 7));
+      ticker.material.emissiveIntensity = reducedMotion ? .66 : .62 + Math.sin(facadeTime * 1.35 + i) * .08;
     }
     sakuraPark.update(paused || modalOpen || editor.active ? 0 : dt, trafficOn, rainOn, reducedMotion);
     canal.update(paused || modalOpen || editor.active ? 0 : dt,quality.high && floorVisible && !editor.active,reducedMotion);
     eastDistrict.update(paused || modalOpen || editor.active ? 0 : dt,reducedMotion);
-    if (elevatedRail.update(paused || modalOpen || editor.active ? 0 : dt, reducedMotion)
-      && !mobile && now - lastRailShadow > 100) {
-      renderer.shadowMap.needsUpdate = true;
-      lastRailShadow = now;
-    }
+    elevatedRail.update(paused || modalOpen || editor.active ? 0 : dt, reducedMotion);
     surfaceDetails.update(reducedMotion ? 0 : time);
     (puddle.material as T.ShaderMaterial).uniforms.waterTime.value = reducedMotion ? 0 : time;
     player.position.lerpVectors(simulationPrevious, simulationCurrent, alpha);
@@ -774,10 +789,6 @@ export function createBaseScene(
       const difference = Math.atan2(Math.sin(targetYaw - hero.rotation.y), Math.cos(targetYaw - hero.rotation.y));
       hero.rotation.y += difference * Math.min(1, dt * 14);
     }
-    if (!mobile && walking !== previousWalking) {
-      renderer.shadowMap.needsUpdate = true;
-    }
-    previousWalking = walking;
     combat.tick(dt, paused || modalOpen || !ready || editor.active || frameCamera.mode === 'free');
     heroAnimator?.update(dt, walking, combat.weight);
     // Keep the original body-pivot damping; saved framing adds its composition offsets.
@@ -791,33 +802,30 @@ export function createBaseScene(
       }
     }
     frameCamera.update(ready && !paused && !modalOpen);
-    rain.visible = rainOn;
-    puddle.visible = quality.high && floorVisible && !editor.active;
-    if (rainOn) {
-      for (let i = 0; i < rainCount; i++) {
-        const k = i * 6;
-        rainPositions[k + 1] -= dt * 9; rainPositions[k + 4] -= dt * 9;
-        if (rainPositions[k + 1] < 0) { rainPositions[k + 1] = 15; rainPositions[k + 4] = 15.35; }
-      }
-      rainGeometry.attributes.position.needsUpdate = true;
-    }
+    rain.visible = rainOn && profileOptions?.get('perfRain') !== '0';
+    puddle.visible = quality.high && floorVisible && !editor.active && profileOptions?.get('perfReflection') !== '0';
+    if (rain.visible) ambientRain.update(dt);
     editor.stream(editor.active?pivot:player.position);
     // Key repeat can emit much faster than rendering. Refresh changed scenery at
     // most 10 Hz in MASTER, and stop redrawing its shadows when the editor is idle.
     if (editorShadowDirty && (!editor.active || now - lastShadow > 100)) {
       renderer.shadowMap.needsUpdate = true; lastShadow = now; editorShadowDirty = false;
     }
-    // Static lighting is cached; refresh shadows at a bounded rate while moving.
-    if (!mobile && (walking || (heroAnimator?.locomotionBlend ?? 0) > 0.001) && now - lastShadow > (quality.high ? 33 : 65)) {
-      renderer.shadowMap.needsUpdate = true; lastShadow = now;
-    }
   }
 
   function renderFrame({ now }: FrameTick) {
+    if (!scenePrepared) return;
     renderer.info.reset();
+    frameProbe?.begin();
     const renderStart = performance.now();
     if (quality.high && composer) composer.render(); else renderer.render(scene, camera);
+    if (!ready) {
+      ready = true;
+      renderer.domElement.style.visibility = "visible";
+      onReady(heroReadyName!);
+    }
     submitMs = Math.round((performance.now() - renderStart) * 10) / 10;
+    frameProbe?.end({ high: quality.high, rain: rain.visible, reflection: puddle.visible, ready, assetsPending, localLightGuard: !!localLightOptimizer, foliage: sakuraPark.root.userData.spatialBatches });
     frames++;
     if (now - fpsTime > 2000) {
       fps = Math.round(frames * 1000 / (now - fpsTime));
@@ -826,7 +834,7 @@ export function createBaseScene(
       // Some embedded/background hosts force a 1 Hz rAF despite cheap rendering.
       // Flag that cadence rather than presenting it as a meaningful GPU benchmark.
       timingLimited = fps <= 2 && p95 >= 900 && p95 <= 1100 && submitMs < 50;
-      if (!mobile && now - startedAt > 10000 && !timingLimited) {
+      if (!mobile && !profiling && now - startedAt > 10000 && !timingLimited) {
         const next = adaptQuality(quality, fps);
         if (next.high !== quality.high || next.scale !== quality.scale) {
           quality = next; puddle.visible = quality.high; rainGeometry.setDrawRange(0, quality.high ? rainCount * 2 : Math.min(rainCount, 180) * 2); resize();
@@ -850,6 +858,51 @@ export function createBaseScene(
     render: renderFrame,
   });
   loop.start();
+  if (DEV_TOOLS && onCinema) onCinema({
+    scene,
+    get character() { return hero; },
+    ready: () => ready && assetsPending <= 0 && performance.now() - assetSettledAt > 1500,
+    prepare(width, height) {
+      loop.stop(); observer.disconnect(); resetInput();
+      quality = initialQuality(false, 'high'); enablePostprocessing();
+      puddle.userData.forceReflectionUpdate = true;
+      renderer.setPixelRatio(1); composer?.setPixelRatio(1);
+      renderer.setSize(width, height, false); composer?.setSize(width, height);
+      camera.aspect = width / height;
+      player.visible = false; targetMarker.visible = false;
+      stationRings.forEach(ring => { ring.visible = false; });
+      renderer.toneMappingExposure = 1.3;
+      courtyardFill.intensity = .72; hemi.intensity = .56;
+      if (bloom) { bloom.strength = .32; bloom.threshold = 1.05; }
+      const graded = new Set<T.Material>();
+      scene.getObjectByName('Refuge / three-car transit')?.traverse(object => {
+        if (!(object instanceof T.Mesh)) return;
+        for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
+          if (material instanceof T.MeshStandardMaterial && !graded.has(material)) {
+            material.emissiveIntensity *= .45; graded.add(material);
+          }
+        }
+      });
+      renderer.shadowMap.needsUpdate = true;
+    },
+    frame(pose, seconds, dt) {
+      updateFrame({ now: loopStart + seconds * 1000, frameMs: dt * 1000, dt, alpha: 1 });
+      player.visible = !!pose.actor;
+      marker.visible = false;
+      if (pose.actor) {
+        player.position.set(pose.actor.x, .12, pose.actor.z);
+        hero.rotation.y = pose.actor.yaw;
+        pose.actor.animate?.(pose.actor.time);
+        renderer.shadowMap.needsUpdate = true;
+      }
+      elevatedRail.seek(seconds + 3); elevatedRail.update(0, false);
+      camera.position.fromArray(pose.position); camera.fov = pose.fov;
+      camera.updateProjectionMatrix(); camera.lookAt(...pose.target); camera.updateMatrixWorld();
+      editor.stream({ x: pose.target[0], z: pose.target[2] });
+      if (composer) composer.render(); else renderer.render(scene, camera);
+      return renderer.domElement;
+    },
+  });
   return {
     editor,setMaster(value){editor.setActive(value);resetInput();},
     setPaused(value) { paused = value; resetInput(); },
@@ -860,7 +913,7 @@ export function createBaseScene(
     setRain(value) { rainOn = value; ambience.setRain(value); },
     setAmbient: value => ambience.setEnabled(value),
     setTraffic(value) { trafficOn = value; },
-    setQuality(value) { quality = initialQuality(mobile, value); if (quality.high) enablePostprocessing(); puddle.visible = quality.high; rainGeometry.setDrawRange(0, quality.high ? rainCount * 2 : Math.min(rainCount, 180) * 2); renderer.shadowMap.needsUpdate = true; resize(); },
+    setQuality(value) { quality = initialQuality(mobile, profiling ? 'high' : value); if (quality.high) enablePostprocessing(); puddle.visible = quality.high; rainGeometry.setDrawRange(0, quality.high ? rainCount * 2 : Math.min(rainCount, 180) * 2); renderer.shadowMap.needsUpdate = true; resize(); },
     frameCamera() { resetInput(); frameCamera.start(pivot); },
     zoomCamera(delta) { frameCamera.zoomBy(delta); },
     fixCamera() { resetInput(); return frameCamera.fix(pivot); },
@@ -870,18 +923,27 @@ export function createBaseScene(
     resetCamera() { frameCamera.follow(); cameraRig.moveTo(player.position.x, player.position.z); pivot.y = player.position.y + .93; resetInput(); },
     goTo(id) { const station = getBaseStations().find((s) => s.id === id); if (station && ready && !paused && !modalOpen && !editor.active) { path = findPath(player.position, { x: station.x, z: station.z + 1 }); targetMarker.position.set(station.x, 0.1, station.z + 1); targetMarker.visible = path.length > 0; } },
     dispose() {
-      disposed = true; clearInput(); frameCamera.dispose(); loop.dispose(); ambience.dispose(); clearTimeout(loadTimeout); observer.disconnect(); draco.dispose(); ktx2.dispose();
+      if (disposed) return;
+      disposed = true; clearInput(); frameCamera.dispose(); loop.dispose(); ambience.dispose(); clearTimeout(loadTimeout); observer.disconnect();
       window.removeEventListener("keydown", keyDown); window.removeEventListener("keyup", keyUp); window.removeEventListener("blur", clearInput);
       window.removeEventListener("netrunner:input-reset", clearInput); modalObserver.disconnect();
-      editor.dispose(); editableRender?.dispose(); publishedMap?.dispose(); implantsBuilding.dispose(); mediaTower.dispose(); elevatedRail.dispose(); sakuraPark.dispose(); canal.dispose(); eastDistrict.dispose(); railRuins.dispose(); clearBaseEditor();
-      // Retained source geometries may be detached by the static merge.
-      for (const object of editableSources) if (!object.parent && object !== implantsBuilding.root && object !== mediaTower.root) scene.add(object);
+      clearBaseEditor();
       renderer.domElement.removeEventListener("pointermove",onHover);
       renderer.domElement.removeEventListener("pointerdown", onDown); renderer.domElement.removeEventListener("pointerup", onUp);
       renderer.domElement.removeEventListener("pointercancel", clearInput); renderer.domElement.removeEventListener("wheel", wheel);
       renderer.domElement.removeEventListener("webglcontextlost", lostContext);
       combat.dispose(); heroAnimator?.mixer.stopAllAction(); if (heroAnimator) heroAnimator.mixer.uncacheRoot(heroAnimator.mixer.getRoot());
-      puddle.getRenderTarget().dispose(); disposeObjectTree(scene); environment.dispose(); surfaces.dispose(); bloom?.dispose(); output?.dispose(); composer?.dispose(); renderer.dispose();
+      // compileAsync polls material programs. Stop input and detach immediately,
+      // but retain GPU resources until that polling has safely finished.
+      shaderWarmup.dispose(() => {
+        draco.dispose(); ktx2.dispose();
+        editor.dispose(); editableRender?.dispose(); publishedMap?.dispose(); implantsBuilding.dispose(); mediaTower.dispose(); referenceLibrary.dispose(); elevatedRail.dispose(); sakuraPark.dispose(); canal.dispose(); eastDistrict.dispose(); railRuins.dispose();
+        // Retained source geometries may be detached by the static merge.
+        for (const object of editableSources) if (!object.parent && object !== implantsBuilding.root && object !== mediaTower.root) scene.add(object);
+        // The caption sampler is a shader uniform, outside the material map slots.
+        facadeTickers.forEach(ticker => ticker.stripTexture.dispose());
+        frameProbe?.dispose(); cityBackdrop.dispose(); puddle.getRenderTarget().dispose(); disposeObjectTree(scene); environment.dispose(); surfaces.dispose(); bloom?.dispose(); output?.dispose(); composer?.dispose(); renderer.dispose();
+      });
       renderer.domElement.remove();
     },
   };

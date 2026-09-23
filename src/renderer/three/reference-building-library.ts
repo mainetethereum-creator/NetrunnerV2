@@ -6,7 +6,12 @@ import { ASSET_URLS } from '../../assets/registry.ts';
 import { createConcreteMaterial, prepareConcreteUv } from './cold-concrete.ts';
 import { attachGardenSign } from './garden-facade-sign.ts';
 
-type LoadModel = (url: string) => Promise<{ scene: T.Group }>;
+type LoadedModel = { scene: T.Group; parser?: { json?: {
+  images?: { uri?: string }[];
+  textures?: { source?: number }[];
+  materials?: { name?: string; pbrMetallicRoughness?: { baseColorTexture?: { index: number } } }[];
+} } };
+type LoadModel = (url: string) => Promise<LoadedModel>;
 const KTX2_FACADE_IDS = new Set<ReferenceBuildingId>([
   'building-japanese-cafe','building-glass-corner','building-japanese-parts-shop',
   'building-wallet-tower','building-cyberbase-tower','building-media-tower',
@@ -73,6 +78,31 @@ export function createReferenceBuildingLibrary(anisotropy = 4, load?: LoadModel,
     return gltf.loader.loadAsync(url);
   });
 
+  function validateSharedImages({ scene, parser }: LoadedModel) {
+    // GLTFLoader can warn and resolve a model with a null texture when an image
+    // request fails. Check external-image maps before any material replacement.
+    const json = parser?.json;
+    if (!json?.images?.length || !json.textures || !json.materials) return;
+    const externalImageIndexes = new Set(json.images.flatMap((image, index) =>
+      image.uri?.includes('building-shared-v1/') ? [index] : []));
+    const requiredMaterialNames = new Set(json.materials.flatMap(material => {
+      const textureIndex = material.pbrMetallicRoughness?.baseColorTexture?.index;
+      const imageIndex = textureIndex === undefined ? undefined : json.textures?.[textureIndex]?.source;
+      return imageIndex !== undefined && externalImageIndexes.has(imageIndex) && material.name ? [material.name] : [];
+    }));
+    let missing = false;
+    scene.traverse(object => {
+      if (!(object instanceof T.Mesh)) return;
+      for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
+        if (material instanceof T.MeshStandardMaterial && requiredMaterialNames.has(material.name) && !material.map?.image) missing = true;
+      }
+    });
+    if (missing) {
+      disposeObjectTree(scene);
+      throw new Error('Shared building image failed to decode');
+    }
+  }
+
   function prepare(id: ReferenceBuildingId): Promise<void> {
     if (disposed) return Promise.reject(new Error('Reference building library disposed'));
     if (prototypes.has(id)) return Promise.resolve();
@@ -81,10 +111,12 @@ export function createReferenceBuildingLibrary(anisotropy = 4, load?: LoadModel,
     const asset = REFERENCE_BUILDINGS.find(item => item.id === id)!;
     // Public assets have long cache headers in this project. Bump after a rebake.
     const sourceUrl=`${asset.url}?v=20260919-outskirts-3`;
+    const sharedUrl=`${ASSET_URLS.referenceBuildingShared(asset.url)}?v=20260924-3`;
     const optimizedUrl=`${asset.url.replace(/\.glb$/, '-ktx2.glb')}?v=20260921-1`;
     const request=USE_KTX2_FACADES && loadSurface && KTX2_FACADE_IDS.has(id)
       ? loadModel(optimizedUrl).catch(error=>{console.warn(`KTX2 facade unavailable for ${id}; using source GLB.`,error);return loadModel(sourceUrl);})
-      : loadModel(sourceUrl);
+      : loadModel(sharedUrl).then(model => { validateSharedImages(model); return model; })
+        .catch(error=>{console.warn(`Shared-image building unavailable for ${id}; using source GLB.`,error);return loadModel(sourceUrl);});
     const promise = request.then(async ({ scene }) => {
       if (disposed) {
         disposeObjectTree(scene);
@@ -181,6 +213,12 @@ export function createReferenceBuildingLibrary(anisotropy = 4, load?: LoadModel,
         }
       });
       scene.updateMatrixWorld(true);
+      // Imported building parts are static. Their authored local matrices need
+      // no per-frame recomposition, while the scene root remains editable for
+      // placement, duplication and transform previews.
+      scene.traverse(object => {
+        if (object !== scene) object.matrixAutoUpdate = false;
+      });
       prototypes.set(id, scene);
     }).finally(() => pending.delete(id));
     pending.set(id, promise);
@@ -219,3 +257,5 @@ export function createReferenceBuildingLibrary(anisotropy = 4, load?: LoadModel,
     },
   };
 }
+
+export type ReferenceBuildingLibrary = ReturnType<typeof createReferenceBuildingLibrary>;

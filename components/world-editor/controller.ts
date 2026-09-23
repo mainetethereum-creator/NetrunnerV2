@@ -1,6 +1,7 @@
 import * as T from 'three';
 import {createEditorStreaming} from './streaming';
 import {createPropLibrary,PROP_ASSETS,type PropId,type PropInstance} from '../expedition/prop-assets';
+import type {ReferenceBuildingLibrary} from '../../src/renderer/three/reference-building-library.ts';
 import {referenceHasCollision} from '../../src/assets/reference-buildings.ts';
 import {fenceLength,isFence,snapFence,fenceColliders} from '../expedition/fence-layout';
 import {createHistory,emptyDocument,parseDocument,type Entry,type MapId,type Transform,type WorldDocument} from './document';
@@ -13,8 +14,8 @@ type Rect={x:number;z:number;w:number;d:number};
 const capture=(o:T.Object3D):Transform=>({x:o.position.x,y:o.position.y,z:o.position.z,rx:o.rotation.x*180/Math.PI,rotation:o.rotation.y*180/Math.PI,rz:o.rotation.z*180/Math.PI,sx:o.scale.x,sy:o.scale.y,sz:o.scale.z});
 const sameEntry=(a:Entry|undefined,b:Entry)=>!!a&&a.source===b.source&&a.length===b.length&&!!a.deleted===!!b.deleted
  &&a.x===b.x&&a.y===b.y&&a.z===b.z&&a.rx===b.rx&&a.rotation===b.rotation&&a.rz===b.rz&&a.sx===b.sx&&a.sy===b.sy&&a.sz===b.sz;
-export function createWorldEditor(scene:T.Scene,onChange:(state:EditorState)=>void,options:{map:MapId;anisotropy:number;height:(p:{x:number;z:number})=>number;authored?:AuthoredObject[];additionalAssets?:AdditionalEditorAsset[];includePropAssets?:boolean;storageKey?:string;editorOnly?:boolean;canPlace?:(p:{x:number;z:number})=>boolean;onResolved?:(entries:Entry[])=>void;onPads?:(pads:Rect[])=>void;onColliders?:(pads:Rect[])=>void;onAuthoredColliders?:(pads:Rect[])=>void;onPan?:(x:number,z:number)=>void;onFocus?:(x:number,z:number)=>void}){
- const {map,height}=options,key=options.storageKey??`cyberbase.world-editor.${map}.v1`,library=createPropLibrary(options.anisotropy,undefined,map==='base'),streaming=createEditorStreaming(scene,(options.authored??[]).map(a=>a.object)),root=streaming.root;
+export function createWorldEditor(scene:T.Scene,onChange:(state:EditorState)=>void,options:{map:MapId;anisotropy:number;height:(p:{x:number;z:number})=>number;authored?:AuthoredObject[];additionalAssets?:AdditionalEditorAsset[];includePropAssets?:boolean;storageKey?:string;editorOnly?:boolean;referenceLibrary?:ReferenceBuildingLibrary;canPlace?:(p:{x:number;z:number})=>boolean;onResolved?:(entries:Entry[])=>void;onPads?:(pads:Rect[])=>void;onColliders?:(pads:Rect[])=>void;onAuthoredColliders?:(pads:Rect[])=>void;onPan?:(x:number,z:number)=>void;onFocus?:(x:number,z:number)=>void}){
+ const {map,height}=options,key=options.storageKey??`cyberbase.world-editor.${map}.v1`,library=createPropLibrary(options.anisotropy,undefined,map==='base',options.referenceLibrary),streaming=createEditorStreaming(scene,(options.authored??[]).map(a=>a.object)),root=streaming.root;
  const additional=new Map((options.additionalAssets??[]).map(a=>[a.id,a]));
  const authored=new Map((options.authored??[]).map(a=>[a.id,a])),originals=new Map<string,Entry>(),objects=new Map<string,T.Object3D>();
  for(const a of authored.values()){originals.set(a.id,{id:a.id,source:a.id,...capture(a.object),...(a.length===undefined?{}:{length:a.length})});objects.set(a.id,a.object);a.object.matrixAutoUpdate=true;a.object.userData.editorManaged=true;}

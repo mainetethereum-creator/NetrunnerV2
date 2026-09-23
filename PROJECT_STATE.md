@@ -1,8 +1,17 @@
 # Project state — Netrunner / CyberBase
 
-Last updated: 2026-09-20 · repository `mainetethereum-creator/NetrunnerV2`; current working branch `feature/ui-kit-3d` · architecture refactor steps 1–4 and owner-requested Base environment work. Step 5 is not signed off.
+Last updated: 2026-09-24 · repository `mainetethereum-creator/NetrunnerV2`; current working branch `main` · architecture refactor steps 1–4 and owner-requested Base environment work. Step 5 is not signed off.
 
 ## Implemented (the working game — must be preserved)
+
+- **Desktop graphics/loading pass (2026-09-24, local):** shared-image reference
+  models remove 4,409,999 file bytes from the ten published facades. Base uses one
+  resource-owning building library across placements and editor, bounded model
+  preparation, and async final-scene shader warmup. Rain and scrolling sign text
+  animate with shader uniforms. The local 1280×900 High inspection reduced texture,
+  geometry and program object counts, but did not establish an FPS improvement.
+  Rain and approved visuals remain enabled. Foliage sectors/local-light branches
+  are disabled development experiments. See `docs/graphics-performance-audit-2026-09-24.md`.
 
 - **Persistent runtime asset cache (2026-09-21, local):** production marks
   `/game/*` and `/base/models/*` as immutable for one year, so returning players
@@ -13,7 +22,8 @@ Last updated: 2026-09-20 · repository `mainetethereum-creator/NetrunnerV2`; cur
 - **Base mobile responsiveness (2026-09-21, local):** movement/collision use the
   shared loop's fixed 60 Hz step with render interpolation. Mobile walking keeps a
   static city VSM shadow and cheap runner contact shadow instead of refreshing the
-  full atlas at 10 Hz; facade canvas uploads run at 4 Hz. Adaptive resolution may
+  full atlas at 10 Hz; facade captions now scroll through uniforms without repeated
+  canvas uploads (2026-09-24). Adaptive resolution may
   fall to 55% / DPR 0.6 before the stable 30 FPS fallback. Mobile rain, fountain,
   petals, steam, mist and point lights have lower transparent/fill cost. Desktop lighting and
   saved V2 / Game POV compositions remain unchanged. Physical-phone profiling is owed.

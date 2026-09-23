@@ -64,7 +64,7 @@ test('train advances in metres at the same speed across frame rates and wraps ou
     assert.ok(Math.abs(heading - here.yaw) < .003, 'car orientation follows its own route tangent');
   }
   assert.deepEqual(sampleRailRoute(0), { x: -16, z: -28.5, yaw: 0 });
-  assert.deepEqual(sampleRailRoute(RAIL_BEND.start), { x: 12, z: -28.5, yaw: 0 });
+  assert.deepEqual(sampleRailRoute(RAIL_BEND.start), { x: 20, z: -28.5, yaw: 0 });
   assert.equal(sampleRailRoute(RAIL_BEND.end).yaw, -RAIL_BEND.angle);
   assert.equal(sampleRailRoute(60).yaw, -RAIL_BEND.angle, 'the saved city alignment remains unchanged');
   assert.equal(sampleRailRoute(120).yaw, -RAIL_BEND.angle, 'the live extension leaves eastwards, away from the garden');
@@ -98,6 +98,8 @@ test('curved railway clears the saved buildings and pier rectangles match each l
   // Current owner map: base-with-wallet-tower-saved-2026-09-18.json.
   // Keep the compact route behind both advertising towers.
   const tallBuildings = [
+    { name: 'east portrait tower', x: 23.122033735632755, z: -19.052, w: 11.2, d: 9.975 },
+    { name: 'rear directorate tower', x: 31.93913606961324, z: -33.00591419920105, w: 13.8, d: 3.3 },
     { name: 'media tower', x: -11, z: -19, w: 8.96, d: 7.98 },
     { name: 'wallet tower', x: 7.3151, z: -18.769195014829442, w: 8.2, d: 7.64 },
     { name: 'neon residence', x: -20.5199, z: -11.9723, w: 12.112, d: 10.92 },

@@ -1,4 +1,128 @@
-# AI handoff — 2026-09-20
+# AI handoff — 2026-09-24
+
+## Release request — main / Vercel (2026-09-24)
+
+Owner explicitly authorized committing and pushing the completed updates to
+`main`. Destination: `mainetethereum-creator/NetrunnerV2`, Vercel project
+`netrunner-cyberbase`, public game `https://netrunner-cyberbase.vercel.app/base`.
+Release includes the graphics/loading pass below and the existing completed
+skyline, rail clearance, back-mounted sword and development cinema work required
+by the current tested tree. Earlier local commits for immutable caching and
+restored facade lighting were also still ahead of origin/main. Temporary movie
+frames, the reference contact sheet, environment files and `.vercel/` are excluded.
+Pre-release checks: 264 tests, lint, TypeScript and production build passed;
+development capture/editor routes are absent from production output. Push and
+Vercel deployment status are verified separately after the release commit.
+
+## Current — desktop graphics/loading audit (2026-09-24)
+
+See `docs/graphics-performance-audit-2026-09-24.md` for measured results, accepted
+changes and deferred experiments. Implemented lossless shared-image variants for
+17 reference models (published ten save 4,409,999 file bytes), one Base-owned
+reference library, static child matrices, bounded production model preparation
+(desktop 2/touch 1), final-layout async shader warmup with safe cancellation,
+uniform-scrolled facade tickers and GPU rain movement. Shared model cache key is
+`20260924-3`; relative external-image URIs and silent missing-map fallback tested.
+Source GLBs remain fallbacks; facade/Sakura KTX2 variants remain disabled.
+
+Live Base High 1280×900: texture objects 115→93, geometry objects 373→289,
+programs 217→89. Frame cadence remains about 18.2 ms; no reliable FPS improvement
+is established. GPU sample about 10.4 ms. Rain stays enabled: off produced no
+meaningful gain. 16 m foliage batching and local-light branch experiments are
+dev-only opt-ins (`perfSectors=1`, `perfLights=1`) and default OFF. `/base?perf=1`
+adds a DOM frame/GPU/network probe; `perfRain=0` and `perfReflection=0` isolate
+costs without persisting settings. GPU timers are optional/nonblocking.
+
+Owner's 47-entry browser map was exported/saved before reloading; it differs from
+the published 40-entry layout, and neither map nor saved camera was replaced.
+Verified facade/flower/reflector appearance and click-to-walk/follow. Tests 264/264,
+lint, tsc and production build pass. No real phone/integrated laptop or thermal
+test. Main remaining cost: many local lights and reflection pass; see report for
+LOD/sector prerequisites. Keep existing dev server/tab, preserve dirty trailer,
+sword and skyline changes. No commit/push/deploy in this pass.
+
+## Base High-path rendering budget (2026-09-24)
+
+Found that the desktop High wet-floor Reflector rendered the whole scene a second
+time on every visible frame. Gameplay now caps this reflection at 25 Hz and uses a
+512 × 512 target instead of 768 × 768; cinematic capture explicitly forces per-frame
+updates. High bloom/compositor MSAA is 2× instead of 4×. The main render and its
+lighting, bloom, rain and reflections stay enabled; Auto's existing fallback policy
+is unchanged. Moving hero and train meshes no longer cast into the 2048 VSM atlas,
+so their movement no longer requests repeated full-scene shadow renders. Static city
+shadows remain, and the hero has a soft contact shadow on desktop and mobile. Lint
+and TypeScript pass. Local desktop High loaded at 60 FPS, retained its lighting,
+reflections and facade shadows, and remained at 60 FPS after a short movement check.
+Tests were not run during that earlier pass. The newer measured audit above
+supersedes its FPS badge observation; representative laptop and phone A/B remains outstanding.
+No commit, push, deployment, or map/camera edits.
+
+## Latest work — trailer V3, Mixamo walk and Outlands horizon (2026-09-22)
+
+Owner rejected V2 procedural walk. Downloaded Unarmed Walk Forward from their
+Mixamo account after they signed in, exported FBX without skin, 30 FPS, no
+key reduction. Retarget script and 108 KB registered clip replace procedural
+walking for capture only. Stride drives animation cadence; 25 hero bones match,
+loop closure and pelvis transfer tested. Wider garden/storefront cameras show
+more city; garden route moved beside fountain to avoid foreground lantern.
+
+Expedition gameplay now has a 135 KB ruined-settlement panorama and non-playable
+outer ground aprons. Removed the old blank distant box silhouettes that obscured
+the panorama. Mirrored panorama UVs remove its visible vertical seam. Capture
+lighting/fog are slightly dimmer; normal gameplay lights remain unchanged.
+No saved map/camera or navigation bounds modified.
+
+Delivered `output/trailer/CyberBase-Nightfall-v3-1080p.mp4` (143,320,013 bytes),
+48 s, 1080p30. Re-recorded shots 02, 03 and 07; other V2 shots and soundtrack
+retained. V1/V2 movies preserved. Reviewed previews and final contact sheet;
+all 1,440 video frames decode. Tests 245/245, lint, TypeScript and production
+build pass. Cinema page/API absent from production routes. Capture console
+reported no errors. Physical phone and full-map boundary sweep not tested.
+Temporary capture tab closed; Mixamo left open at the selected motion and
+owner Base tab/dev server retained. No commit/push/deploy. See cinema-trailer.md.
+
+## Previous work — trailer V2, city backdrop and tower clearance (2026-09-22)
+
+Delivered `output/trailer/CyberBase-Nightfall-v2-1080p.mp4`: 48 s, 1080p30,
+144,363,803 bytes. Original movie retained. Re-recorded all seven Base sequences;
+unchanged Expedition shot and original rain/train soundtrack reused. Garden and
+storefront shots now include a slow procedural character walk (capture only).
+Reviewed start/middle/end previews, walking poses and final eight-shot contact
+sheet. All 1,440 encoded video frames decode successfully. Audio stream encoded;
+this FFmpeg build cannot independently decode AAC.
+
+Actual gameplay changes: registered 233 KB photographic city panorama on a
+separate background dome; railway bend delayed eight metres to clear eastern
+portrait tower. Dome is excluded from editor surface enumeration, preserving
+saved IDs. No saved map/camera changes. See `docs/cinema-trailer.md` and
+`docs/base-elevated-rail.md`. Tests 243/243, lint, TypeScript and production build
+pass; capture page/API are absent from production route output. No physical
+phone validation this turn. Temporary capture tab closed; owner server/tab kept.
+No commit/push/deploy. Preserve existing unrelated sword work.
+
+## Previous work — atmospheric trailer (2026-09-22)
+
+Created `output/trailer/CyberBase-Nightfall-1080p.mp4`: 48 seconds, 1920×1080,
+30 fps, H.264 at ~24 Mbps with AAC stereo. Seven Base shots and one six-second
+Expedition insert show the real scenes with no HUD/player/interaction markers.
+The soundtrack is original procedural rain, synth, train and industrial wind.
+All 1,440 frames were saved at fixed simulation steps, checked for dimensions and
+decoded successfully after encoding. Camera start/middle/end samples were reviewed;
+the obstructed train approach was replaced by a top-down tracking shot. Final
+independent visual review prompted two pickups: the cafe starts past foreground
+cables, and the narrower train frame removes the early map-edge wedge. Both fixes
+were visually confirmed before replacing those sequences in the final encode.
+
+Reusable development-only capture page and same-origin local frame sink:
+`/editor/cinema`, `/api/cinema`. See `docs/cinema-trailer.md` for reproduction.
+Lighting/exposure adjustments apply only to this capture scene; normal gameplay
+and saved map/camera presets are unchanged. Large footage is ignored in Git under
+`output/trailer/`. The temporary capture tab was closed; the existing owner dev
+server and Base tab remain. No commit, push or deployment for this task.
+
+Checks: 243 tests, lint, TypeScript and production build passed. Production route
+output contains only `/`, `/base`, `/expedition`, `/metro` and not-found; cinema
+page/API are excluded. Existing sword-back-mount edits below were preserved.
 
 Repository: `mainetethereum-creator/NetrunnerV2`, working branch `feature/ui-kit-3d`.
 Preserve the shared dirty tree. Architecture step 5 is not signed off. Owner authorized commit, push and Vercel deployment on 2026-09-19. Previous detailed handoff: `docs/archive/AI_HANDOFF-before-map-restore-2026-09-18.md`.
@@ -738,6 +862,13 @@ false, restoring the approved source GLBs. Generated variants remain offline for
 future material-parity work; the Stage 5 shared concrete KTX2 texture stays enabled.
 
 # Latest task completed: persistent runtime asset cache
+
+2026-09-22: owner requested a temporary back carry for the warrior sword.
+CombatDriver now calls setBackMount after creating the weapon. The mount is attached
+to the upper spine with a diagonal downward blade, using measured body axes and
+compensating the skeleton scale. Hand mounting remains available for future work;
+combat behavior is unchanged. Local scene loaded; close-up movement inspection is
+still needed to approve exact clearance against the coat.
 
 Production config now gives `/game/*` and `/base/models/*` a one-year immutable
 browser cache. Returning players reuse heavy models, textures, KTX2 and decoder

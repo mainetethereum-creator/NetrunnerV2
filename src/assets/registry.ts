@@ -8,6 +8,9 @@
 export type RefugeBuildingModel = "workshop" | "oracle" | "city-gate";
 
 export const ASSET_URLS = {
+  cityBackdrop: '/game/backgrounds/cybercity-night-v1.webp',
+  outlandsBackdrop: '/game/backgrounds/outlands-ruins-night-v1.webp',
+  cinemaWalk: '/game/animations/sentinel-walk-v1.json',
   /** Directory with three.js' Draco decoder (draco_wasm_wrapper.js, draco_decoder.wasm, draco_decoder.js). */
   dracoDecoder: "/game/draco/",
   /** Directory with the three.js Basis Universal transcoder used by KTX2Loader. */
@@ -49,6 +52,12 @@ export const ASSET_URLS = {
     outskirtsWreck: "/game/buildings/outskirts-wreck-v1/outskirts-wreck.glb",
     outskirtsBarrier: "/game/buildings/outskirts-barrier-v1/outskirts-barrier.glb",
     outskirtsGround: "/game/buildings/outskirts-ground-v1/outskirts-ground.glb",
+  },
+  /** Exact-pixel GLBs with repeated JPEGs externalized; source URLs above remain fallbacks. */
+  referenceBuildingShared: (sourceUrl: string) => sourceUrl.replace(/\.glb$/, '-shared.glb'),
+  buildingSharedImages: {
+    surface: '/game/textures/building-shared-v1/surface-e3b7c430.jpg',
+    concrete: '/game/textures/building-shared-v1/concrete-ad1a863d.jpg',
   },
   /** UI artwork imported from the CyberBase UI kits (`scripts/import-ui-kits.mjs`). Text is never baked in. */
   ui: {
@@ -111,6 +120,8 @@ export function registeredAssetFiles(): string[] {
     ASSET_URLS.buildingAtlas,
     ASSET_URLS.buildingSurfaceKtx2,
     ...Object.values(ASSET_URLS.referenceBuildings),
+    ...Object.values(ASSET_URLS.referenceBuildings).map(ASSET_URLS.referenceBuildingShared),
+    ...Object.values(ASSET_URLS.buildingSharedImages),
     ...KTX2_REFERENCE_BUILDINGS.map(key => ASSET_URLS.referenceBuildings[key].replace(/\.glb$/, "-ktx2.glb")),
     ...REFUGE_BUILDINGS.map(ASSET_URLS.refugeBuilding),
     ...Object.values(ASSET_URLS.ui.hubBackdrop),
